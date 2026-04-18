@@ -1,570 +1,451 @@
 {
   "meta": {
-    "version": "0.3",
-    "updated": "2026-04-19",
-    "description": "Homelab Ideas – getrennt vom Haupt-State",
-    "main_state": "homelab-state.json"
+    "version": "1.0",
+    "updated": "2026-04-18",
+    "description": "Homelab Wiki – Wissensbasis, Snippets, Gotchas. Separat von homelab-ideas.json.",
+    "main_state": "homelab-state.json",
+    "schema": "namespaces + articles"
   },
-  "ideas": [
+  "namespaces": [
     {
-      "id": "idea-001",
-      "title": "Eigene Domain kaufen",
-      "desc": "",
-      "phase_id": "phase2",
-      "step_id": "p2-ddns",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "DNS",
-        "Web"
-      ],
-      "comments": []
+      "id": "proxmox",
+      "label": "Proxmox",
+      "color": "teal",
+      "desc": "Installation, Konfiguration, Autostart"
     },
     {
-      "id": "idea-002",
-      "title": "Let's Encrypt Wildcard Zertifikate",
-      "desc": "",
-      "phase_id": "phase2",
-      "step_id": "p2-reverseproxy",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "TLS",
-        "Security"
-      ],
-      "comments": []
+      "id": "netzwerk",
+      "label": "Netzwerk",
+      "color": "blue",
+      "desc": "DNS, Bridges, DoH, Routing"
     },
     {
-      "id": "idea-003",
-      "title": "Homelab-Blog öffentlich hosten",
-      "desc": "",
-      "phase_id": "phase3",
-      "step_id": "p3-webserver",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "Web",
-        "Docs"
-      ],
-      "comments": []
+      "id": "dienste",
+      "label": "Dienste",
+      "color": "purple",
+      "desc": "Self-hosted (AdGuard, Vaultwarden, Gitea)"
     },
     {
-      "id": "idea-004",
-      "title": "Matrix Homeserver",
-      "desc": "",
-      "phase_id": "phase3",
-      "step_id": "p3-chat",
-      "prio": "low",
-      "status": "idea",
-      "tags": [
-        "Chat",
-        "Matrix"
-      ],
-      "comments": []
+      "id": "tools",
+      "label": "Tools",
+      "color": "purple",
+      "desc": "vim, PowerShell, CLI-Utilities"
     },
     {
-      "id": "idea-005",
-      "title": "Backup-Strategie (3-2-1 Regel)",
-      "desc": "",
-      "phase_id": null,
-      "step_id": null,
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Backup",
-        "Restic"
-      ],
-      "comments": []
-    },
+      "id": "recovery",
+      "label": "Recovery",
+      "color": "amber",
+      "desc": "Runbooks für Störungen und Notfälle"
+    }
+  ],
+  "articles": [
     {
-      "id": "idea-006",
-      "title": "Mini-Rack anschaffen",
-      "desc": "",
-      "phase_id": null,
-      "step_id": null,
-      "prio": "low",
-      "status": "idea",
-      "tags": [
-        "Hardware"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-007",
-      "title": "Tailscale als WireGuard-Alternative testen",
-      "desc": "",
-      "phase_id": "phase2",
-      "step_id": "p2-wireguard",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "VPN",
-        "Tailscale"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-008",
-      "title": "Terraform für Proxmox-Provisioning",
-      "desc": "",
-      "phase_id": "phase3",
-      "step_id": "p3-ansible",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "IaC",
-        "Terraform"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-009",
-      "title": "Dedizierter Mini-Server (z.B. Mini-PC / N100)",
-      "desc": "",
-      "phase_id": null,
-      "step_id": null,
-      "prio": "low",
-      "status": "idea",
-      "tags": [
-        "Hardware"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-010",
-      "title": "Proxmox Backup-VM mit PBS einrichten",
-      "desc": "Proxmox Backup Server als eigene VM – automatische Backups aller VMs",
-      "phase_id": "phase1",
+      "id": "doc-001",
+      "title": "Proxmox unter Hyper-V (nested virtualization)",
+      "namespace": "proxmox/installation",
+      "tags": ["Proxmox", "Hyper-V", "nested virt", "Windows 11"],
       "step_id": "p1-proxmox-vm",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Backup",
-        "Proxmox",
-        "PBS"
-      ],
-      "comments": [
+      "summary": "Proxmox VE als nested VM unter Windows 11 Hyper-V betreiben – ohne Dualboot, Windows bleibt unangetastet.",
+      "snippets": [
         {
-          "id": "c-001",
-          "date": "2026-04-16",
-          "text": "Direkt nach der ersten Proxmox-Installation einplanen – bevor irgendwas kaputt gehen kann",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-011",
-      "title": "IKEv2 / IPsec VPN aufsetzen",
-      "desc": "Enterprise-VPN-Protokoll als Ergänzung zu WireGuard. StrongSwan als IKEv2/IPsec-Daemon. Direkter Vergleich beider Protokolle – jobrelevant im Network Engineering.",
-      "phase_id": "phase2",
-      "step_id": "p2-wireguard",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "VPN",
-        "IKEv2",
-        "IPsec",
-        "StrongSwan"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-012",
-      "title": "Syslog-Server + interner NTP",
-      "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog oder Graylog). Interner NTP-Server via Chrony – Pflicht für Zertifikate, Kerberos und konsistente Log-Timestamps.",
-      "phase_id": "phase2",
-      "step_id": null,
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Syslog",
-        "NTP",
-        "Logging",
-        "Chrony"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-013",
-      "title": "TACACS+ Server einrichten",
-      "desc": "AAA für Netzwerkgeräte. tac_plus oder Cisco ISE-Alternative. Privilege Levels, Command Authorization.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "TACACS+",
-        "AAA",
-        "NetOps",
-        "Security"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-014",
-      "title": "RADIUS Server (FreeRADIUS)",
-      "desc": "FreeRADIUS für 802.1X Auth, WiFi-Authentifizierung und VPN-Auth.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "RADIUS",
-        "FreeRADIUS",
-        "AAA",
-        "802.1X"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-015",
-      "title": "Access Server für TACACS+ Device Login",
-      "desc": "VM als simuliertes Netzwerkgerät. Login-Flow via TACACS+ üben: Privilege Levels, Command Authorization, Accounting.",
-      "phase_id": "phase4",
-      "step_id": null,
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "TACACS+",
-        "AAA",
-        "Lab",
-        "Netzwerk"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-016",
-      "title": "Oxidized – Network Config Backup",
-      "desc": "Moderner Rancid-Nachfolger. Holt Configs von Netzwerkgeräten automatisch per SSH und versioniert sie in Git.",
-      "phase_id": "phase3",
-      "step_id": "p3-git",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "Oxidized",
-        "Rancid",
-        "NetOps",
-        "Git"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-017",
-      "title": "AWX / Semaphore als Ansible UI",
-      "desc": "Web-Frontend für Ansible Playbooks. Job-Scheduling ähnlich Autosys.",
-      "phase_id": "phase3",
-      "step_id": "p3-ansible",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "Ansible",
-        "AWX",
-        "Semaphore",
-        "Automation"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-018",
-      "title": "PrivateBin – verschlüsselter Paste-Service",
-      "desc": "Self-hosted Paste-Service mit clientseitiger Verschlüsselung. Ergänzung zu Vaultwarden.",
-      "phase_id": "phase3",
-      "step_id": "p3-vaultwarden",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "PrivateBin",
-        "Security",
-        "Self-hosted"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-019",
-      "title": "Berechtigungskonzept & IAM",
-      "desc": "Zentrales Konzept wer was wie ausführen darf. Proxmox-User-Rollen, sudo-Policies auf VMs, Service-Accounts, Principle of Least Privilege. Dokumentiert als Policy-Dokument.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "IAM",
-        "Security",
-        "Permissions",
-        "RBAC",
-        "sudo"
-      ],
-      "comments": [
-        {
-          "id": "c-002",
-          "date": "2026-04-17",
-          "text": "Gilt für: Proxmox-UI (Rollen/Gruppen), Linux-VMs (sudo, PAM), Dienste (API-Keys, Service-Accounts), Netzwerkgeräte (TACACS+ Privilege Levels). Alles zusammen = vollständiges IAM-Konzept.",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-020",
-      "title": "DHCP Server (interner Adressvergabe)",
-      "desc": "Eigener DHCP-Server statt Router-DHCP. Feste IP-Reservierungen per MAC-Adresse, DHCP-Scopes pro VLAN/Subnetz. Kea DHCP oder direkt in AdGuard/OPNsense integriert.",
-      "phase_id": "phase2",
-      "step_id": "p2-dns",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "DHCP",
-        "Netzwerk",
-        "Kea",
-        "IP-Management"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-021",
-      "title": "WLAN Controller (Wireless Management)",
-      "desc": "Zentrales Management für WLAN-Geräte. OpenWRT Access Points via Controller verwalten, SSIDs pro VLAN, WPA Enterprise mit RADIUS. Mögliche Lösungen: OpenWRT + LuCI, hostapd, oder Unifi Controller selbst gehosted.",
-      "phase_id": "phase2",
-      "step_id": "p2-vlans",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "WLAN",
-        "WiFi",
-        "Controller",
-        "OpenWRT",
-        "Unifi"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-022",
-      "title": "Ansible Base-Playbook für neue VMs/Container",
-      "desc": "Standardisiertes Playbook das jede neue VM/CT sofort produktionsbereit macht: apt update, curl/vim/git/ufw installieren, SSH hardening, Zeitzone setzen, Monitoring-Agent deployen. Einmal schreiben, immer wiederverwenden.",
-      "phase_id": "phase3",
-      "step_id": "p3-ansible",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Ansible",
-        "Automation",
-        "IaC",
-        "Hardening"
-      ],
-      "comments": [
-        {
-          "id": "c-003",
-          "date": "2026-04-17",
-          "text": "Trigger: Beim manuellen curl-Install auf adguard Container aufgefallen. Jede neue VM braucht dieselben Basis-Pakete. Ansible-Playbook schreiben sobald Grundinfra steht.",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-023",
-      "title": "PuTTY / SSH-Zugang für Windows",
-      "desc": "PuTTY oder Windows Terminal für direkten SSH-Zugang zu VMs statt Proxmox Browser-Console. ssh root@192.168.0.201 direkt aus Windows Terminal. Schneller, komfortabler, Copy-Paste funktioniert richtig.",
-      "phase_id": "phase1",
-      "step_id": "p1-linux-vm",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "SSH",
-        "PuTTY",
-        "Windows",
-        "Terminal"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-024",
-      "title": "SSH Key-basierte Authentifizierung",
-      "desc": "SSH-Keys statt Passwort für alle VMs/Container. ssh-keygen auf Windows, public key auf Server deployen. Sicherer als Passwort, kein Eintippen mehr nötig. Passwort-Auth danach deaktivieren.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "SSH",
-        "Security",
-        "Keys",
-        "Hardening"
-      ],
-      "comments": [
-        {
-          "id": "c-004",
-          "date": "2026-04-17",
-          "text": "Gehört ins Berechtigungskonzept (idea-019) – SSH-Keys sind Grundlage für sicheren Zugang ohne Passwort-Risiko.",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-025",
-      "title": "Home Assistant – Smarthome Integration",
-      "desc": "Home Assistant als VM/Container in Proxmox. Philips Hue Bridge ersetzen oder integrieren, Automationen, lokale Steuerung ohne Cloud. Später erweiterbar auf weitere Smarthome-Geräte.",
-      "phase_id": "phase3",
-      "step_id": null,
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "HomeAssistant",
-        "Smarthome",
-        "Philips Hue",
-        "Automation"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-026",
-      "title": "AdGuard Autostart & Fallback DNS",
-      "desc": "Proxmox VM auf Autostart setzen (Hyper-V), AdGuard Container auf Autostart in Proxmox. Router-DNS als Fallback (8.8.8.8) damit bei Ausfall kein kompletter DNS-Ausfall entsteht.",
-      "phase_id": "phase2",
-      "step_id": "p2-dns",
-      "prio": "high",
-      "status": "in-progress",
-      "tags": [
-        "AdGuard",
-        "Autostart",
-        "Redundanz",
-        "DNS"
-      ],
-      "comments": [
-        {
-          "id": "c-005",
-          "date": "2026-04-17",
-          "text": "Single Point of Failure wenn Proxmox VM down ist. Fallback-DNS am Router als Absicherung eintragen.",
-          "edited": false
+          "title": "Nested Virtualization aktivieren",
+          "lang": "powershell",
+          "code": "Set-VMProcessor -VMName \"Proxmox\" -ExposeVirtualizationExtensions $true"
         },
         {
-          "id": "c-006",
-          "date": "2026-04-18",
-          "text": "Autostart-Versuch führte zu Proxmox-Ausfall – nicht durch Set-VM selbst, sondern weil vorher existierende nic0/eth0 Inkonsistenz in /etc/network/interfaces nach Neustart sichtbar wurde. Nach Fix (p1-recovery): Hyper-V-Seite via Set-VM gesetzt, Container-Seite via pct set 100 --onboot 1 --startup order=1,up=10,down=60. Reboot-Test steht aus.",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-027",
-      "title": "Passwort-Manager VOR kritischen Änderungen",
-      "desc": "Vor jeder großen Infrastruktur-Änderung: alle relevanten Zugangsdaten in Bitwarden/Vaultwarden dokumentieren. Root-Passwörter von VMs, BIOS-Passwörter, GRUB-Passwörter, SSH-Keys. Lessons Learned: Proxmox-Root-Passwort vergessen → GRUB-Recovery nötig.",
-      "phase_id": "phase3",
-      "step_id": "p3-vaultwarden",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Security",
-        "Passwörter",
-        "Dokumentation",
-        "Vaultwarden"
-      ],
-      "comments": [
+          "title": "Secure Boot deaktivieren",
+          "lang": "powershell",
+          "code": "Set-VMFirmware -VMName \"Proxmox\" -EnableSecureBoot Off"
+        },
         {
-          "id": "c-007",
-          "date": "2026-04-18",
-          "text": "Übergangslösung bis Vaultwarden läuft: Windows Passwort-Manager oder KeePass-Datei auf Y:/HomeLab/.secrets/ mit .gitignore (NICHT in Repo!).",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-028",
-      "title": "Recovery-Runbook als dokumentiertes Verfahren",
-      "desc": "Eigener Wiki-Bereich 'recovery/' mit Schritt-für-Schritt-Anleitungen für typische Notfälle: GRUB Passwort-Reset (done: doc-006), Netzwerk nicht erreichbar (done: doc-007), Proxmox VM korrupt, Container corrupted. Jeweils mit 'wenn X passiert, dann Y machen'.",
-      "phase_id": "phase3",
-      "step_id": "p3-dokuwiki",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Recovery",
-        "Doku",
-        "Runbook",
-        "Disaster Recovery"
-      ],
-      "comments": []
-    },
-    {
-      "id": "idea-029",
-      "title": "Snapshot vor Netzwerk-Änderungen",
-      "desc": "Proxmox-VM-Snapshot in Hyper-V anlegen bevor kritische Config-Änderungen (interfaces, DNS, Firewall) gemacht werden. Checkpoint-VM -VMName 'Proxmox' -SnapshotName 'pre-<aktion>-<datum>'. Rollback in Sekunden wenn was schiefgeht.",
-      "phase_id": "phase1",
-      "step_id": "p1-autostart",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "Backup",
-        "Snapshot",
-        "Hyper-V",
-        "Safety"
-      ],
-      "comments": [
+          "title": "Externen Switch erstellen (Heimnetz-Zugang)",
+          "lang": "powershell",
+          "code": "New-VMSwitch -Name \"ExternalSwitch\" -NetAdapterName \"Ethernet\" -AllowManagementOS $true\nGet-VMNetworkAdapter -VMName \"Proxmox\" | Connect-VMNetworkAdapter -SwitchName \"ExternalSwitch\""
+        },
         {
-          "id": "c-008",
-          "date": "2026-04-18",
-          "text": "Hätte heutigen Recovery-Marathon auf 30s reduziert: Snapshot → nic0/eth0 Fix versuchen → wenn broken: Restore. Snapshots NICHT als Backup-Ersatz nutzen, aber für operative Änderungen Gold wert.",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-030",
-      "title": "vim-Konfiguration .vimrc für Admin-Komfort",
-      "desc": "Minimale .vimrc auf Proxmox und allen Admin-VMs: syntax on, set number, set hlsearch, set incsearch, set expandtab, set tabstop=4. Macht vim nutzbar ohne vim-Guru zu sein.",
-      "phase_id": "phase3",
-      "step_id": "p3-ansible",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "vim",
-        "Ansible",
-        "Konfiguration",
-        "DX"
-      ],
-      "comments": [
+          "title": "MAC Spoofing aktivieren (Pflicht für LXC Container)",
+          "lang": "powershell",
+          "code": "Stop-VM -Name \"Proxmox\" -Force\nSet-VMNetworkAdapter -VMName \"Proxmox\" -MacAddressSpoofing On\nStart-VM -Name \"Proxmox\""
+        },
         {
-          "id": "c-009",
-          "date": "2026-04-18",
-          "text": "Gehört ins Ansible Base-Playbook (idea-022) – jede neue VM bekommt standardisierte vim-Config.",
-          "edited": false
+          "title": "VM-Konfiguration (empfohlen)",
+          "lang": "text",
+          "code": "Generation:       2 (UEFI)\nRAM:              16 GB, FEST (kein Dynamic Memory!)\nCPU:              8 vCores\nDisk:             120 GB VHDX, dynamic expanding\nSecure Boot:      Off\nIntegration Svc:  default\nNetwork Adapter:  ExternalSwitch, MAC Spoofing: On"
         }
+      ],
+      "gotchas": [
+        "Kein Dynamic RAM: Proxmox plant RAM beim Start für seine eigenen VMs. Hyper-V Dynamic Memory entzieht RAM im laufenden Betrieb → VMs inside Proxmox können abstürzen. Immer festes RAM zuweisen.",
+        "Dynamic Disk ist OK: Proxmox sieht immer die volle Disk-Größe. Hyper-V belegt auf der SSD nur was tatsächlich genutzt wird – kein Risiko.",
+        "Default Switch hat falsches Subnetz: Hyper-V Default Switch nutzt 172.31.x.x. Für Heimnetz-Zugang (192.168.x.x) einen ExternalSwitch auf dem physischen Ethernet-Adapter erstellen.",
+        "Generation 2 wählen: Generation 1 hat kein UEFI – Proxmox braucht Gen 2. Secure Boot danach deaktivieren da kein Windows-Zertifikat vorhanden.",
+        "MAC Spoofing muss aktiv sein bevor LXC Container erstellt werden – sonst bekommen die Container kein Netz (Hyper-V blockt unbekannte MACs). Set-VMNetworkAdapter funktioniert nur bei gestoppter VM."
+      ],
+      "links": [
+        { "title": "Proxmox VE Download", "url": "https://www.proxmox.com/en/downloads/proxmox-virtual-environment/iso" },
+        { "title": "Proxmox Wiki – Installation", "url": "https://pve.proxmox.com/wiki/Installation" },
+        { "title": "Microsoft – Nested Virtualization", "url": "https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/nested-virtualization" }
       ]
     },
     {
-      "id": "idea-031",
-      "title": "Startup-Monitoring – wer startet wann nach Reboot?",
-      "desc": "Uptime Kuma oder eigenes Script das nach Windows-Reboot protokolliert: wann kommen Proxmox, vmbr0, Container, DNS, Web-UI hoch? Timeline-Log zum Optimieren von AutomaticStartDelay und pct startup-Werten.",
-      "phase_id": "phase4",
-      "step_id": "p4-uptime",
-      "prio": "low",
-      "status": "idea",
-      "tags": [
-        "Monitoring",
-        "Uptime",
-        "Boot-Performance"
+      "id": "doc-002",
+      "title": "Proxmox Community-Repo einrichten (No-Subscription)",
+      "namespace": "proxmox/konfiguration",
+      "tags": ["Proxmox", "APT", "Repository", "Updates"],
+      "step_id": "p1-proxmox-config",
+      "summary": "Nach jeder frischen Proxmox-Installation: Enterprise-Repos deaktivieren, kostenloses No-Subscription-Repo aktivieren, System updaten.",
+      "snippets": [
+        {
+          "title": "Enterprise-Repos deaktivieren + No-Subscription aktivieren",
+          "lang": "bash",
+          "code": "# Enterprise-Repos auskommentieren\nsed -i \"s/^deb/#deb/\" /etc/apt/sources.list.d/pve-enterprise.list\nsed -i \"s/^deb/#deb/\" /etc/apt/sources.list.d/ceph.list\n\n# No-Subscription-Repo hinzufügen\necho \"deb http://download.proxmox.com/debian/pve trixie pve-no-subscription\" > /etc/apt/sources.list.d/pve-no-subscription.list\n\n# Update & Upgrade\napt-get update && apt-get dist-upgrade -y"
+        },
+        {
+          "title": "No-Subscription-Popup deaktivieren",
+          "lang": "bash",
+          "code": "# Im Web-UI erscheint sonst bei jedem Login ein Popup\nsed -i \"s/res === null || res === undefined || !res || res\\n.data.status.toLowerCase() !== 'active'/false/g\" \\\n    /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js\n\nsystemctl restart pveproxy"
+        }
       ],
-      "comments": []
+      "gotchas": [
+        "Die Warnung 'not recommended for production use' ist für Homelabs irrelevant – No-Subscription ist stabil und wird von der Community standardmäßig genutzt.",
+        "Ceph Enterprise-Repo ebenfalls deaktivieren – auch dieses braucht eine Subscription und wirft sonst Fehler beim apt-get update.",
+        "Nach dem Repo-Wechsel einmal apt-get update ausführen bevor Upgrades installiert werden.",
+        "Der Popup-Fix muss nach jedem pve-manager Update erneut angewendet werden – Datei wird bei Updates überschrieben."
+      ],
+      "links": [
+        { "title": "Proxmox Wiki – Package Repositories", "url": "https://pve.proxmox.com/wiki/Package_Repositories" }
+      ]
     },
     {
-      "id": "idea-033",
-      "title": "Raspberry Pi Zero 2 W als Secondary DNS (HA)",
-      "desc": "Pi Zero 2 W (~15-18€) als permanenter Secondary DNS – unabhängig von Proxmox und Hyper-V. Läuft 24/7 mit ~1-2W. AdGuard Home oder Pi-hole drauf. Wenn Proxmox down ist springt der Pi automatisch ein. Erste physische Hardware im Homelab.",
-      "phase_id": "phase2",
+      "id": "doc-003",
+      "title": "AdGuard Home als LXC Container – Vollständiges Setup",
+      "namespace": "dienste/adguard",
+      "tags": ["AdGuard", "DNS", "LXC", "DoH", "Blocklists"],
       "step_id": "p2-dns",
-      "prio": "medium",
-      "status": "idea",
-      "tags": [
-        "DNS",
-        "Raspberry Pi",
-        "HA",
-        "Redundanz",
-        "Hardware"
-      ],
-      "comments": [
+      "summary": "AdGuard Home als LXC Container in Proxmox. DNS-Filter, DoH Upstream via Cloudflare, Router-Integration, Blocklisten. Inkl. Troubleshooting für blockierten Port 53.",
+      "snippets": [
         {
-          "id": "c-010",
-          "date": "2026-04-19",
-          "text": "Entstand nach AdGuard-Ausfall-Session: Single Point of Failure wenn Proxmox down. Pi Zero 2 W hat WLAN onboard, braucht kein Kabel. Architektur: Router Primary DNS → 192.168.0.201 (Proxmox), Secondary → Pi-IP. Beide laufen dieselben Blocklisten.",
-          "edited": false
+          "title": "1. /etc/hosts Workaround wenn Router Port 53 blockt",
+          "lang": "bash",
+          "code": "# Nötig wenn der Heimrouter ausgehende DNS-Queries blockiert\necho \"151.101.2.132 deb.debian.org security.debian.org\" >> /etc/hosts\necho \"185.199.108.133 raw.githubusercontent.com\" >> /etc/hosts\necho \"89.187.187.12 static.adtidy.org\" >> /etc/hosts"
+        },
+        {
+          "title": "2. curl installieren + AdGuard Home installieren",
+          "lang": "bash",
+          "code": "apt-get update && apt-get install -y curl\ncurl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v"
+        },
+        {
+          "title": "3. DoH-Endpoint testen (wenn DNS noch nicht geht)",
+          "lang": "bash",
+          "code": "# Mit IP statt Hostname testen – Hostname würde ja DNS brauchen\ncurl -v \"https://1.1.1.1/dns-query?name=google.com&type=A\" \\\n    -H \"accept: application/dns-json\""
+        },
+        {
+          "title": "4. TP-Link Archer C80 – DHCP DNS setzen",
+          "lang": "text",
+          "code": "http://192.168.0.1 → Advanced → Network → DHCP Server\n  Primary DNS:   192.168.0.201\n  Secondary DNS: 8.8.8.8         ← Fallback bei AdGuard-Ausfall\n→ Save → ipconfig /release && ipconfig /renew auf Windows"
+        },
+        {
+          "title": "5. AdGuard Upstream DNS (DoH via IP)",
+          "lang": "text",
+          "code": "Einstellungen → DNS-Einstellungen → Upstream DNS-Server:\n  https://1.1.1.1/dns-query\n  https://1.0.0.1/dns-query\n\nBegründung Cloudflare statt Google:\n  Cloudflare: No-Logs Policy, keine Datenweitergabe\n  Google 8.8.8.8: sammelt und verknüpft DNS-Daten"
+        },
+        {
+          "title": "6. Empfohlene Blocklisten",
+          "lang": "text",
+          "code": "Filter → DNS-Sperrlisten → Sperrlisten hinzufügen:\n  - AdGuard DNS filter\n  - OISD Blocklist Small\n  - Phishing URL Blocklist\n  - HaGeZi DNS Rebind Protection\n  - Malicious URL Blocklist (URLHaus)"
+        },
+        {
+          "title": "7. Autostart auf LXC-Ebene",
+          "lang": "bash",
+          "code": "# AdGuard Container startet automatisch mit Proxmox\npct set 100 --onboot 1\npct set 100 --startup order=1,up=30,down=60\npct config 100 | grep -E \"onboot|startup\""
         }
+      ],
+      "gotchas": [
+        "Port 53 vom Router geblockt: apt-get update schlägt fehl obwohl ping 8.8.8.8 geht. Fix: /etc/hosts mit direkten IPs für debian.org etc.",
+        "MAC Spoofing muss auf der Proxmox VM (Hyper-V-Ebene) aktiviert sein – siehe doc-001. Ohne das haben LXC Container kein Netz.",
+        "DoH Upstream mit Hostname schlägt fehl wenn AdGuard selbst noch nicht als DNS läuft. Circular Dependency. Lösung: IP direkt nutzen (https://1.1.1.1/dns-query).",
+        "Single Point of Failure: Wenn Proxmox down ist → kein DNS im gesamten Heimnetz. Fallback 8.8.8.8 am Router UND am Client eintragen.",
+        "AdGuard-UI Abfrageprotokoll zeigt nicht alle Anfragen – Browser mit eigenem DoH umgehen AdGuard komplett. Siehe doc-006.",
+        "Set-DnsClientServerAddress unter Windows schaltet den Adapter automatisch von DHCP auf manuell – auch wenn nur DNS geändert wird. Resultat: kein Internet. Fix: ncpa.cpl → DNS automatisch beziehen.",
+        "Nach Router-DNS-Änderung: ipconfig /release + /renew auf jedem PC, sonst greift die neue DNS-Einstellung erst beim nächsten Lease-Renewal.",
+        "Windows-/Apple-Telemetrie wird sofort sichtbar: mobile.events.data.microsoft.com, dns.msftncsi.com, gspe1-ssl.ls.apple.com, a1366.dscapi6.akamai.net.",
+        "AdGuard-Passwort gut sichern: Recovery ist umständlich (auth_attempts-Sperre + bcrypt $2y vs $2a Inkompatibilitäten). Bei Verlust: systemctl stop AdGuardHome, AdGuardHome.yaml → users:[] setzen, Service neu starten → Setup-Wizard läuft auf Port 3000."
+      ],
+      "links": [
+        { "title": "AdGuard Home GitHub", "url": "https://github.com/AdguardTeam/AdGuardHome" },
+        { "title": "Cloudflare 1.1.1.1 Privacy Policy", "url": "https://developers.cloudflare.com/1.1.1.1/privacy/public-dns-resolver/" },
+        { "title": "OISD Blocklist", "url": "https://oisd.nl" },
+        { "title": "HaGeZi Blocklists", "url": "https://github.com/hagezi/dns-blocklists" }
+      ]
+    },
+    {
+      "id": "doc-004",
+      "title": "Proxmox / Debian – Root-Passwort zurücksetzen via GRUB",
+      "namespace": "recovery/passwort",
+      "tags": ["GRUB", "Debian", "Recovery", "Passwort", "Single-User-Mode"],
+      "step_id": "p1-recovery",
+      "summary": "Root-Passwort vergessen – Reset über GRUB Boot-Parameter mit init=/bin/bash. Funktioniert genauso in Hyper-V VMs wie auf Bare Metal.",
+      "snippets": [
+        {
+          "title": "1. GRUB-Menü provozieren (Hyper-V)",
+          "lang": "powershell",
+          "code": "# PowerShell auf Windows Host:\nRestart-VM -Name \"Proxmox\" -Force\n\n# Sofort die VM-Konsole öffnen (Doppelklick in Hyper-V Manager)\n# Beim lila GRUB-Menü SOFORT 'e' druecken\n# Falls Menue zu schnell durchrauscht: beim Boot mehrfach Shift (BIOS) oder Esc (UEFI)"
+        },
+        {
+          "title": "2. Boot-Parameter im GRUB editieren",
+          "lang": "bash",
+          "code": "# Zeile suchen die mit 'linux' beginnt, etwa:\nlinux /boot/vmlinuz-6.x.x-x-pve root=/dev/mapper/pve-root ro quiet\n\n# Aenderungen:\n#   1. 'ro' ersetzen durch 'rw'\n#   2. am Ende anhaengen: init=/bin/bash\n\n# Ergebnis:\nlinux /boot/vmlinuz-6.x.x-x-pve root=/dev/mapper/pve-root rw quiet init=/bin/bash\n\n# Booten: Strg+X oder F10"
+        },
+        {
+          "title": "3. In Root-Shell – Filesystem beschreibbar machen",
+          "lang": "bash",
+          "code": "# Falls trotz 'rw' read-only gebootet:\nmount | grep ' / '\n# Zeigt: /dev/mapper/pve-root on / type ext4 (ro,relatime)\n\nmount -o remount,rw /\n\n# Verifizieren:\nmount | grep ' / '\n# Jetzt: (rw,relatime,errors=remount-ro)"
+        },
+        {
+          "title": "4. Passwort setzen",
+          "lang": "bash",
+          "code": "passwd root\n# Neues Passwort 2x eingeben (wird nicht angezeigt - normal)\n# Erwartet: passwd: password updated successfully"
+        },
+        {
+          "title": "5. Sauberer Reboot",
+          "lang": "bash",
+          "code": "sync\nmount -o remount,ro /\n# VM ueber Hyper-V zuruecksetzen:\n#   Restart-VM -Name \"Proxmox\" -Force"
+        }
+      ],
+      "gotchas": [
+        "Tastaturlayout im Single-User-Mode ist IMMER US-Englisch. Y/Z vertauscht, '-' auf 'ß', '/' auf '-'. Temporäres Passwort nur aus a-z und 0-9 wählen – später über normale Shell auf richtiges Passwort ändern.",
+        "Trotz rw-Parameter wird / oft read-only gemountet. Symptom: passwd: Authentication token manipulation error. Fix: mount -o remount,rw / vor passwd.",
+        "Meldungen 'cannot set terminal process group' und 'no job control in this shell' sind im init=/bin/bash Modus normal – keine Fehler.",
+        "reboot/shutdown funktionieren im init=/bin/bash Modus nicht (init-System läuft nicht). Immer: sync → mount -o remount,ro / → VM extern hart neustarten.",
+        "GRUB-Menü bei UEFI-Boot (Proxmox Gen 2 VM) ist oft sehr kurz sichtbar. Esc-Taste wiederholt drücken beim Boot um ins Menü zu kommen.",
+        "Falls GRUB mit Passwort geschützt ist (nicht Proxmox-Standard): Recovery nur über Live-ISO booten + chroot.",
+        "Nach erfolgreichem Login: Passwort SOFORT in Passwort-Manager (Bitwarden/Vaultwarden/KeePass) eintragen – Homelab-Systeme werden selten angefasst, Passwörter schnell vergessen."
+      ],
+      "links": [
+        { "title": "Debian Wiki – Password Recovery", "url": "https://wiki.debian.org/Recovery" },
+        { "title": "Proxmox Wiki – Root Password Reset", "url": "https://pve.proxmox.com/wiki/Root_Password_Reset" }
+      ]
+    },
+    {
+      "id": "doc-005",
+      "title": "Proxmox Netzwerk-Troubleshooting – Interface-Naming-Mismatch (nic0 vs eth0)",
+      "namespace": "netzwerk/bridge",
+      "tags": ["Bridge", "Hyper-V", "eth0", "vmbr0", "Troubleshooting", "interfaces"],
+      "step_id": "p1-recovery",
+      "summary": "Proxmox-VM läuft, Web-UI nicht erreichbar. Ursache: /etc/network/interfaces referenziert nicht-existentes Interface (nic0), das Kernel-Device heißt aber eth0. Bridge vmbr0 hat IP, aber keinen Uplink.",
+      "snippets": [
+        {
+          "title": "1. Problem identifizieren",
+          "lang": "bash",
+          "code": "ip a\n# Erwartung bei Bug: eth0 state DOWN, vmbr0 UP mit IP aber ohne Uplink\n\nip r\n# Default-Gateway sollte via vmbr0 gehen\n\nping -c 3 192.168.0.1\n# Bei Bug: 100% packet loss obwohl IP und Route stimmen"
+        },
+        {
+          "title": "2. Networking-Service-Status prüfen",
+          "lang": "bash",
+          "code": "systemctl status networking\n# Fehler-Signatur bei Interface-Mismatch:\n#   error: vmbr0: bridge port nic0 does not exist\n#   warning: bridge configuration failed (missing ports)"
+        },
+        {
+          "title": "3. Echtes Interface identifizieren",
+          "lang": "bash",
+          "code": "ip link show\n# Output zeigt z.B.:\n#   1: lo: <LOOPBACK,UP,LOWER_UP>\n#   2: eth0: <BROADCAST,MULTICAST> state DOWN\n#       link/ether 00:15:5d:00:9b:01\n#       altname enx00155d009b01\n#   3: vmbr0: <BROADCAST,MULTICAST,UP,LOWER_UP>\n\n# Gegenprobe:\nip link show nic0\n# Device \"nic0\" does not exist.  -> Bug bestaetigt\n\n# Hyper-V synthetic NIC?\nethtool -i eth0 | grep driver\n# driver: hv_netvsc"
+        },
+        {
+          "title": "4. MAC-Cross-Check Linux ↔ Hyper-V",
+          "lang": "powershell",
+          "code": "# In Linux:\n#   ip link show eth0\n#   link/ether 00:15:5d:00:9b:01\n\n# In PowerShell am Windows Host:\nGet-VMNetworkAdapter -VMName \"Proxmox\" | Select-Object MacAddress\n# MacAddress : 00155D009B01\n\n# Identisch (nur Formatierung unterschiedlich) = eth0 IST die Hyper-V NIC"
+        },
+        {
+          "title": "5. Config fixen mit vim",
+          "lang": "bash",
+          "code": "cp /etc/network/interfaces /etc/network/interfaces.bak-$(date +%Y%m%d)\nvim /etc/network/interfaces\n\n# Im vim Normal-Modus:\n#   :%s/nic0/eth0/g\n#   :wq\n# vim bestaetigt: '2 substitutions on 2 lines'"
+        },
+        {
+          "title": "6. Saubere Ziel-Config /etc/network/interfaces",
+          "lang": "bash",
+          "code": "auto lo\niface lo inet loopback\n\niface eth0 inet manual\n\nauto vmbr0\niface vmbr0 inet static\n        address 192.168.0.200/24\n        gateway 192.168.0.1\n        bridge-ports eth0\n        bridge-stp off\n        bridge-fd 0\n\nsource /etc/network/interfaces.d/*"
+        },
+        {
+          "title": "7. Netzwerk neu starten & verifizieren",
+          "lang": "bash",
+          "code": "ip link set eth0 up\nsystemctl restart networking\nsystemctl status networking     # KEINE roten Fehler mehr\nip a\nping -c 3 192.168.0.1\ncurl -k https://localhost:8006  # pveproxy lokal erreichbar?"
+        }
+      ],
+      "gotchas": [
+        "Symptom sieht nach Gateway-/Routing-Problem aus, ist aber ein Interface-Naming-Bug. vmbr0 hat IP und Route, aber keinen physischen Uplink – Pakete fliegen ins Nirvana.",
+        "Hyper-V-Indikator: Get-VMNetworkAdapter zeigt IPAddresses : {} – kein ARP-Traffic erreicht den Host, obwohl die VM läuft.",
+        "Interface-Namen können sich durch Kernel-Updates, Hardware-ID-Änderungen oder manuelle Edits ändern. Hyper-V synthetic NICs (hv_netvsc) bekommen oft klassisches eth0.",
+        "altname (enx00155d009b01) ist nur ein zweiter Name für dasselbe Device (basiert auf MAC) – ersetzt nicht den primären Namen.",
+        "MAC Spoofing muss zusätzlich aktiv sein (doc-001), sonst funktionieren LXC Container ohnehin nicht.",
+        "Nach Config-Fix IMMER explizit ip link set eth0 up – systemctl restart networking bringt ein DOWN-Interface nicht zuverlässig hoch.",
+        "Diagnose-Reihenfolge (spart Stunden vs Blind-Config): (1) ip a → IP da? (2) ip link show → Interface UP? (3) systemctl status networking → Fehler? (4) cat /etc/network/interfaces → Namen matchen? (5) MAC-Cross-Check Linux vs Hyper-V."
+      ],
+      "links": [
+        { "title": "Proxmox Wiki – Network Configuration", "url": "https://pve.proxmox.com/wiki/Network_Configuration" },
+        { "title": "Debian Wiki – NetworkInterfaceNames", "url": "https://wiki.debian.org/NetworkInterfaceNames" },
+        { "title": "Linux Kernel – hv_netvsc driver", "url": "https://www.kernel.org/doc/html/latest/networking/device_drivers/ethernet/microsoft/netvsc.html" }
+      ]
+    },
+    {
+      "id": "doc-006",
+      "title": "Browser-DoH umgeht AdGuard – Detection & Fix",
+      "namespace": "netzwerk/dns",
+      "tags": ["AdGuard", "DNS", "DoH", "Chrome", "Firefox", "Privacy"],
+      "step_id": "p2-dns",
+      "summary": "Chrome, Firefox und Edge nutzen standardmäßig DNS-over-HTTPS (DoH) und umgehen damit deinen self-hosted AdGuard komplett. Symptom: Seiten laden, aber AdGuard-Abfrageprotokoll zeigt keine Einträge für die aufgerufenen Domains.",
+      "snippets": [
+        {
+          "title": "Diagnose: Umgeht Browser den AdGuard?",
+          "lang": "bash",
+          "code": "# Browser-Anfrage provozieren und im AdGuard-UI checken:\n#   AdGuard -> Abfrageprotokoll -> nach Domain filtern\n# Fehlt die Domain OBWOHL sie gerade geladen wurde -> DoH-Bypass\n\n# Auf Client-PC pruefen ob AdGuard ueberhaupt angefragt wird:\nnslookup youtube.com 192.168.0.201\n# -> sollte im AdGuard-Log erscheinen\nnslookup youtube.com\n# -> nutzt System-DNS (sollte auch AdGuard sein)\n\n# Chrome-DoH-Discovery ist im AdGuard-Log sichtbar als:\n#   chrome.cloudflare-dns.com   (Typ A / HTTPS)\n# -> Chrome testet DoH und bypassed danach AdGuard komplett"
+        },
+        {
+          "title": "Option 1: DoH im Chrome deaktivieren (GUI)",
+          "lang": "text",
+          "code": "chrome://settings/security\n  -> \"Sicheres DNS verwenden\" -> AUS\n\nOder \"Mit aktuellem Anbieter\" einstellen\n  -> Browser folgt System-DNS (AdGuard)"
+        },
+        {
+          "title": "Option 2: DoH per Registry systemweit erzwingen (Windows)",
+          "lang": "powershell",
+          "code": "# PowerShell als Administrator\n\n# Chrome\nNew-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Google\\Chrome' -Force | Out-Null\nSet-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Google\\Chrome' `\n    -Name 'DnsOverHttpsMode' -Value 'off'\n\n# Edge\nNew-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge' -Force | Out-Null\nSet-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge' `\n    -Name 'DnsOverHttpsMode' -Value 'off'\n\n# Browser neustarten, dann pruefen:\n#   chrome://policy  (Chrome)\n#   edge://policy    (Edge)"
+        },
+        {
+          "title": "Option 3: DoH-Endpoints via AdGuard blockieren (netzwerkweit)",
+          "lang": "text",
+          "code": "AdGuard -> Filter -> Eigene Filter-Regeln -> Regeln hinzufuegen:\n\n||mask.icloud.com^\n||mask-h2.icloud.com^\n||use-application-dns.net^\n||chrome.cloudflare-dns.com^\n||dns.google^\n||cloudflare-dns.com^\n||mozilla.cloudflare-dns.com^\n\nBrowser fallen dann auf System-DNS zurueck (= AdGuard)"
+        },
+        {
+          "title": "Verifikation nach Fix",
+          "lang": "bash",
+          "code": "# Im Browser eine neue Seite aufrufen, dann im AdGuard pruefen\nipconfig /flushdns  # Windows DNS-Cache leeren\n\n# Browser-DNS-Cache leeren:\n#   chrome://net-internals/#dns -> Clear host cache\n#   edge://net-internals/#dns   -> Clear host cache\n\n# Anfrage muss jetzt im AdGuard-Abfrageprotokoll auftauchen"
+        }
+      ],
+      "gotchas": [
+        "DoH-Paradox: Chrome taucht im AdGuard-Log EINMAL auf (chrome.cloudflare-dns.com Discovery-Check) und bypassed danach komplett. Das sieht aus als würde AdGuard arbeiten, obwohl er fast nichts mehr sieht.",
+        "Der Discovery-Check läuft nur beim ersten Start – bei bereits laufendem Browser passiert kein neuer Check. Browser nach Regel-Änderung komplett neustarten.",
+        "Apple-Geräte (iOS/macOS) nutzen iCloud Private Relay über mask.icloud.com – standardmäßig aktiviert bei iCloud+ Abos. Muss separat im Gerät deaktiviert werden.",
+        "Firefox ist aggressiver als Chrome: aktiviert DoH seit 2020 default-on in USA, seit 2023 auch in DE. about:config → network.trr.mode = 5 (off explicitly).",
+        "DNS-Cache des Clients trickst die Diagnose: nslookup/ping greifen auf gecachte Einträge zu. ipconfig /flushdns + Browser-Cache leeren bevor man testet.",
+        "DoH-Blocklist in AdGuard ist robuster als Registry-Fix – neue Geräte im Netz sind automatisch abgesichert ohne Client-Config.",
+        "Trade-off: DoH deaktivieren bedeutet weniger Privacy gegen DNS-Snooping im lokalen Netz. Im Homelab mit eigenem AdGuard + DoH-Upstream zu Cloudflare (doc-003) ist das Ergebnis trotzdem verschlüsselt – nur eben AdGuard → Cloudflare statt Browser → Cloudflare."
+      ],
+      "links": [
+        { "title": "Chrome Policy – DnsOverHttpsMode", "url": "https://chromeenterprise.google/policies/#DnsOverHttpsMode" },
+        { "title": "Firefox – DNS over HTTPS", "url": "https://support.mozilla.org/en-US/kb/firefox-dns-over-https" },
+        { "title": "AdGuard – Blocking DoH", "url": "https://adguard-dns.io/kb/general/dns-filtering-syntax/" }
+      ]
+    },
+    {
+      "id": "doc-007",
+      "title": "vim Grundlagen für Config-Editing im Homelab",
+      "namespace": "tools/vim",
+      "tags": ["vim", "Editor", "Basics", "Linux", "Admin"],
+      "step_id": null,
+      "summary": "Minimales vim-Cheatsheet für Admin-Alltag. Fokus: Config-Dateien editieren, Search & Replace, ohne vim-Guru-Ambitionen.",
+      "snippets": [
+        {
+          "title": "vim öffnen",
+          "lang": "bash",
+          "code": "vim /etc/network/interfaces\n# Startet IMMER im Normal-Modus (navigieren, Befehle)\n# NICHT im Insert-Modus wie nano"
+        },
+        {
+          "title": "Die drei Modi",
+          "lang": "text",
+          "code": "NORMAL   – Navigieren, Loeschen, Kopieren, Befehle\n           Von Insert/Command zurueck: Esc\n\nINSERT   – Text tippen (wie nano)\n           Aus Normal rein: i (vor Cursor), a (hinter), o (neue Zeile)\n\nCOMMAND  – Speichern, Beenden, Suchen&Ersetzen\n           Aus Normal rein: : (Doppelpunkt)"
+        },
+        {
+          "title": "Search & Replace – der wichtigste Befehl",
+          "lang": "text",
+          "code": ":%s/alt/neu/g        ganze Datei, alle Vorkommen\n:%s/alt/neu/gc       mit Bestaetigung pro Fund\n:s/alt/neu/g         nur aktuelle Zeile\n\nAufschluesselung:\n  :   Command-Modus\n  %   in der ganzen Datei (ohne % nur aktuelle Zeile)\n  s   substitute\n  /alt/neu/  suche alt, ersetze durch neu\n  g   alle Vorkommen pro Zeile"
+        },
+        {
+          "title": "Speichern und Beenden",
+          "lang": "text",
+          "code": ":w      Speichern\n:q      Beenden\n:wq     Speichern + Beenden\n:q!     Beenden OHNE speichern\n:x      Wie :wq\nZZ      Normal-Modus: Speichern+Beenden (GROSSBUCHSTABEN!)\nZQ      Normal-Modus: Beenden ohne speichern"
+        },
+        {
+          "title": "Navigation (Normal-Modus)",
+          "lang": "text",
+          "code": "Pfeiltasten funktionieren, aber vim-native:\n  h j k l   links / unten / oben / rechts\n\ngg          Dateianfang\nG           Dateiende\n5G / :5     Sprung zu Zeile 5\n0           Zeilenanfang\n$           Zeilenende\nw / b       naechstes / vorheriges Wort\nStrg+f/b    Seite vor/zurueck"
+        },
+        {
+          "title": "Bearbeiten (Normal-Modus)",
+          "lang": "text",
+          "code": "dd          Zeile LOESCHEN\nyy          Zeile KOPIEREN (yank)\np / P       EINFUEGEN nach / vor Cursor\nx           Zeichen unter Cursor loeschen\ndw / D      Wort / bis Zeilenende loeschen\nu           UNDO\nStrg+R      REDO"
+        },
+        {
+          "title": "Suchen",
+          "lang": "text",
+          "code": "/text       vorwaerts suchen\n?text       rueckwaerts suchen\nn / N       naechster / vorheriger Treffer\n/\\ctext     Gross-/Kleinschreibung ignorieren\n:noh        Highlighting aus"
+        },
+        {
+          "title": "Typischer Homelab-Edit-Workflow",
+          "lang": "bash",
+          "code": "# Beispiel: nic0 durch eth0 ersetzen\ncp /etc/network/interfaces /etc/network/interfaces.bak-$(date +%Y%m%d)\nvim /etc/network/interfaces\n\n# In vim:\n#   1. Check was drin ist: Pfeiltasten zum Scrollen\n#   2. :%s/nic0/eth0/g     -> '2 substitutions on 2 lines'\n#   3. gg   (zum Anfang scrollen und pruefen)\n#   4. :wq  (Speichern + Beenden)"
+        }
+      ],
+      "gotchas": [
+        "Esc bringt dich IMMER zurück in Normal-Modus – Fallback bei Verwirrung.",
+        "Command-Befehle (:w, :q, :%s...) funktionieren NUR aus Normal-Modus. Aus Insert: erst Esc.",
+        "Pfeiltasten funktionieren in vim – h/j/k/l sind nicht Pflicht für Anfänger.",
+        "Im Insert-Modus zeigt vim unten '-- INSERT --' an. Wenn nichts steht → Normal-Modus.",
+        "ZZ (Großbuchstaben!) ist Speichern+Beenden. zz (klein) zentriert nur die Zeile – nicht verwechseln.",
+        "Bei blockiertem vim: Esc drücken, dann :q! (Doppelpunkt, q, Ausrufezeichen) – beendet garantiert ohne speichern.",
+        "nano-Reflex Strg+X funktioniert in vim NICHT – nur Esc + :q oder :wq beenden vim.",
+        "vimtutor starten (falls installiert) – 30min interaktives Tutorial, hebt die Lernkurve enorm.",
+        "Alternative neovim (nvim) ist moderner und kompatibel, aber auf Remote-Systemen oft nicht verfügbar. vim/vi ist ÜBERALL da – deshalb diese Version lernen."
+      ],
+      "links": [
+        { "title": "vim Cheat Sheet (Devhints)", "url": "https://devhints.io/vim" },
+        { "title": "Interactive vim Tutor", "url": "https://www.openvim.com" },
+        { "title": "vim Adventures (Gamified)", "url": "https://vim-adventures.com" }
+      ]
+    },
+    {
+      "id": "doc-008",
+      "title": "Autostart-Strategie – Hyper-V VM & Proxmox Container",
+      "namespace": "proxmox/autostart",
+      "tags": ["Autostart", "Hyper-V", "Proxmox", "Resilience", "Boot"],
+      "step_id": "p1-autostart",
+      "summary": "Zweistufiger Autostart: Proxmox-VM startet mit Windows, LXC Container starten mit Proxmox. Absicherung gegen DNS-Ausfall bei Host-Reboots.",
+      "snippets": [
+        {
+          "title": "Ebene 1 – Hyper-V: Proxmox VM bei Windows-Start",
+          "lang": "powershell",
+          "code": "# PowerShell als Administrator\n\n# Status pruefen\nGet-VM -Name \"Proxmox\" | Select-Object Name, AutomaticStartAction, AutomaticStartDelay, AutomaticStopAction\n\n# Autostart setzen\nSet-VM -Name \"Proxmox\" `\n    -AutomaticStartAction Start `\n    -AutomaticStartDelay 30 `\n    -AutomaticStopAction ShutDown\n\n# Verifizieren\nGet-VM -Name \"Proxmox\" | Format-List Name, State, AutomaticStartAction, AutomaticStartDelay, AutomaticStopAction"
+        },
+        {
+          "title": "Ebene 2 – Proxmox: LXC Container bei Proxmox-Start",
+          "lang": "bash",
+          "code": "# AdGuard Container (CT 100) Autostart\npct set 100 --onboot 1\n\n# Start-Reihenfolge + Timeouts\npct set 100 --startup order=1,up=30,down=60\n#   order=1 : dieser Container startet zuerst (niedrigster Wert first)\n#   up=30   : nach Container-Start 30s warten bis naechster startet\n#   down=60 : 60s Shutdown-Timeout bevor hart beendet wird\n\n# Verifizieren\npct config 100 | grep -E \"onboot|startup\"\n# Erwartung:\n#   onboot: 1\n#   startup: order=1,up=30,down=60"
+        },
+        {
+          "title": "Alle Container / VMs mit Autostart-Status",
+          "lang": "bash",
+          "code": "# LXC\nfor id in $(pct list | awk 'NR>1 {print $1}'); do\n    echo \"=== CT $id ($(pct config $id | grep ^hostname | awk '{print $2}')) ===\"\n    pct config $id | grep -E \"onboot|startup\"\ndone\n\n# QEMU VMs\nfor id in $(qm list | awk 'NR>1 {print $1}'); do\n    echo \"=== VM $id ===\"\n    qm config $id | grep -E \"onboot|startup\"\ndone"
+        },
+        {
+          "title": "Via Proxmox Web-UI (alternativ)",
+          "lang": "text",
+          "code": "Container auswaehlen -> Options:\n  - 'Start at boot'      -> Yes\n  - 'Start/Shutdown order' -> 1 (niedriger Wert = frueher)\n  - 'Startup delay'      -> 30\n  - 'Shutdown timeout'   -> 60"
+        },
+        {
+          "title": "Reboot-Test (Pflicht!)",
+          "lang": "powershell",
+          "code": "# PowerShell auf Windows Host\nRestart-Computer\n\n# Nach ~2 Minuten testen:\n# - Proxmox Web-UI: https://192.168.0.200:8006\n# - AdGuard:        http://192.168.0.201\n# - DNS-Aufloesung: nslookup google.com 192.168.0.201\n\n# Falls Proxmox nicht startet: AutomaticStartDelay erhoehen (60-90s)\n# Falls Container nicht startet: Log pruefen\n#   pct list\n#   journalctl -u pve-container@100.service"
+        }
+      ],
+      "gotchas": [
+        "AutomaticStopAction=Save friert VM-RAM ein. Bei Hypervisor-in-Hypervisor führt das zu Clock-Drift, hängenden Netzwerkverbindungen und Update-Problemen. Immer ShutDown (ACPI) nutzen.",
+        "AutomaticStartDelay 30s ist Minimum für Nested-Hyper-V. ExternalSwitch und Windows-Netzwerkstack müssen bereit sein bevor Proxmox hochkommt.",
+        "Container-Startup-Delay (up=30) ist wichtig – Proxmox Bridge vmbr0 braucht Sekunden nach Boot bis sie wirklich UP ist. Zu früher Container-Start → Container ohne Netz.",
+        "Windows-Autologin ist NICHT nötig. Hyper-V VMs starten auch ohne angemeldeten User, sobald der Hyper-V-Service läuft (automatisch mit Windows).",
+        "Windows-Updates mit erzwungenem Reboot können die VM am Start hindern wenn Windows hängen bleibt – Fallback-DNS (8.8.8.8) am Router ist Pflicht.",
+        "ExternalSwitch verschwindet durch Treiber-Updates → VM startet ohne Netzwerk. Nach jedem großen Windows-Update Get-VMSwitch prüfen.",
+        "Boot-Reihenfolge kritischer Dienste planen: DNS (AdGuard) muss zuerst laufen, dann Reverse Proxy, dann Auth, dann Services. Über 'order=' Parameter steuerbar.",
+        "onboot=1 allein reicht nicht – ohne startup-Order kommen Container in zufälliger Reihenfolge hoch."
+      ],
+      "links": [
+        { "title": "Microsoft Docs – Set-VM", "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/set-vm" },
+        { "title": "Proxmox Wiki – Startup and Shutdown Behavior", "url": "https://pve.proxmox.com/wiki/Startup_and_shutdown_order" }
       ]
     }
   ]
