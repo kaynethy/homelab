@@ -108,6 +108,9 @@
       );
     }
 
+    // calcProgress global verfügbar machen für Re-Renders
+    window.calcProgress = calcProgress;
+
     window.dispatchEvent(new Event('state-ready'));
   }
 

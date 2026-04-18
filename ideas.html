@@ -458,6 +458,60 @@
       border-radius: 8px;
     }
 
+    /* Phase group divider (grouped "Alle" view) */
+    .phase-group-divider {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 0 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .phase-group-divider:first-child { padding-top: 4px; }
+    .phase-group-line {
+      height: 1px;
+      flex: 1;
+    }
+    .phase-group-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .phase-group-count {
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* Assign row (phase/step dropdowns on card back) */
+    .card-assign-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .card-assign-row label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .card-assign-row select {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      cursor: pointer;
+      max-width: 220px;
+    }
+    .card-assign-row select:focus { border-color: var(--accent); }
+
     /* === SLIDE-IN PANEL === */
     .slide-overlay {
       position: fixed;
@@ -868,6 +922,117 @@
       (highCount > 0 ? '<span class="cmd-header-stat" style="color:var(--phase4)"><b>' + highCount + '</b> high</span>' : '');
   }
 
+  // ---- HELPERS ----
+  var PHASE_COLORS = {
+    phase1: 'var(--phase1)', phase2: 'var(--phase2)',
+    phase3: 'var(--phase3)', phase4: 'var(--phase4)'
+  };
+
+  function getPhaseSteps(phaseId) {
+    if (!window.STATE || !phaseId) return [];
+    var phase = window.STATE.phases.find(function(p) { return p.id === phaseId; });
+    if (!phase) return [];
+    var steps = [];
+    if (phase.steps) steps = steps.concat(phase.steps);
+    if (phase.sections) phase.sections.forEach(function(s) { steps = steps.concat(s.steps || []); });
+    return steps;
+  }
+
+  function buildStepOptions(phaseId, selectedStepId) {
+    var steps = getPhaseSteps(phaseId);
+    var html = '<option value="">— kein Step —</option>';
+    steps.forEach(function(st) {
+      html += '<option value="' + esc(st.id) + '"' + (st.id === selectedStepId ? ' selected' : '') + '>' + esc(st.id) + '</option>';
+    });
+    return html;
+  }
+
+  // ---- CARD HTML ----
+  function renderCardHtml(idea) {
+    var prio = idea.prio || 'low';
+    var pc = phaseClass(idea.phase_id);
+    var phaseLbl = PHASE_SHORT[idea.phase_id] ? PHASE_SHORT[idea.phase_id] : 'Offen';
+    var isExpanded = expandedId === idea.id;
+    var commentCount = (idea.comments || []).length;
+
+    var tags = (idea.tags || []).map(function(t) {
+      return '<span class="card-tag ' + tagClass(t) + '">' + esc(t) + '</span>';
+    }).join('');
+
+    var commentsHtml = (idea.comments || []).map(function(c) {
+      return '<div class="card-comment">' +
+        '<div class="card-comment-head">' +
+          '<span class="card-comment-date">' + esc(c.date) + (c.edited ? ' · bearbeitet' : '') + '</span>' +
+          '<div class="card-comment-actions">' +
+            '<button onclick="window._editComment(\'' + esc(idea.id) + '\',\'' + esc(c.id) + '\',event)">✎</button>' +
+            '<button onclick="window._deleteComment(\'' + esc(idea.id) + '\',\'' + esc(c.id) + '\',event)">✕</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-comment-text" id="ct-' + esc(c.id) + '">' + esc(c.text) + '</div>' +
+      '</div>';
+    }).join('');
+
+    var stepLink = '';
+    if (idea.step_id && idea.phase_id) {
+      var phaseRef = PHASE_LABELS[idea.phase_id] || 'Offen';
+      stepLink = '<div class="card-link">Verknüpft mit: <a href="steps/' + esc(idea.step_id) + '.html">→ ' + esc(phaseRef) + ' / ' + esc(idea.step_id) + '</a></div>';
+    }
+
+    // Phase/Step assign dropdowns
+    var phaseOpts = '<option value="">Offen (keine Phase)</option>';
+    ['phase1','phase2','phase3','phase4'].forEach(function(pid) {
+      phaseOpts += '<option value="' + pid + '"' + (idea.phase_id === pid ? ' selected' : '') + '>' + esc(PHASE_LABELS[pid]) + '</option>';
+    });
+    var stepOpts = buildStepOptions(idea.phase_id, idea.step_id);
+
+    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + '" data-id="' + esc(idea.id) + '">' +
+      '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
+        '<div class="card-top">' +
+          '<div class="card-tags">' + tags + '</div>' +
+          '<button class="card-close" onclick="window._closeCard(event)">✕</button>' +
+        '</div>' +
+        '<div class="card-title">' + esc(idea.title) + '</div>' +
+        '<div class="card-desc">' + esc(idea.desc || '') + '</div>' +
+        '<div class="card-footer">' +
+          '<span class="card-prio-dot ' + prio + '"></span>' +
+          '<span>' + prio + '</span>' +
+          '<span class="card-phase-pill ' + pc + '">' + phaseLbl + '</span>' +
+          '<span class="card-footer-spacer"></span>' +
+          '<span class="card-comments-badge">💬 ' + commentCount + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-details" id="cd-' + esc(idea.id) + '">' +
+        '<div class="card-details-inner">' +
+          (idea.desc ? '<div class="card-full-desc">' + esc(idea.desc) + '</div>' : '') +
+          stepLink +
+          '<div class="card-comments-section">' +
+            '<div class="card-comments-label">── Kommentare ──</div>' +
+            (commentsHtml || '<div class="card-no-comments">(noch keine)</div>') +
+            '<div class="card-comment-form">' +
+              '<input type="text" id="ci-' + esc(idea.id) + '" placeholder="Schreib einen Kommentar..." onkeydown="if(event.key===\'Enter\')window._saveComment(\'' + esc(idea.id) + '\')">' +
+              '<button onclick="window._saveComment(\'' + esc(idea.id) + '\')">Speichern</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="card-status-row">' +
+            '<label>Status ändern:</label>' +
+            '<select onchange="window._changeStatus(\'' + esc(idea.id) + '\', this.value)">' +
+              '<option value="idea"' + (idea.status === 'idea' ? ' selected' : '') + '>Idee</option>' +
+              '<option value="planned"' + (idea.status === 'planned' ? ' selected' : '') + '>Geplant</option>' +
+              '<option value="wip"' + (idea.status === 'wip' ? ' selected' : '') + '>In Arbeit</option>' +
+              '<option value="done"' + (idea.status === 'done' ? ' selected' : '') + '>Erledigt</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="card-assign-row">' +
+            '<label>Phase:</label>' +
+            '<select onchange="window._changePhase(\'' + esc(idea.id) + '\', this.value)">' + phaseOpts + '</select>' +
+            '<label>Step:</label>' +
+            '<select id="step-sel-' + esc(idea.id) + '" onchange="window._changeStep(\'' + esc(idea.id) + '\', this.value)">' + stepOpts + '</select>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   // ---- GRID ----
   function renderGrid() {
     var ideas = getFiltered();
@@ -878,85 +1043,31 @@
       return;
     }
 
-    grid.innerHTML = ideas.map(function(idea) {
-      var prio = idea.prio || 'low';
-      var pc = phaseClass(idea.phase_id);
-      var phaseLbl = PHASE_SHORT[idea.phase_id] ? PHASE_SHORT[idea.phase_id] : 'Offen';
-      var isExpanded = expandedId === idea.id;
-      var commentCount = (idea.comments || []).length;
+    if (activePhase === 'all') {
+      // Grouped by phase
+      var groups = window.STATE.phases.map(function(p) {
+        return { key: p.id, label: p.label + ' – ' + p.title, color: PHASE_COLORS[p.id] || 'var(--muted)' };
+      });
+      groups.push({ key: null, label: 'Offen (ohne Phase)', color: 'var(--muted)' });
 
-      // Tags
-      var tags = (idea.tags || []).map(function(t) {
-        return '<span class="card-tag ' + tagClass(t) + '">' + esc(t) + '</span>';
-      }).join('');
-
-      // Comments HTML
-      var commentsHtml = (idea.comments || []).map(function(c) {
-        return '<div class="card-comment">' +
-          '<div class="card-comment-head">' +
-            '<span class="card-comment-date">' + esc(c.date) + (c.edited ? ' · bearbeitet' : '') + '</span>' +
-            '<div class="card-comment-actions">' +
-              '<button onclick="window._editComment(\'' + esc(idea.id) + '\',\'' + esc(c.id) + '\',event)">✎</button>' +
-              '<button onclick="window._deleteComment(\'' + esc(idea.id) + '\',\'' + esc(c.id) + '\',event)">✕</button>' +
-            '</div>' +
-          '</div>' +
-          '<div class="card-comment-text" id="ct-' + esc(c.id) + '">' + esc(c.text) + '</div>' +
+      var html = '';
+      groups.forEach(function(g) {
+        var groupIdeas = ideas.filter(function(i) {
+          return g.key ? i.phase_id === g.key : !i.phase_id;
+        });
+        if (groupIdeas.length === 0) return;
+        html += '<div class="phase-group-divider">' +
+          '<span class="phase-group-line" style="background:' + g.color + ';opacity:0.4"></span>' +
+          '<span class="phase-group-label" style="color:' + g.color + '">' + esc(g.label) + '</span>' +
+          '<span class="phase-group-line" style="background:' + g.color + ';opacity:0.4"></span>' +
+          '<span class="phase-group-count">(' + groupIdeas.length + ' Ideen)</span>' +
         '</div>';
-      }).join('');
-
-      // Step link
-      var stepLink = '';
-      if (idea.step_id && idea.phase_id) {
-        var phaseRef = PHASE_LABELS[idea.phase_id] || 'Offen';
-        stepLink = '<div class="card-link">Verknüpft mit: <a href="steps/' + esc(idea.step_id) + '.html">→ ' + esc(phaseRef) + ' / ' + esc(idea.step_id) + '</a></div>';
-      }
-
-      return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + '" data-id="' + esc(idea.id) + '">' +
-
-        // Summary
-        '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
-          '<div class="card-top">' +
-            '<div class="card-tags">' + tags + '</div>' +
-            '<button class="card-close" onclick="window._closeCard(event)">✕</button>' +
-          '</div>' +
-          '<div class="card-title">' + esc(idea.title) + '</div>' +
-          '<div class="card-desc">' + esc(idea.desc || '') + '</div>' +
-          '<div class="card-footer">' +
-            '<span class="card-prio-dot ' + prio + '"></span>' +
-            '<span>' + prio + '</span>' +
-            '<span class="card-phase-pill ' + pc + '">' + phaseLbl + '</span>' +
-            '<span class="card-footer-spacer"></span>' +
-            '<span class="card-comments-badge">💬 ' + commentCount + '</span>' +
-          '</div>' +
-        '</div>' +
-
-        // Details (accordion)
-        '<div class="card-details" id="cd-' + esc(idea.id) + '">' +
-          '<div class="card-details-inner">' +
-            (idea.desc ? '<div class="card-full-desc">' + esc(idea.desc) + '</div>' : '') +
-            stepLink +
-            '<div class="card-comments-section">' +
-              '<div class="card-comments-label">── Kommentare ──</div>' +
-              (commentsHtml || '<div class="card-no-comments">(noch keine)</div>') +
-              '<div class="card-comment-form">' +
-                '<input type="text" id="ci-' + esc(idea.id) + '" placeholder="Schreib einen Kommentar..." onkeydown="if(event.key===\'Enter\')window._saveComment(\'' + esc(idea.id) + '\')">' +
-                '<button onclick="window._saveComment(\'' + esc(idea.id) + '\')">Speichern</button>' +
-              '</div>' +
-            '</div>' +
-            '<div class="card-status-row">' +
-              '<label>Status ändern:</label>' +
-              '<select onchange="window._changeStatus(\'' + esc(idea.id) + '\', this.value)">' +
-                '<option value="idea"' + (idea.status === 'idea' ? ' selected' : '') + '>Idee</option>' +
-                '<option value="planned"' + (idea.status === 'planned' ? ' selected' : '') + '>Geplant</option>' +
-                '<option value="wip"' + (idea.status === 'wip' ? ' selected' : '') + '>In Arbeit</option>' +
-                '<option value="done"' + (idea.status === 'done' ? ' selected' : '') + '>Erledigt</option>' +
-              '</select>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-      '</div>';
-    }).join('');
+        html += groupIdeas.map(renderCardHtml).join('');
+      });
+      grid.innerHTML = html;
+    } else {
+      grid.innerHTML = ideas.map(renderCardHtml).join('');
+    }
 
     // Expand card if needed
     if (expandedId) {
@@ -1054,6 +1165,27 @@
     var idea = getIdeas().find(function(i) { return i.id === ideaId; });
     if (!idea) return;
     idea.status = newStatus;
+    persistIdeas();
+  };
+
+  // ---- PHASE / STEP REASSIGN ----
+  window._changePhase = function(ideaId, newPhase) {
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.phase_id = newPhase || null;
+    idea.step_id = null;
+    persistIdeas();
+    expandedId = null;
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+  };
+
+  window._changeStep = function(ideaId, newStep) {
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.step_id = newStep || null;
     persistIdeas();
   };
 
