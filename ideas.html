@@ -512,6 +512,87 @@
     }
     .card-assign-row select:focus { border-color: var(--accent); }
 
+    /* Editable tags on card back */
+    .card-tags-edit {
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card-tags-edit-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .card-tags-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+    .card-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--text);
+    }
+    .card-tag-chip button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 10px;
+      padding: 0 1px;
+      line-height: 1;
+    }
+    .card-tag-chip button:hover { color: var(--phase4); }
+    .card-tag-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      width: 140px;
+    }
+    .card-tag-input:focus { border-color: var(--accent); }
+
+    /* Sidebar tag filter chips */
+    .sb-tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 4px 2px;
+    }
+    .sb-tag-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 120ms, color 120ms, border-color 120ms;
+    }
+    .sb-tag-chip:hover { color: var(--text); border-color: var(--border2); }
+    .sb-tag-chip.active {
+      background: rgba(79,255,176,0.15);
+      color: var(--accent);
+      border-color: rgba(79,255,176,0.4);
+    }
+
     /* === SLIDE-IN PANEL === */
     .slide-overlay {
       position: fixed;
@@ -759,6 +840,7 @@
 
   var activePhase = 'all';
   var activePrio  = 'all';
+  var activeTags  = [];
   var expandedId  = null;
   var IDEAS_KEY   = 'homelab_ideas_data';
 
@@ -814,8 +896,22 @@
       var phaseOk = activePhase === 'all' ||
         (activePhase === 'open' ? !i.phase_id : i.phase_id === activePhase);
       var prioOk = activePrio === 'all' || i.prio === activePrio;
-      return phaseOk && prioOk;
+      var tagsOk = activeTags.length === 0 || activeTags.every(function(t) {
+        return (i.tags || []).some(function(it) { return it.toLowerCase() === t.toLowerCase(); });
+      });
+      return phaseOk && prioOk && tagsOk;
     });
+  }
+
+  function getAllTags() {
+    var tagMap = {};
+    getIdeas().forEach(function(i) {
+      (i.tags || []).forEach(function(t) {
+        var key = t.toLowerCase();
+        if (!tagMap[key]) tagMap[key] = t;
+      });
+    });
+    return Object.keys(tagMap).sort().map(function(k) { return tagMap[k]; });
   }
 
   function countByPhase(phase) {
@@ -875,6 +971,18 @@
       '</button>';
     });
 
+    // Tag filter section
+    var allTags = getAllTags();
+    if (allTags.length > 0) {
+      html += '<div class="sb-section">Tags</div>';
+      html += '<div class="sb-tags-wrap">';
+      allTags.forEach(function(tag) {
+        var isActive = activeTags.some(function(t) { return t.toLowerCase() === tag.toLowerCase(); });
+        html += '<span class="sb-tag-chip' + (isActive ? ' active' : '') + '" data-tag="' + esc(tag) + '">' + esc(tag) + '</span>';
+      });
+      html += '</div>';
+    }
+
     // New idea button
     html += '<div class="sb-new"><button class="sb-new-btn" id="sb-new-btn">+ Neue Idee</button></div>';
 
@@ -907,6 +1015,24 @@
         }, 75);
         return;
       }
+      // Tag chip click
+      var tagChip = e.target.closest('.sb-tag-chip');
+      if (tagChip && tagChip.dataset.tag) {
+        var grid = document.getElementById('cmd-grid');
+        grid.style.opacity = '0';
+        setTimeout(function() {
+          var t = tagChip.dataset.tag.toLowerCase();
+          var idx = activeTags.indexOf(t);
+          if (idx >= 0) activeTags.splice(idx, 1); else activeTags.push(t);
+          expandedId = null;
+          renderSidebar();
+          renderHeader();
+          renderGrid();
+          bindSidebar();
+          grid.style.opacity = '1';
+        }, 75);
+        return;
+      }
       var newBtn = e.target.closest('#sb-new-btn');
       if (newBtn) openPanel();
     });
@@ -919,10 +1045,12 @@
     var phaseLabel = activePhase === 'all' ? 'Alle Ideen' : (PHASE_LABELS[activePhase] || 'Offen');
     var prioLabel = activePrio !== 'all' ? (' · <b style="color:var(--phase4)">' + activePrio + '</b>') : '';
 
+    var tagLabel = activeTags.length > 0 ? (' · <b style="color:var(--accent)">' + activeTags.length + ' Tag' + (activeTags.length > 1 ? 's' : '') + '</b>') : '';
+
     document.getElementById('cmd-header').innerHTML =
       '<span class="cmd-header-title">// ideen<b>_board</b></span>' +
       '<span class="cmd-header-stat"><b>' + esc(phaseLabel) + '</b></span>' +
-      '<span class="cmd-header-stat">' + filtered.length + ' Ideen' + prioLabel + '</span>' +
+      '<span class="cmd-header-stat">' + filtered.length + ' Ideen' + prioLabel + tagLabel + '</span>' +
       (highCount > 0 ? '<span class="cmd-header-stat" style="color:var(--phase4)"><b>' + highCount + '</b> high</span>' : '');
   }
 
@@ -989,6 +1117,17 @@
     });
     var stepOpts = buildStepOptions(idea.phase_id, idea.step_id);
 
+    // Prio dropdown
+    var prioOpts = ['high','medium','low'].map(function(p) {
+      return '<option value="' + p + '"' + (prio === p ? ' selected' : '') + '>' + p + '</option>';
+    }).join('');
+
+    // Editable tags
+    var tagChips = (idea.tags || []).map(function(t) {
+      return '<span class="card-tag-chip">' + esc(t) +
+        '<button onclick="window._removeTag(\'' + esc(idea.id) + '\',\'' + esc(t).replace(/'/g, "\\'") + '\',event)">✕</button></span>';
+    }).join('');
+
     return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + '" data-id="' + esc(idea.id) + '">' +
       '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
         '<div class="card-top">' +
@@ -1031,6 +1170,16 @@
             '<select onchange="window._changePhase(\'' + esc(idea.id) + '\', this.value)">' + phaseOpts + '</select>' +
             '<label>Step:</label>' +
             '<select id="step-sel-' + esc(idea.id) + '" onchange="window._changeStep(\'' + esc(idea.id) + '\', this.value)">' + stepOpts + '</select>' +
+            '<label>Prio:</label>' +
+            '<select onchange="window._changePrio(\'' + esc(idea.id) + '\', this.value)">' + prioOpts + '</select>' +
+          '</div>' +
+          '<div class="card-tags-edit">' +
+            '<span class="card-tags-edit-label">Tags</span>' +
+            '<div class="card-tags-chips">' +
+              tagChips +
+              '<input class="card-tag-input" type="text" placeholder="+ Tag..." ' +
+                'onkeydown="window._tagInputKey(\'' + esc(idea.id) + '\', this, event)">' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1203,6 +1352,52 @@
     if (!idea) return;
     idea.step_id = newStep || null;
     persistIdeas();
+  };
+
+  // ---- PRIO CHANGE ----
+  window._changePrio = function(ideaId, newPrio) {
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.prio = newPrio;
+    persistIdeas();
+    expandedId = null;
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+  };
+
+  // ---- TAG EDITING ----
+  window._removeTag = function(ideaId, tag, e) {
+    if (e) e.stopPropagation();
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.tags = (idea.tags || []).filter(function(t) { return t !== tag; });
+    persistIdeas();
+    renderSidebar();
+    renderGrid();
+    bindSidebar();
+  };
+
+  window._tagInputKey = function(ideaId, input, e) {
+    if (e.key !== 'Enter' && e.key !== ',') return;
+    e.preventDefault();
+    var val = input.value.replace(/,/g, '').trim();
+    if (!val) return;
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    if (!idea.tags) idea.tags = [];
+    // Duplikat-Check (case-insensitive)
+    var exists = idea.tags.some(function(t) { return t.toLowerCase() === val.toLowerCase(); });
+    if (!exists) {
+      idea.tags.push(val);
+      persistIdeas();
+      renderSidebar();
+      renderGrid();
+      bindSidebar();
+    } else {
+      input.value = '';
+    }
   };
 
   // ---- SLIDE PANEL (NEW IDEA) ----
