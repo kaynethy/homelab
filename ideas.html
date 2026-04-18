@@ -1050,10 +1050,13 @@
       });
       groups.push({ key: null, label: 'Offen (ohne Phase)', color: 'var(--muted)' });
 
+      var PRIO_ORDER = { high: 0, medium: 1, low: 2 };
       var html = '';
       groups.forEach(function(g) {
         var groupIdeas = ideas.filter(function(i) {
           return g.key ? i.phase_id === g.key : !i.phase_id;
+        }).sort(function(a, b) {
+          return (PRIO_ORDER[a.prio] || 2) - (PRIO_ORDER[b.prio] || 2);
         });
         if (groupIdeas.length === 0) return;
         html += '<div class="phase-group-divider">' +
