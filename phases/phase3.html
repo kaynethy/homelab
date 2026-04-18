@@ -63,6 +63,12 @@
       }
     }
 
+    var deferredCount = getPhaseSteps(phase).filter(function(s) { return s.status === 'deferred'; }).length;
+    var deferredHint = deferredCount > 0
+      ? '<div style="margin-top:12px;margin-bottom:8px"><a href="../deferred.html" style="font-size:12px;color:var(--muted);font-family:\'JetBrains Mono\',monospace;text-decoration:none">' + deferredCount + ' Step' + (deferredCount !== 1 ? 's' : '') + ' zurückgestellt → <span style="color:var(--accent)">Später anzeigen</span></a></div>'
+      : '';
+    stepsHtml += deferredHint;
+
     var phaseIdeas = (window.STATE.ideas || []).filter(function(i) { return i.phase_id === phase.id; });
     var ideasHtml = renderIdeasPreview(phase.id, phaseIdeas);
     var notes = phase.notes || '';

@@ -644,17 +644,7 @@
   </div>
 
   <!-- SPÄTER / DEFERRED -->
-  <div class="phase" id="deferred-section" style="border-color:var(--muted);display:none">
-    <div class="phase-header" onclick="togglePhase('deferred-section')">
-      <span class="phase-num" style="background:rgba(90,98,120,0.12);color:var(--muted);border:1px solid rgba(90,98,120,0.25)">SPÄTER</span>
-      <div>
-        <div class="phase-title" style="color:var(--muted)">Offene Baustellen</div>
-        <div class="phase-sub">Steps die vorerst geparkt sind – gruppiert nach Herkunftsphase</div>
-      </div>
-      <span class="phase-toggle">▾</span>
-    </div>
-    <div class="phase-body" id="deferred-body"></div>
-  </div>
+  <div id="deferred-link" style="display:none;margin-bottom:32px"></div>
 
   <footer>
     homelab_roadmap · <span>living document</span> · wird mit jedem Chat-Update neu gepostet
@@ -669,76 +659,34 @@ function togglePhase(id) {
   el.classList.toggle('open');
 }
 
-var PHASE_NUM_MAP = { phase1: 1, phase2: 2, phase3: 3, phase4: 4 };
-
 function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function renderDeferredSection() {
+function renderDeferredLink() {
   if (!window.getDeferredSteps) return;
   var deferred = window.getDeferredSteps();
-  var section = document.getElementById('deferred-section');
-  var body = document.getElementById('deferred-body');
+  var container = document.getElementById('deferred-link');
 
   if (deferred.length === 0) {
-    section.style.display = 'none';
+    container.style.display = 'none';
     return;
   }
 
-  section.style.display = '';
-
-  // Group by phase
-  var grouped = {};
-  var phaseOrder = ['phase1','phase2','phase3','phase4'];
-  phaseOrder.forEach(function(pid) { grouped[pid] = []; });
-  deferred.forEach(function(d) {
-    if (!grouped[d.phase.id]) grouped[d.phase.id] = [];
-    grouped[d.phase.id].push(d);
-  });
-
-  var html = '';
-  phaseOrder.forEach(function(pid) {
-    var pNum = PHASE_NUM_MAP[pid] || '?';
-    var items = grouped[pid] || [];
-    html += '<div style="margin-bottom:16px">';
-    html += '<span class="phase-num p' + pNum + '" style="font-size:9px;padding:2px 6px;display:inline-block;margin-bottom:8px">PHASE ' + pNum + '</span>';
-
-    if (items.length === 0) {
-      html += '<div style="font-size:12px;color:var(--muted);font-style:italic;padding-left:8px">(noch nichts)</div>';
-    } else {
-      html += '<div class="cards">';
-      items.forEach(function(d) {
-        var reasonHtml = d.step.deferred_reason
-          ? '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:4px">⏸ ' + escH(d.step.deferred_reason) + '</div>'
-          : '';
-        html += '<div class="card" style="border-left:3px solid var(--muted)">' +
-          '<div class="card-title">' + escH(d.step.title) + '</div>' +
-          '<div class="card-desc">' + escH(d.step.desc || '') + '</div>' +
-          reasonHtml +
-          '<button class="reactivate-btn" data-step-id="' + escH(d.step.id) + '" ' +
-            'style="margin-top:8px;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:3px 10px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer">Reaktivieren</button>' +
-        '</div>';
-      });
-      html += '</div>';
-    }
-    html += '</div>';
-  });
-
-  body.innerHTML = html;
-
-  body.querySelectorAll('.reactivate-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var result = window.findStep(btn.dataset.stepId);
-      if (result) {
-        result.step.deferred_reason = '';
-        result.step.status = 'todo';
-        window.saveState();
-        renderDeferredSection();
-      }
-    });
-  });
+  container.style.display = '';
+  container.innerHTML =
+    '<div class="section-label" style="margin-top:18px">SPÄTER</div>' +
+    '<a href="deferred.html" class="phase" style="border-color:var(--muted);display:block;text-decoration:none">' +
+      '<div class="phase-header" style="cursor:pointer">' +
+        '<span class="phase-num" style="background:rgba(90,98,120,0.12);color:var(--muted);border:1px solid rgba(90,98,120,0.25)">SPÄTER</span>' +
+        '<div>' +
+          '<div class="phase-title" style="color:var(--muted)">' + deferred.length + ' Step' + (deferred.length !== 1 ? 's' : '') + ' zurückgestellt</div>' +
+          '<div class="phase-sub">Geparkte Aufgaben – werden erledigt wenn Grundinfra steht</div>' +
+        '</div>' +
+        '<span style="color:var(--accent);font-family:\'JetBrains Mono\',monospace;font-size:11px;white-space:nowrap">Alle anzeigen →</span>' +
+      '</div>' +
+    '</a>';
 }
 
-window.addEventListener('state-ready', renderDeferredSection);
+window.addEventListener('state-ready', renderDeferredLink);
 </script>
 </body>
 </html>

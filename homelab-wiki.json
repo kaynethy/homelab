@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-18",
+    "updated": "2026-04-19",
     "description": "Homelab Wiki – Wissensbasis, Snippets, Gotchas. Separat von homelab-ideas.json.",
     "main_state": "homelab-state.json",
     "schema": "namespaces + articles"
@@ -43,7 +43,12 @@
       "id": "doc-001",
       "title": "Proxmox unter Hyper-V (nested virtualization)",
       "namespace": "proxmox/installation",
-      "tags": ["Proxmox", "Hyper-V", "nested virt", "Windows 11"],
+      "tags": [
+        "Proxmox",
+        "Hyper-V",
+        "nested virt",
+        "Windows 11"
+      ],
       "step_id": "p1-proxmox-vm",
       "summary": "Proxmox VE als nested VM unter Windows 11 Hyper-V betreiben – ohne Dualboot, Windows bleibt unangetastet.",
       "snippets": [
@@ -81,16 +86,30 @@
         "MAC Spoofing muss aktiv sein bevor LXC Container erstellt werden – sonst bekommen die Container kein Netz (Hyper-V blockt unbekannte MACs). Set-VMNetworkAdapter funktioniert nur bei gestoppter VM."
       ],
       "links": [
-        { "title": "Proxmox VE Download", "url": "https://www.proxmox.com/en/downloads/proxmox-virtual-environment/iso" },
-        { "title": "Proxmox Wiki – Installation", "url": "https://pve.proxmox.com/wiki/Installation" },
-        { "title": "Microsoft – Nested Virtualization", "url": "https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/nested-virtualization" }
+        {
+          "title": "Proxmox VE Download",
+          "url": "https://www.proxmox.com/en/downloads/proxmox-virtual-environment/iso"
+        },
+        {
+          "title": "Proxmox Wiki – Installation",
+          "url": "https://pve.proxmox.com/wiki/Installation"
+        },
+        {
+          "title": "Microsoft – Nested Virtualization",
+          "url": "https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/nested-virtualization"
+        }
       ]
     },
     {
       "id": "doc-002",
       "title": "Proxmox Community-Repo einrichten (No-Subscription)",
       "namespace": "proxmox/konfiguration",
-      "tags": ["Proxmox", "APT", "Repository", "Updates"],
+      "tags": [
+        "Proxmox",
+        "APT",
+        "Repository",
+        "Updates"
+      ],
       "step_id": "p1-proxmox-config",
       "summary": "Nach jeder frischen Proxmox-Installation: Enterprise-Repos deaktivieren, kostenloses No-Subscription-Repo aktivieren, System updaten.",
       "snippets": [
@@ -112,14 +131,23 @@
         "Der Popup-Fix muss nach jedem pve-manager Update erneut angewendet werden – Datei wird bei Updates überschrieben."
       ],
       "links": [
-        { "title": "Proxmox Wiki – Package Repositories", "url": "https://pve.proxmox.com/wiki/Package_Repositories" }
+        {
+          "title": "Proxmox Wiki – Package Repositories",
+          "url": "https://pve.proxmox.com/wiki/Package_Repositories"
+        }
       ]
     },
     {
       "id": "doc-003",
       "title": "AdGuard Home als LXC Container – Vollständiges Setup",
       "namespace": "dienste/adguard",
-      "tags": ["AdGuard", "DNS", "LXC", "DoH", "Blocklists"],
+      "tags": [
+        "AdGuard",
+        "DNS",
+        "LXC",
+        "DoH",
+        "Blocklists"
+      ],
       "step_id": "p2-dns",
       "summary": "AdGuard Home als LXC Container in Proxmox. DNS-Filter, DoH Upstream via Cloudflare, Router-Integration, Blocklisten. Inkl. Troubleshooting für blockierten Port 53.",
       "snippets": [
@@ -171,17 +199,35 @@
         "AdGuard-Passwort gut sichern: Recovery ist umständlich (auth_attempts-Sperre + bcrypt $2y vs $2a Inkompatibilitäten). Bei Verlust: systemctl stop AdGuardHome, AdGuardHome.yaml → users:[] setzen, Service neu starten → Setup-Wizard läuft auf Port 3000."
       ],
       "links": [
-        { "title": "AdGuard Home GitHub", "url": "https://github.com/AdguardTeam/AdGuardHome" },
-        { "title": "Cloudflare 1.1.1.1 Privacy Policy", "url": "https://developers.cloudflare.com/1.1.1.1/privacy/public-dns-resolver/" },
-        { "title": "OISD Blocklist", "url": "https://oisd.nl" },
-        { "title": "HaGeZi Blocklists", "url": "https://github.com/hagezi/dns-blocklists" }
+        {
+          "title": "AdGuard Home GitHub",
+          "url": "https://github.com/AdguardTeam/AdGuardHome"
+        },
+        {
+          "title": "Cloudflare 1.1.1.1 Privacy Policy",
+          "url": "https://developers.cloudflare.com/1.1.1.1/privacy/public-dns-resolver/"
+        },
+        {
+          "title": "OISD Blocklist",
+          "url": "https://oisd.nl"
+        },
+        {
+          "title": "HaGeZi Blocklists",
+          "url": "https://github.com/hagezi/dns-blocklists"
+        }
       ]
     },
     {
       "id": "doc-004",
       "title": "Proxmox / Debian – Root-Passwort zurücksetzen via GRUB",
       "namespace": "recovery/passwort",
-      "tags": ["GRUB", "Debian", "Recovery", "Passwort", "Single-User-Mode"],
+      "tags": [
+        "GRUB",
+        "Debian",
+        "Recovery",
+        "Passwort",
+        "Single-User-Mode"
+      ],
       "step_id": "p1-recovery",
       "summary": "Root-Passwort vergessen – Reset über GRUB Boot-Parameter mit init=/bin/bash. Funktioniert genauso in Hyper-V VMs wie auf Bare Metal.",
       "snippets": [
@@ -221,15 +267,28 @@
         "Nach erfolgreichem Login: Passwort SOFORT in Passwort-Manager (Bitwarden/Vaultwarden/KeePass) eintragen – Homelab-Systeme werden selten angefasst, Passwörter schnell vergessen."
       ],
       "links": [
-        { "title": "Debian Wiki – Password Recovery", "url": "https://wiki.debian.org/Recovery" },
-        { "title": "Proxmox Wiki – Root Password Reset", "url": "https://pve.proxmox.com/wiki/Root_Password_Reset" }
+        {
+          "title": "Debian Wiki – Password Recovery",
+          "url": "https://wiki.debian.org/Recovery"
+        },
+        {
+          "title": "Proxmox Wiki – Root Password Reset",
+          "url": "https://pve.proxmox.com/wiki/Root_Password_Reset"
+        }
       ]
     },
     {
       "id": "doc-005",
       "title": "Proxmox Netzwerk-Troubleshooting – Interface-Naming-Mismatch (nic0 vs eth0)",
       "namespace": "netzwerk/bridge",
-      "tags": ["Bridge", "Hyper-V", "eth0", "vmbr0", "Troubleshooting", "interfaces"],
+      "tags": [
+        "Bridge",
+        "Hyper-V",
+        "eth0",
+        "vmbr0",
+        "Troubleshooting",
+        "interfaces"
+      ],
       "step_id": "p1-recovery",
       "summary": "Proxmox-VM läuft, Web-UI nicht erreichbar. Ursache: /etc/network/interfaces referenziert nicht-existentes Interface (nic0), das Kernel-Device heißt aber eth0. Bridge vmbr0 hat IP, aber keinen Uplink.",
       "snippets": [
@@ -279,16 +338,32 @@
         "Diagnose-Reihenfolge (spart Stunden vs Blind-Config): (1) ip a → IP da? (2) ip link show → Interface UP? (3) systemctl status networking → Fehler? (4) cat /etc/network/interfaces → Namen matchen? (5) MAC-Cross-Check Linux vs Hyper-V."
       ],
       "links": [
-        { "title": "Proxmox Wiki – Network Configuration", "url": "https://pve.proxmox.com/wiki/Network_Configuration" },
-        { "title": "Debian Wiki – NetworkInterfaceNames", "url": "https://wiki.debian.org/NetworkInterfaceNames" },
-        { "title": "Linux Kernel – hv_netvsc driver", "url": "https://www.kernel.org/doc/html/latest/networking/device_drivers/ethernet/microsoft/netvsc.html" }
+        {
+          "title": "Proxmox Wiki – Network Configuration",
+          "url": "https://pve.proxmox.com/wiki/Network_Configuration"
+        },
+        {
+          "title": "Debian Wiki – NetworkInterfaceNames",
+          "url": "https://wiki.debian.org/NetworkInterfaceNames"
+        },
+        {
+          "title": "Linux Kernel – hv_netvsc driver",
+          "url": "https://www.kernel.org/doc/html/latest/networking/device_drivers/ethernet/microsoft/netvsc.html"
+        }
       ]
     },
     {
       "id": "doc-006",
       "title": "Browser-DoH umgeht AdGuard – Detection & Fix",
       "namespace": "netzwerk/dns",
-      "tags": ["AdGuard", "DNS", "DoH", "Chrome", "Firefox", "Privacy"],
+      "tags": [
+        "AdGuard",
+        "DNS",
+        "DoH",
+        "Chrome",
+        "Firefox",
+        "Privacy"
+      ],
       "step_id": "p2-dns",
       "summary": "Chrome, Firefox und Edge nutzen standardmäßig DNS-over-HTTPS (DoH) und umgehen damit deinen self-hosted AdGuard komplett. Symptom: Seiten laden, aber AdGuard-Abfrageprotokoll zeigt keine Einträge für die aufgerufenen Domains.",
       "snippets": [
@@ -328,16 +403,31 @@
         "Trade-off: DoH deaktivieren bedeutet weniger Privacy gegen DNS-Snooping im lokalen Netz. Im Homelab mit eigenem AdGuard + DoH-Upstream zu Cloudflare (doc-003) ist das Ergebnis trotzdem verschlüsselt – nur eben AdGuard → Cloudflare statt Browser → Cloudflare."
       ],
       "links": [
-        { "title": "Chrome Policy – DnsOverHttpsMode", "url": "https://chromeenterprise.google/policies/#DnsOverHttpsMode" },
-        { "title": "Firefox – DNS over HTTPS", "url": "https://support.mozilla.org/en-US/kb/firefox-dns-over-https" },
-        { "title": "AdGuard – Blocking DoH", "url": "https://adguard-dns.io/kb/general/dns-filtering-syntax/" }
+        {
+          "title": "Chrome Policy – DnsOverHttpsMode",
+          "url": "https://chromeenterprise.google/policies/#DnsOverHttpsMode"
+        },
+        {
+          "title": "Firefox – DNS over HTTPS",
+          "url": "https://support.mozilla.org/en-US/kb/firefox-dns-over-https"
+        },
+        {
+          "title": "AdGuard – Blocking DoH",
+          "url": "https://adguard-dns.io/kb/general/dns-filtering-syntax/"
+        }
       ]
     },
     {
       "id": "doc-007",
       "title": "vim Grundlagen für Config-Editing im Homelab",
       "namespace": "tools/vim",
-      "tags": ["vim", "Editor", "Basics", "Linux", "Admin"],
+      "tags": [
+        "vim",
+        "Editor",
+        "Basics",
+        "Linux",
+        "Admin"
+      ],
       "step_id": null,
       "summary": "Minimales vim-Cheatsheet für Admin-Alltag. Fokus: Config-Dateien editieren, Search & Replace, ohne vim-Guru-Ambitionen.",
       "snippets": [
@@ -394,16 +484,31 @@
         "Alternative neovim (nvim) ist moderner und kompatibel, aber auf Remote-Systemen oft nicht verfügbar. vim/vi ist ÜBERALL da – deshalb diese Version lernen."
       ],
       "links": [
-        { "title": "vim Cheat Sheet (Devhints)", "url": "https://devhints.io/vim" },
-        { "title": "Interactive vim Tutor", "url": "https://www.openvim.com" },
-        { "title": "vim Adventures (Gamified)", "url": "https://vim-adventures.com" }
+        {
+          "title": "vim Cheat Sheet (Devhints)",
+          "url": "https://devhints.io/vim"
+        },
+        {
+          "title": "Interactive vim Tutor",
+          "url": "https://www.openvim.com"
+        },
+        {
+          "title": "vim Adventures (Gamified)",
+          "url": "https://vim-adventures.com"
+        }
       ]
     },
     {
       "id": "doc-008",
       "title": "Autostart-Strategie – Hyper-V VM & Proxmox Container",
       "namespace": "proxmox/autostart",
-      "tags": ["Autostart", "Hyper-V", "Proxmox", "Resilience", "Boot"],
+      "tags": [
+        "Autostart",
+        "Hyper-V",
+        "Proxmox",
+        "Resilience",
+        "Boot"
+      ],
       "step_id": "p1-autostart",
       "summary": "Zweistufiger Autostart: Proxmox-VM startet mit Windows, LXC Container starten mit Proxmox. Absicherung gegen DNS-Ausfall bei Host-Reboots.",
       "snippets": [
@@ -444,8 +549,79 @@
         "onboot=1 allein reicht nicht – ohne startup-Order kommen Container in zufälliger Reihenfolge hoch."
       ],
       "links": [
-        { "title": "Microsoft Docs – Set-VM", "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/set-vm" },
-        { "title": "Proxmox Wiki – Startup and Shutdown Behavior", "url": "https://pve.proxmox.com/wiki/Startup_and_shutdown_order" }
+        {
+          "title": "Microsoft Docs – Set-VM",
+          "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/set-vm"
+        },
+        {
+          "title": "Proxmox Wiki – Startup and Shutdown Behavior",
+          "url": "https://pve.proxmox.com/wiki/Startup_and_shutdown_order"
+        }
+      ]
+    },
+    {
+      "id": "doc-009",
+      "title": "SSH Key-Auth & KeePassXC – PuTTY ohne Passwort aus dem Passwort-Manager",
+      "namespace": "tools/ssh",
+      "tags": [
+        "SSH",
+        "PuTTY",
+        "KeePassXC",
+        "Pageant",
+        "Ed25519",
+        "Keys"
+      ],
+      "step_id": "p1-ssh-hardening",
+      "summary": "Ed25519 SSH-Key generieren, auf Proxmox deployen, PuTTY-Session speichern, KeePassXC mit cmd://-URL einrichten, Pageant als SSH-Agent. Doppelklick in KeePassXC oeffnet PuTTY direkt.",
+      "snippets": [
+        {
+          "title": "1. SSH-Keypair generieren (PuTTYgen)",
+          "lang": "text",
+          "code": "PuTTYgen oeffnen\n  Key type: EdDSA / Ed25519\n  Generate → Maus bewegen fuer Entropy\n  Key comment: homelab-admin@windows\n  Passphrase: setzen (empfohlen)\n  Save private key: Y:/HomeLab/.secrets/homelab-admin.ppk\n  Public Key: oberes Textfeld komplett kopieren (ssh-ed25519 AAAA...)"
+        },
+        {
+          "title": "2. Public Key auf Server deployen",
+          "lang": "bash",
+          "code": "mkdir -p ~/.ssh\necho \"ssh-ed25519 AAAA...dein-key...\" >> ~/.ssh/authorized_keys\nchmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+        },
+        {
+          "title": "3. PuTTY-Session speichern",
+          "lang": "text",
+          "code": "PuTTY oeffnen:\n  Host Name: 192.168.0.200, Port: 22\n  Connection > SSH > Auth > Credentials > Private key: .ppk Pfad\n  Session Name: proxmox > Save"
+        },
+        {
+          "title": "4. KeePassXC cmd:// URL (Doppelklick oeffnet PuTTY)",
+          "lang": "text",
+          "code": "KeePassXC Eintrag erstellen:\n  Title:    Proxmox SSH\n  Username: root\n  URL:      cmd://\"C:\\Program Files\\PuTTY\\putty.exe\" -ssh root@192.168.0.200\n\nDoppelklick-Aktion fuer URL: \"URL oeffnen\" (Einstellungen > Allgemein)\n\nHinweis: ssh:// Schema funktioniert in KeePassXC NICHT nativ.\nKeePass classic hat URL Scheme Overrides ({URL:RMVSCM}),\nKeePassXC unterstuetzt nur cmd:// direkt."
+        },
+        {
+          "title": "5. Pageant als SSH-Agent (Autostart)",
+          "lang": "text",
+          "code": "Pageant einrichten:\n  Rechtsklick Tray-Icon > Add Key > .ppk auswaehlen\n\nAutostart mit Windows:\n  Verknuepfung in Startup-Ordner erstellen:\n  Ziel: \"C:\\Program Files\\PuTTY\\pageant.exe\" \"Y:\\HomeLab\\.secrets\\homelab-admin.ppk\"\n  Ordner: %APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\n\nPageant haelt Key im RAM – PuTTY fragt automatisch bei Pageant an."
+        }
+      ],
+      "gotchas": [
+        "KeePassXC hat KEINE URL Scheme Overrides wie KeePass classic. ssh:// URLs oeffnen den Windows-Default-Handler (Browser oder Fehlermeldung). Immer cmd:// mit vollem PuTTY-Pfad verwenden.",
+        "Anfuehrungszeichen um den PuTTY-Pfad sind Pflicht wegen Leerzeichen in \"Program Files\". Ohne Quotes: Befehl schlaegt fehl.",
+        "Private Key (.ppk) gehoert in Y:/HomeLab/.secrets/ mit .gitignore – NIEMALS ins Git-Repo commiten.",
+        "Public Key muss auf JEDEM System einzeln in authorized_keys deployed werden. Skaliert nicht – spaeter via Ansible Base-Playbook (idea-022) oder Proxmox Cloud-Init automatisieren.",
+        "Proxmox bietet beim VM-/CT-Erstellen ein SSH-Key-Feld an – dort den Public Key hinterlegen, dann haben neue Maschinen den Key ab Geburt.",
+        "Bei AdGuard LXC (CT100) Key-Auth: trotz deployed Key kann Access Denied auftreten. Workaround: pct enter 100 ueber Proxmox-Host.",
+        "PuTTY .ppk Format ist NICHT OpenSSH-Format. KeePassXC SSH-Agent braucht OpenSSH-Keys. Falls spaeter KeePassXC SSH-Agent statt Pageant: Key in PuTTYgen laden > Conversions > Export OpenSSH key."
+      ],
+      "links": [
+        {
+          "title": "PuTTY Download",
+          "url": "https://www.putty.org"
+        },
+        {
+          "title": "KeePassXC SSH Agent Docs",
+          "url": "https://github.com/keepassxreboot/keepassxc/blob/develop/docs/topics/SSHAgent.adoc"
+        },
+        {
+          "title": "KeePass URL Overrides (classic only)",
+          "url": "https://keepass.info/help/base/autourl.html"
+        }
       ]
     }
   ]

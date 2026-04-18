@@ -359,22 +359,7 @@
         }
       ]
     },
-    {
-      "id": "idea-023",
-      "title": "PuTTY / SSH-Zugang für Windows",
-      "desc": "PuTTY oder Windows Terminal für direkten SSH-Zugang zu VMs statt Proxmox Browser-Console. ssh root@192.168.0.201 direkt aus Windows Terminal. Schneller, komfortabler, Copy-Paste funktioniert richtig.",
-      "phase_id": "phase1",
-      "step_id": "p1-linux-vm",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "SSH",
-        "PuTTY",
-        "Windows",
-        "Terminal"
-      ],
-      "comments": []
-    },
+    
     {
       "id": "idea-024",
       "title": "SSH Key-basierte Authentifizierung",
@@ -382,7 +367,7 @@
       "phase_id": "phase4",
       "step_id": "p4-sso",
       "prio": "high",
-      "status": "idea",
+      "status": "in-progress",
       "tags": [
         "SSH",
         "Security",
@@ -394,6 +379,12 @@
           "id": "c-004",
           "date": "2026-04-17",
           "text": "Gehört ins Berechtigungskonzept (idea-019) – SSH-Keys sind Grundlage für sicheren Zugang ohne Passwort-Risiko.",
+          "edited": false
+        },
+        {
+          "id": "c-024-1",
+          "date": "2026-04-19",
+          "text": "Key generiert und auf Proxmox deployed – funktioniert. sshd_config Hardening (PasswordAuthentication=no) auf später verschoben (p1-ssh-remaining). AdGuard Key-Auth hat Access Denied trotz deployed Key.",
           "edited": false
         }
       ]
@@ -421,7 +412,7 @@
       "phase_id": "phase2",
       "step_id": "p2-dns",
       "prio": "high",
-      "status": "in-progress",
+      "status": "done",
       "tags": [
         "AdGuard",
         "Autostart",
@@ -439,6 +430,12 @@
           "id": "c-006",
           "date": "2026-04-18",
           "text": "Autostart-Versuch führte zu Proxmox-Ausfall – nicht durch Set-VM selbst, sondern weil vorher existierende nic0/eth0 Inkonsistenz in /etc/network/interfaces nach Neustart sichtbar wurde. Nach Fix (p1-recovery): Hyper-V-Seite via Set-VM gesetzt, Container-Seite via pct set 100 --onboot 1 --startup order=1,up=10,down=60. Reboot-Test steht aus.",
+          "edited": false
+        },
+        {
+          "id": "c-026-3",
+          "date": "2026-04-19",
+          "text": "Erledigt: pct set 100 --onboot 1 --startup order=1,up=30,down=60. Reboot-Test bestanden – Proxmox VM und AdGuard Container starten automatisch nach Windows-Neustart. Boot-Kette dauert ~90-120s.",
           "edited": false
         }
       ]

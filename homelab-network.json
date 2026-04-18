@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, Migrations-Mapping",
+    "status": "Übergangsphase – alles noch in 192.168.0.0/24 bis OPNsense läuft",
+    "current_subnet": "192.168.0.0/24",
+    "target_subnets": "10.0.1-4.0/24",
+    "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans)"
+  },
+  "subnets": [
+    {
+      "id": "mgmt",
+      "name": "Management",
+      "cidr": "10.0.1.0/24",
+      "gateway": "10.0.1.1",
+      "color": "teal",
+      "purpose": "Kern-Infrastruktur — wenn hier was ausfällt, steht alles still",
+      "dhcp_range": "10.0.1.100 – 10.0.1.200",
+      "hosts": [
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway / Firewall", "status": "planned", "core": true },
+        { "ip": ".2", "name": "Proxmox", "role": "pve.homelab.local", "status": "active", "core": true, "current_ip": "192.168.0.200" },
+        { "ip": ".3", "name": "AdGuard DNS", "role": "Primärer DNS", "status": "active", "core": true, "current_ip": "192.168.0.201" },
+        { "ip": ".4", "name": "NTP / Chrony", "role": "Zeitserver", "status": "planned", "core": false, "idea_id": "idea-012" },
+        { "ip": ".5", "name": "Syslog", "role": "Zentrales Logging", "status": "planned", "core": false, "idea_id": "idea-012" },
+        { "ip": ".6", "name": "— Reserve —", "role": "Zweiter DNS (Pi Zero 2 W)", "status": "reserved", "core": false, "idea_id": "idea-033" },
+        { "ip": ".7", "name": "— Reserve —", "role": "Monitoring (Grafana/Prometheus)", "status": "reserved", "core": false },
+        { "ip": ".8", "name": "— Reserve —", "role": "Proxmox Backup Server (PBS)", "status": "reserved", "core": false, "idea_id": "idea-010" },
+        { "ip": ".9 – .10", "name": "— Reserve —", "role": "Weitere Management-Infra", "status": "reserved", "core": false }
+      ]
+    },
+    {
+      "id": "svc",
+      "name": "Services",
+      "cidr": "10.0.2.0/24",
+      "gateway": "10.0.2.1",
+      "color": "blue",
+      "purpose": "Self-hosted Apps — erweiterbar, mit Lücken für Wachstum",
+      "dhcp_range": "10.0.2.100 – 10.0.2.200",
+      "hosts": [
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway", "status": "planned", "core": true },
+        { "ip": ".10", "name": "Reverse Proxy", "role": "Nginx / Traefik (TLS-Terminierung)", "status": "planned", "core": false, "step_id": "p2-reverseproxy" },
+        { "ip": ".11", "name": "Vaultwarden", "role": "Passwort-Manager", "status": "planned", "core": false, "step_id": "p3-vaultwarden" },
+        { "ip": ".12", "name": "Gitea", "role": "Git Server", "status": "planned", "core": false, "step_id": "p3-git" },
+        { "ip": ".13", "name": "DokuWiki", "role": "Internes Wiki", "status": "planned", "core": false, "step_id": "p3-dokuwiki" },
+        { "ip": ".14", "name": "n8n", "role": "Workflow-Automation", "status": "planned", "core": false, "step_id": "p3-n8n" },
+        { "ip": ".15 – .19", "name": "— Reserve —", "role": "Weitere Kern-Services", "status": "reserved", "core": false },
+        { "ip": ".20", "name": "Webserver", "role": "Nginx / Caddy", "status": "planned", "core": false, "step_id": "p3-webserver" },
+        { "ip": ".21", "name": "Mailserver", "role": "Mailcow / Maddy", "status": "planned", "core": false, "step_id": "p3-mail" },
+        { "ip": ".22", "name": "Chat / Ntfy", "role": "Matrix oder Ntfy", "status": "planned", "core": false, "step_id": "p3-chat" },
+        { "ip": ".23 – .29", "name": "— Reserve —", "role": "Weitere Kommunikation", "status": "reserved", "core": false },
+        { "ip": ".30", "name": "Home Assistant", "role": "Smarthome", "status": "planned", "core": false, "idea_id": "idea-025" },
+        { "ip": ".31 – .49", "name": "— Reserve —", "role": "Weitere Dienste", "status": "reserved", "core": false }
+      ]
+    },
+    {
+      "id": "lab",
+      "name": "Lab",
+      "cidr": "10.0.3.0/24",
+      "gateway": "10.0.3.1",
+      "color": "purple",
+      "purpose": "Experimentierfeld — kaputt machen erlaubt, isoliert vom Rest",
+      "dhcp_range": "10.0.3.100 – 10.0.3.200",
+      "hosts": [
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway", "status": "planned", "core": true },
+        { "ip": ".10", "name": "Ansible Control", "role": "Playbook-Runner", "status": "planned", "core": false, "step_id": "p3-ansible" },
+        { "ip": ".11", "name": "TACACS+", "role": "AAA Server", "status": "planned", "core": false, "idea_id": "idea-013" },
+        { "ip": ".12", "name": "RADIUS", "role": "FreeRADIUS", "status": "planned", "core": false, "idea_id": "idea-014" },
+        { "ip": ".13", "name": "Access Server", "role": "TACACS+ Lab-Device", "status": "planned", "core": false, "idea_id": "idea-015" },
+        { "ip": ".14 – .19", "name": "— Reserve —", "role": "Weitere Lab-Infra", "status": "reserved", "core": false },
+        { "ip": ".20", "name": "EVE-NG / GNS3", "role": "Netzwerk-Simulation", "status": "planned", "core": false },
+        { "ip": ".21", "name": "Kali Linux", "role": "Pentest VM", "status": "planned", "core": false, "step_id": "p4-pentest" },
+        { "ip": ".22", "name": "Metasploitable", "role": "Vulnerable Target", "status": "planned", "core": false, "step_id": "p4-pentest" },
+        { "ip": ".23 – .49", "name": "— Reserve —", "role": "Weitere Security-VMs", "status": "reserved", "core": false }
+      ]
+    },
+    {
+      "id": "dmz",
+      "name": "DMZ",
+      "cidr": "10.0.4.0/24",
+      "gateway": "10.0.4.1",
+      "color": "amber",
+      "purpose": "Öffentlich erreichbare Dienste — isoliert durch Firewall",
+      "dhcp_range": "10.0.4.100 – 10.0.4.150",
+      "hosts": [
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway (ext. Firewall)", "status": "planned", "core": true },
+        { "ip": ".10", "name": "Webserver", "role": "Public-facing", "status": "planned", "core": false, "step_id": "p3-webserver" },
+        { "ip": ".11", "name": "DDNS-Endpunkt", "role": "Cloudflare / DuckDNS", "status": "planned", "core": false, "step_id": "p2-ddns" },
+        { "ip": ".12", "name": "Reverse Proxy", "role": "DMZ-Proxy (extern)", "status": "planned", "core": false },
+        { "ip": ".13 – .19", "name": "— Reserve —", "role": "Weitere öffentliche Dienste", "status": "reserved", "core": false }
+      ]
+    }
+  ],
+  "firewall_rules": [
+    { "from": "MGMT", "to": "alle Subnetze", "rule": "ERLAUBT", "note": "Admin-Zugang" },
+    { "from": "SVC", "to": "Internet", "rule": "ERLAUBT", "note": "" },
+    { "from": "SVC", "to": "MGMT", "rule": "nur DNS/NTP (Port 53, 123)", "note": "Kein voller Zugang zu Management" },
+    { "from": "LAB", "to": "Internet", "rule": "ERLAUBT", "note": "" },
+    { "from": "LAB", "to": "SVC / MGMT", "rule": "GEBLOCKT", "note": "Lab ist isoliert — darf nichts in Produktion anfassen" },
+    { "from": "DMZ", "to": "Internet", "rule": "ERLAUBT", "note": "" },
+    { "from": "DMZ", "to": "LAN (alle)", "rule": "GEBLOCKT", "note": "Außer definierte Rückkanäle — kompromittierte DMZ-Dienste kein LAN-Zugang" },
+    { "from": "LAN (alle)", "to": "DMZ", "rule": "ERLAUBT", "note": "" }
+  ],
+  "migration": [
+    { "current": "192.168.0.200", "target": "10.0.1.2", "host": "Proxmox", "status": "pending" },
+    { "current": "192.168.0.201", "target": "10.0.1.3", "host": "AdGuard DNS", "status": "pending" },
+    { "current": "192.168.0.1", "target": "10.0.1.1", "host": "Gateway (TP-Link → OPNsense)", "status": "pending" },
+    { "current": "192.168.0.155", "target": "bleibt 192.168.0.x", "host": "Windows Host", "status": "no-change" }
+  ],
+  "principles": [
+    "Kern-Infra (.1 – .10) eng zusammen, essenzielle Dienste zuerst",
+    "Services ab .10 mit Lücken (.15-.19, .23-.29) für Erweiterung",
+    "DHCP immer .100 – .200, darunter nur statische Zuweisungen",
+    "OPNsense ist .1 in jedem Subnetz (konsistentes Gateway)",
+    "Lab isoliert — darf nichts in MGMT/SVC anfassen",
+    "DMZ isoliert — kompromittierte Dienste kein Zugang zum LAN"
+  ]
+}
