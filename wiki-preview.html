@@ -264,6 +264,35 @@
       border-radius: 4px;
       white-space: nowrap;
     }
+
+    /* Type filter bar */
+    .wiki-type-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .wiki-type-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .wiki-type-btn:hover { border-color: var(--border2); color: var(--text); }
+
+    .wiki-type-btn.active {
+      background: rgba(79,255,176,0.08);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -278,6 +307,13 @@
     </div>
     <span class="wiki-phase-banner">DokuWiki geplant – Phase 3</span>
   </header>
+
+  <!-- Type filter -->
+  <div class="wiki-type-bar">
+    <button class="wiki-type-btn active" data-type="all">📄 Alle</button>
+    <button class="wiki-type-btn" data-type="lesson">📝 Lessons Learned</button>
+    <button class="wiki-type-btn" data-type="reference">📚 Wissensdatenbank</button>
+  </div>
 
   <div class="wiki-layout">
     <!-- Sidebar -->
@@ -302,6 +338,7 @@
 
   const COLOR_MAP = { teal: 'var(--phase1)', blue: 'var(--phase2)', purple: 'var(--phase3)', amber: 'var(--phase4)' };
   let activeNs = 'all';
+  let activeType = 'all';
   let openArticleId = null;
 
   function init() {
@@ -311,18 +348,36 @@
     // Header subtitle
     const total = W.articles.length;
     const nsCount = W.namespaces.length;
+    var lessonCount = W.articles.filter(function(a) { return a.type === 'lesson'; }).length;
+    var refCount = W.articles.filter(function(a) { return (a.type || 'reference') === 'reference'; }).length;
     document.getElementById('wiki-subtitle').textContent =
-      total + ' Artikel · ' + nsCount + ' Namespaces';
+      total + ' Artikel · ' + nsCount + ' Namespaces · ' + lessonCount + ' Lessons · ' + refCount + ' Referenz';
 
     renderSidebar();
     renderArticles();
+    bindTypeFilter();
+  }
+
+  function bindTypeFilter() {
+    var bar = document.querySelector('.wiki-type-bar');
+    if (!bar) return;
+    bar.addEventListener('click', function(e) {
+      var btn = e.target.closest('.wiki-type-btn');
+      if (!btn) return;
+      activeType = btn.dataset.type;
+      bar.querySelectorAll('.wiki-type-btn').forEach(function(b) { b.classList.toggle('active', b === btn); });
+      openArticleId = null;
+      renderSidebar();
+      renderArticles();
+    });
   }
 
   function renderSidebar() {
     const W = window.WIKI;
     const container = document.getElementById('wiki-namespaces');
 
-    const allCount = W.articles.length;
+    var typeFiltered = getTypeFilteredArticles();
+    const allCount = typeFiltered.length;
     let html = `<div class="wiki-ns-item active" data-ns="all">
       <span class="wiki-ns-dot" style="background:var(--accent)"></span>
       Alle
@@ -330,9 +385,9 @@
     </div>`;
 
     for (const ns of W.namespaces) {
-      const count = W.articles.filter(a => a.namespace.startsWith(ns.id)).length;
+      const count = typeFiltered.filter(a => a.namespace.startsWith(ns.id)).length;
       const color = COLOR_MAP[ns.color] || 'var(--muted)';
-      html += `<div class="wiki-ns-item" data-ns="${ns.id}">
+      html += `<div class="wiki-ns-item${activeNs === ns.id ? ' active' : ''}" data-ns="${ns.id}">
         <span class="wiki-ns-dot" style="background:${color}"></span>
         ${ns.label}
         <span class="wiki-ns-count">${count}</span>
@@ -340,6 +395,10 @@
     }
 
     container.innerHTML = html;
+    // Mark active
+    container.querySelectorAll('.wiki-ns-item').forEach(function(el) {
+      el.classList.toggle('active', el.dataset.ns === activeNs);
+    });
 
     container.addEventListener('click', function(e) {
       const item = e.target.closest('.wiki-ns-item');
@@ -351,10 +410,19 @@
     });
   }
 
-  function getFilteredArticles() {
+  function getTypeFilteredArticles() {
     const W = window.WIKI;
-    if (activeNs === 'all') return W.articles;
-    return W.articles.filter(a => a.namespace.startsWith(activeNs));
+    if (activeType === 'all') return W.articles;
+    return W.articles.filter(function(a) {
+      var t = a.type || 'reference';
+      return t === activeType;
+    });
+  }
+
+  function getFilteredArticles() {
+    var articles = getTypeFilteredArticles();
+    if (activeNs === 'all') return articles;
+    return articles.filter(a => a.namespace.startsWith(activeNs));
   }
 
   function renderArticles() {
@@ -401,6 +469,9 @@
     const ns = W.namespaces.find(n => article.namespace.startsWith(n.id));
     const nsColor = ns ? (COLOR_MAP[ns.color] || 'var(--muted)') : 'var(--muted)';
     const tags = (article.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+    const typeLabel = article.type === 'lesson'
+      ? '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(234,179,8,0.1);color:var(--wip);border:1px solid rgba(234,179,8,0.2);margin-left:6px">📝 LESSON</span>'
+      : '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(77,184,255,0.1);color:var(--phase2);border:1px solid rgba(77,184,255,0.2);margin-left:6px">📚 REF</span>';
     const isOpen = openArticleId === article.id;
 
     const snippetsHtml = (article.snippets || []).map(s => `
@@ -435,6 +506,7 @@
             <div class="wiki-article-ns">
               <span style="color:${nsColor};font-size:11px">⬡</span>
               ${article.namespace}
+              ${typeLabel}
               <span style="margin-left:4px;display:flex;gap:4px;flex-wrap:wrap">${tags}</span>
             </div>
             <div class="wiki-article-title">${escHtml(article.title)}</div>

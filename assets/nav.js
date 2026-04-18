@@ -27,6 +27,7 @@
 
     const pages = [
       { href: root + 'index.html', label: 'Dashboard', file: 'index.html' },
+      { href: root + 'network-plan.html', label: 'Network', file: 'network-plan.html' },
       { href: root + 'ideas.html', label: 'Ideen', file: 'ideas.html' },
       { href: root + 'diary.html', label: 'Tagebuch', file: 'diary.html' },
       { href: root + 'wiki-preview.html', label: 'Wiki', file: 'wiki-preview.html' },

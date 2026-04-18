@@ -55,8 +55,14 @@
   <div id="deferred-section" style="display:none;margin-bottom:32px"></div>
 
   <div class="section-label">Dokumentation</div>
-  <div style="margin-bottom:32px">
-    <a href="wiki-preview.html" class="phase-card" style="border-left:3px solid var(--accent2);max-width:320px;display:block;text-decoration:none">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px">
+    <a href="network-plan.html" class="phase-card" style="border-left:3px solid var(--phase1);display:block;text-decoration:none">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(0,212,170,0.12);color:var(--phase1);border:1px solid rgba(0,212,170,0.25);display:inline-block;margin-bottom:10px;letter-spacing:0.5px">NETZWERK</span>
+      <div class="phase-card-title">IP-Plan &amp; Subnetze</div>
+      <div class="phase-card-step-count" id="net-card-count">Lade...</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:'JetBrains Mono',monospace" id="net-card-status"></div>
+    </a>
+    <a href="wiki-preview.html" class="phase-card" style="border-left:3px solid var(--accent2);display:block;text-decoration:none">
       <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(123,97,255,0.12);color:var(--accent2);border:1px solid rgba(123,97,255,0.25);display:inline-block;margin-bottom:10px;letter-spacing:0.5px">WIKI</span>
       <div class="phase-card-title">Docs &amp; Wiki</div>
       <div class="phase-card-subtitle">Technische Referenz, Snippets &amp; Gotchas</div>
@@ -216,6 +222,28 @@
       var count = (w.articles || []).length;
       var nsList = (w.namespaces || []).map(function(n) { return n.label; }).join(' · ');
       el.textContent = count + ' Artikel  ·  ' + nsList;
+    })
+    .catch(function() {});
+
+  // Network card counter
+  fetch('./homelab-network.json', { cache: 'no-cache' })
+    .then(function(r) { return r.json(); })
+    .then(function(n) {
+      var subnets = n.subnets || [];
+      var activeHosts = 0;
+      subnets.forEach(function(sn) {
+        (sn.hosts || []).forEach(function(h) {
+          if (h.status === 'active') activeHosts++;
+        });
+      });
+      var el = document.getElementById('net-card-count');
+      if (el) el.textContent = subnets.length + ' Subnetze · ' + activeHosts + ' aktive Hosts';
+      var st = document.getElementById('net-card-status');
+      if (st && n.meta) {
+        var cur = n.meta.current_subnet || '192.168.0.0/24';
+        var tgt = n.meta.target_subnets || '10.0.1-4.0/24';
+        st.textContent = 'Aktuell: ' + cur + ' → Ziel: ' + tgt;
+      }
     })
     .catch(function() {});
 })();

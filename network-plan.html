@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Netzwerk-Plan</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* === NETWORK DIAGRAM === */
+    .net-diagram-wrap {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 32px;
+      overflow-x: auto;
+    }
+    .net-diagram-wrap svg text {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* === SUBNET SECTIONS === */
+    .subnet-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .subnet-section:hover { border-color: var(--border2); }
+    .subnet-section.open { border-color: var(--accent2); }
+
+    .subnet-header {
+      padding: 16px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      user-select: none;
+    }
+
+    .subnet-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .subnet-info { flex: 1; min-width: 0; }
+    .subnet-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .subnet-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .subnet-toggle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .subnet-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+      border-top: 1px solid transparent;
+    }
+    .subnet-section.open .subnet-body {
+      max-height: 9999px;
+      border-top-color: var(--border);
+    }
+    .subnet-body-inner { padding: 20px; }
+
+    /* IP table */
+    .ip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+    .ip-table th {
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .ip-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .ip-table tr:last-child td { border-bottom: none; }
+    .ip-table .ip-col { font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .status-dot.active   { background: var(--done); }
+    .status-dot.planned  { background: var(--muted); }
+    .status-dot.reserved { background: var(--border); }
+
+    .dhcp-info {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px 12px;
+      background: var(--bg3);
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .idea-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--accent2);
+      text-decoration: none;
+    }
+    .idea-link:hover { text-decoration: underline; }
+
+    /* Firewall / Migration / Principles */
+    .net-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .net-table th {
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .net-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .net-table tr:last-child td { border-bottom: none; }
+    .net-table .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .rule-allow { color: var(--done); }
+    .rule-block { color: #ef4444; }
+    .rule-partial { color: var(--wip); }
+
+    .migration-pending  { color: var(--wip); }
+    .migration-done     { color: var(--done); }
+    .migration-nochange { color: var(--muted); }
+
+    .principles-list {
+      list-style: none;
+      counter-reset: principle;
+    }
+    .principles-list li {
+      counter-increment: principle;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      display: flex;
+      gap: 10px;
+    }
+    .principles-list li:last-child { border-bottom: none; }
+    .principles-list li::before {
+      content: counter(principle, decimal-leading-zero);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .status-banner {
+      background: rgba(234,179,8,0.08);
+      border: 1px solid rgba(234,179,8,0.25);
+      border-left: 3px solid var(--wip);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      font-size: 12px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><span>Netzwerk-Plan</span></div>
+
+  <header>
+    <div class="header-left">
+      <h1>// netz<span>_plan</span></h1>
+      <p id="net-subtitle">Lade...</p>
+    </div>
+  </header>
+
+  <div id="status-banner" class="status-banner" style="display:none"></div>
+
+  <!-- Teil A: Netzwerk-Diagramm -->
+  <div class="section-label">Netzwerk-Topologie</div>
+  <div class="net-diagram-wrap">
+    <div id="network-diagram"></div>
+  </div>
+
+  <!-- Teil B: Subnetz-Details -->
+  <div class="section-label">Subnetze</div>
+  <div id="subnet-sections"></div>
+
+  <!-- Firewall Rules -->
+  <div class="section-label" style="margin-top:32px">Firewall-Regeln</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px">
+    <table class="net-table" id="firewall-table">
+      <thead><tr><th>Von</th><th>Nach</th><th>Regel</th><th>Notiz</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Migration Mapping -->
+  <div class="section-label">Migrations-Mapping</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px">
+    <table class="net-table" id="migration-table">
+      <thead><tr><th>Aktuell</th><th>→</th><th>Ziel</th><th>Host</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Design-Prinzipien -->
+  <div class="section-label">Design-Prinzipien</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px">
+    <ol class="principles-list" id="principles-list"></ol>
+  </div>
+
+  <footer>homelab_roadmap · <span>netz_plan</span> · living document</footer>
+</div>
+
+<script src="assets/state.js"></script>
+<script src="assets/network-state.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var COLOR_MAP = {
+    teal:   { fill: 'rgba(0,212,170,0.12)', stroke: '#00d4aa', text: '#00d4aa' },
+    blue:   { fill: 'rgba(77,184,255,0.12)', stroke: '#4db8ff', text: '#4db8ff' },
+    purple: { fill: 'rgba(167,139,250,0.12)', stroke: '#a78bfa', text: '#a78bfa' },
+    amber:  { fill: 'rgba(251,146,60,0.12)',  stroke: '#fb923c', text: '#fb923c' }
+  };
+
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function init() {
+    if (!window.NETWORK) return;
+    var N = window.NETWORK;
+
+    // Subtitle
+    var totalHosts = 0;
+    var activeHosts = 0;
+    N.subnets.forEach(function(sn) {
+      (sn.hosts || []).forEach(function(h) {
+        totalHosts++;
+        if (h.status === 'active') activeHosts++;
+      });
+    });
+    document.getElementById('net-subtitle').textContent =
+      N.subnets.length + ' Subnetze · ' + activeHosts + ' aktive Hosts · ' + totalHosts + ' geplant';
+
+    // Status banner
+    if (N.meta.status) {
+      var banner = document.getElementById('status-banner');
+      banner.style.display = '';
+      banner.textContent = '⚡ ' + N.meta.status;
+    }
+
+    renderDiagram(N);
+    renderSubnetSections(N);
+    renderFirewall(N);
+    renderMigration(N);
+    renderPrinciples(N);
+  }
+
+  /* ====================== */
+  /* Teil A: SVG-Diagramm   */
+  /* ====================== */
+  function renderDiagram(N) {
+    var subnets = N.subnets;
+    var count = subnets.length;
+    if (count === 0) {
+      document.getElementById('network-diagram').innerHTML = '<p style="color:var(--muted);font-size:12px">Keine Subnetze definiert.</p>';
+      return;
+    }
+
+    var boxW = 160, boxH = 110, gap = 20;
+    var totalW = count * boxW + (count - 1) * gap;
+    var svgW = Math.max(totalW + 60, 600);
+    var routerW = 180, routerH = 48;
+    var routerX = (svgW - routerW) / 2;
+    var routerY = 20;
+    var subnetY = 140;
+    var startX = (svgW - totalW) / 2;
+    var svgH = subnetY + boxH + 30;
+
+    var svg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:' + svgW + 'px">';
+
+    // OPNsense router box
+    svg += '<rect x="' + routerX + '" y="' + routerY + '" width="' + routerW + '" height="' + routerH + '" rx="8" fill="#13161e" stroke="#4fffb0" stroke-width="1.5"/>';
+    svg += '<text x="' + (routerX + routerW/2) + '" y="' + (routerY + 20) + '" text-anchor="middle" fill="#4fffb0" font-size="12" font-weight="700">OPNsense</text>';
+    svg += '<text x="' + (routerX + routerW/2) + '" y="' + (routerY + 36) + '" text-anchor="middle" fill="#5a6278" font-size="9">Gateway / Firewall</text>';
+
+    var routerCenterX = routerX + routerW / 2;
+    var routerBottomY = routerY + routerH;
+
+    subnets.forEach(function(sn, i) {
+      var c = COLOR_MAP[sn.color] || COLOR_MAP.teal;
+      var x = startX + i * (boxW + gap);
+      var centerX = x + boxW / 2;
+
+      // Connection line
+      svg += '<line x1="' + routerCenterX + '" y1="' + routerBottomY + '" x2="' + centerX + '" y2="' + subnetY + '" stroke="' + c.stroke + '" stroke-width="1" opacity="0.4" stroke-dasharray="4,3"/>';
+
+      // Subnet zone box
+      svg += '<rect x="' + x + '" y="' + subnetY + '" width="' + boxW + '" height="' + boxH + '" rx="8" fill="' + c.fill + '" stroke="' + c.stroke + '" stroke-width="1" style="cursor:pointer" onclick="document.getElementById(\'subnet-' + sn.id + '\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"/>';
+
+      // Subnet name + CIDR
+      svg += '<text x="' + centerX + '" y="' + (subnetY + 18) + '" text-anchor="middle" fill="' + c.text + '" font-size="11" font-weight="700">' + esc(sn.name) + '</text>';
+      svg += '<text x="' + centerX + '" y="' + (subnetY + 32) + '" text-anchor="middle" fill="#5a6278" font-size="9">' + esc(sn.cidr) + '</text>';
+
+      // Top hosts
+      var coreHosts = (sn.hosts || []).filter(function(h) { return !h.ip.includes('–') && h.name.indexOf('Reserve') === -1; }).slice(0, 4);
+      coreHosts.forEach(function(h, hi) {
+        var hy = subnetY + 48 + hi * 14;
+        var dotColor = h.status === 'active' ? '#22c55e' : (h.status === 'planned' ? '#5a6278' : '#2a2f3f');
+        svg += '<circle cx="' + (x + 14) + '" cy="' + (hy + 1) + '" r="3" fill="' + dotColor + '"/>';
+        svg += '<text x="' + (x + 22) + '" y="' + (hy + 4) + '" fill="#c8cedd" font-size="8.5">' + esc(h.name) + '</text>';
+      });
+    });
+
+    // Legend
+    svg += '<circle cx="' + (startX) + '" cy="' + (svgH - 10) + '" r="3" fill="#22c55e"/>';
+    svg += '<text x="' + (startX + 8) + '" y="' + (svgH - 7) + '" fill="#5a6278" font-size="8">aktiv</text>';
+    svg += '<circle cx="' + (startX + 50) + '" cy="' + (svgH - 10) + '" r="3" fill="#5a6278"/>';
+    svg += '<text x="' + (startX + 58) + '" y="' + (svgH - 7) + '" fill="#5a6278" font-size="8">geplant</text>';
+    svg += '<circle cx="' + (startX + 110) + '" cy="' + (svgH - 10) + '" r="3" fill="#2a2f3f"/>';
+    svg += '<text x="' + (startX + 118) + '" y="' + (svgH - 7) + '" fill="#5a6278" font-size="8">reserviert</text>';
+
+    svg += '</svg>';
+    document.getElementById('network-diagram').innerHTML = svg;
+  }
+
+  /* ============================== */
+  /* Teil B: Subnetz-Detail-Sektionen */
+  /* ============================== */
+  function renderSubnetSections(N) {
+    var container = document.getElementById('subnet-sections');
+    var html = '';
+
+    N.subnets.forEach(function(sn) {
+      var c = COLOR_MAP[sn.color] || COLOR_MAP.teal;
+      var hostCount = (sn.hosts || []).filter(function(h) { return !h.ip.includes('–') && h.name.indexOf('Reserve') === -1; }).length;
+      var activeCount = (sn.hosts || []).filter(function(h) { return h.status === 'active'; }).length;
+
+      html += '<div class="subnet-section" id="subnet-' + sn.id + '" data-id="' + sn.id + '">';
+      html += '<div class="subnet-header">';
+      html += '<span class="subnet-badge" style="background:' + c.fill + ';color:' + c.text + ';border:1px solid ' + c.stroke + '">' + esc(sn.name.toUpperCase()) + '</span>';
+      html += '<div class="subnet-info">';
+      html += '<div class="subnet-title">' + esc(sn.name) + ' — ' + esc(sn.cidr) + '</div>';
+      html += '<div class="subnet-meta">GW: ' + esc(sn.gateway) + ' · ' + activeCount + '/' + hostCount + ' aktiv · ' + esc(sn.purpose) + '</div>';
+      html += '</div>';
+      html += '<span class="subnet-toggle">▾</span>';
+      html += '</div>';
+
+      // Body
+      html += '<div class="subnet-body"><div class="subnet-body-inner">';
+
+      // Purpose
+      html += '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-style:italic">' + esc(sn.purpose) + '</div>';
+
+      // DHCP range
+      if (sn.dhcp_range) {
+        html += '<div class="dhcp-info">DHCP-Range: ' + esc(sn.dhcp_range) + '</div>';
+      }
+
+      // IP table
+      html += '<table class="ip-table"><thead><tr><th>IP</th><th>Host</th><th>Rolle</th><th>Status</th><th></th></tr></thead><tbody>';
+      (sn.hosts || []).forEach(function(h) {
+        var statusClass = h.status || 'planned';
+        var ideaLink = '';
+        if (h.idea_id) {
+          ideaLink = '<a href="ideas.html?highlight=' + encodeURIComponent(h.idea_id) + '" class="idea-link" title="Idee anzeigen">💡 ' + esc(h.idea_id) + '</a>';
+        }
+        if (h.step_id) {
+          ideaLink = '<a href="steps/step.html?id=' + encodeURIComponent(h.step_id) + '" class="idea-link" title="Step anzeigen">📋 ' + esc(h.step_id) + '</a>';
+        }
+        html += '<tr>';
+        html += '<td class="ip-col">' + esc(sn.cidr.replace(/\.\d+\/\d+$/, '') + h.ip.replace(/^\./, '.')) + '</td>';
+        html += '<td>' + esc(h.name) + (h.core ? ' <span style="font-size:9px;color:var(--accent);font-family:\'JetBrains Mono\',monospace">CORE</span>' : '') + '</td>';
+        html += '<td style="font-size:11px;color:var(--muted)">' + esc(h.role) + '</td>';
+        html += '<td><span class="status-dot ' + statusClass + '"></span>' + esc(h.status || 'planned') + '</td>';
+        html += '<td>' + ideaLink + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+
+      html += '</div></div>'; // body-inner, body
+      html += '</div>'; // subnet-section
+    });
+
+    container.innerHTML = html;
+
+    // Bind click to toggle
+    container.querySelectorAll('.subnet-header').forEach(function(header) {
+      header.addEventListener('click', function() {
+        var section = header.closest('.subnet-section');
+        section.classList.toggle('open');
+        var toggle = section.querySelector('.subnet-toggle');
+        toggle.textContent = section.classList.contains('open') ? '▴' : '▾';
+      });
+    });
+  }
+
+  /* ================ */
+  /* Firewall-Regeln   */
+  /* ================ */
+  function renderFirewall(N) {
+    var tbody = document.querySelector('#firewall-table tbody');
+    var html = '';
+    (N.firewall_rules || []).forEach(function(r) {
+      var ruleText = esc(r.rule);
+      var ruleClass = '';
+      if (r.rule.indexOf('ERLAUBT') !== -1) ruleClass = 'rule-allow';
+      else if (r.rule.indexOf('GEBLOCKT') !== -1) ruleClass = 'rule-block';
+      else ruleClass = 'rule-partial';
+
+      html += '<tr>';
+      html += '<td class="mono">' + esc(r.from) + '</td>';
+      html += '<td class="mono">' + esc(r.to) + '</td>';
+      html += '<td class="mono ' + ruleClass + '">' + ruleText + '</td>';
+      html += '<td style="font-size:11px;color:var(--muted)">' + esc(r.note || '') + '</td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  /* =================== */
+  /* Migrations-Mapping   */
+  /* =================== */
+  function renderMigration(N) {
+    var tbody = document.querySelector('#migration-table tbody');
+    var html = '';
+    (N.migration || []).forEach(function(m) {
+      var statusClass = 'migration-pending';
+      var statusLabel = m.status || 'pending';
+      if (statusLabel === 'done') statusClass = 'migration-done';
+      else if (statusLabel === 'no-change') { statusClass = 'migration-nochange'; statusLabel = 'bleibt'; }
+
+      html += '<tr>';
+      html += '<td class="mono">' + esc(m.current) + '</td>';
+      html += '<td style="text-align:center;color:var(--muted)">→</td>';
+      html += '<td class="mono">' + esc(m.target) + '</td>';
+      html += '<td>' + esc(m.host) + '</td>';
+      html += '<td class="mono ' + statusClass + '">' + esc(statusLabel) + '</td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  /* =================== */
+  /* Design-Prinzipien    */
+  /* =================== */
+  function renderPrinciples(N) {
+    var list = document.getElementById('principles-list');
+    var html = '';
+    (N.principles || []).forEach(function(p) {
+      html += '<li>' + esc(p) + '</li>';
+    });
+    list.innerHTML = html;
+  }
+
+  window.addEventListener('network-ready', init);
+})();
+</script>
+</body>
+</html>
