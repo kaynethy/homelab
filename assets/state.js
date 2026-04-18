@@ -44,6 +44,23 @@
     return state;
   }
 
+  function calcProgress(state) {
+    let done = 0, wip = 0, total = 0;
+    for (const phase of state.phases) {
+      const steps = [
+        ...(phase.steps || []),
+        ...(phase.sections || []).flatMap(s => s.steps || [])
+      ];
+      for (const step of steps) {
+        total++;
+        if (step.status === 'done') done++;
+        else if (step.status === 'wip') wip++;
+      }
+    }
+    const pct = total === 0 ? 0 : Math.round((done + wip * 0.5) / total * 100);
+    return { pct, done, wip, total };
+  }
+
   async function loadState() {
     try {
       const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/');
@@ -76,10 +93,18 @@
     }
 
     if (window.STATE) {
+      // Dynamische Fortschrittsberechnung – überschreibt den statischen JSON-Wert
+      const progress = calcProgress(window.STATE);
+      window.STATE.meta.progress_pct = progress.pct;
+      window.STATE.meta.progress_done = progress.done;
+      window.STATE.meta.progress_wip = progress.wip;
+      window.STATE.meta.progress_total = progress.total;
+
       console.log(
         '[STATE] loaded v' + window.STATE.meta.version,
         window.STATE.phases[0].steps ? window.STATE.phases[0].steps.length + ' steps p1' : '',
-        (window.STATE.ideas || []).length + ' ideas'
+        (window.STATE.ideas || []).length + ' ideas',
+        'progress ' + progress.pct + '% (' + progress.done + '/' + progress.total + ' done, ' + progress.wip + ' wip)'
       );
     }
 

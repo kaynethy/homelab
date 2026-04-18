@@ -23,6 +23,7 @@
     <span class="progress-label">GESAMT-FORTSCHRITT</span>
     <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <span class="progress-pct" id="progress-pct">~0%</span>
+    <span class="progress-sub" id="progress-sub" style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-left:8px"></span>
   </div>
 
   <!-- Quick Actions -->
@@ -108,6 +109,9 @@
     var pct = s.meta.progress_pct;
     document.getElementById('progress-fill').style.width = pct + '%';
     document.getElementById('progress-pct').textContent = '~' + pct + '%';
+    document.getElementById('progress-fill').title = s.meta.progress_done + '/' + s.meta.progress_total + ' Steps done' + (s.meta.progress_wip ? ', ' + s.meta.progress_wip + ' wip' : '');
+    var progressSub = document.getElementById('progress-sub');
+    if (progressSub) progressSub.textContent = s.meta.progress_done + '/' + s.meta.progress_total + ' Steps done';
 
     var grid = document.getElementById('phase-cards');
     grid.innerHTML = '';
