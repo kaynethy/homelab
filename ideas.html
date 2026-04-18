@@ -947,6 +947,9 @@
     // Brand
     html += '<div class="sb-brand">// <b>ideen</b>_board<span class="sb-count">' + total + ' Ideen total</span></div>';
 
+    // New idea button (top)
+    html += '<div class="sb-new"><button class="sb-new-btn" id="sb-new-btn">+ Neue Idee</button></div>';
+
     // Phase section
     html += '<div class="sb-section">Phasen</div>';
     phases.forEach(function(p) {
@@ -982,9 +985,6 @@
       });
       html += '</div>';
     }
-
-    // New idea button
-    html += '<div class="sb-new"><button class="sb-new-btn" id="sb-new-btn">+ Neue Idee</button></div>';
 
     document.getElementById('sidebar').innerHTML = html;
   }
