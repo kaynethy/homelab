@@ -882,7 +882,11 @@
   }
 
   function bindSidebar() {
-    document.getElementById('sidebar').addEventListener('click', function(e) {
+    var sidebar = document.getElementById('sidebar');
+    // Alten Listener entfernen durch Ersetzen des Elements
+    var clone = sidebar.cloneNode(true);
+    sidebar.parentNode.replaceChild(clone, sidebar);
+    clone.addEventListener('click', function(e) {
       var btn = e.target.closest('.sb-item');
       if (btn) {
         var grid = document.getElementById('cmd-grid');
