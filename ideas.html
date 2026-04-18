@@ -1107,7 +1107,7 @@
     var stepLink = '';
     if (idea.step_id && idea.phase_id) {
       var phaseRef = PHASE_LABELS[idea.phase_id] || 'Offen';
-      stepLink = '<div class="card-link">Verknüpft mit: <a href="steps/' + esc(idea.step_id) + '.html">→ ' + esc(phaseRef) + ' / ' + esc(idea.step_id) + '</a></div>';
+      stepLink = '<div class="card-link">Verknüpft mit: <a href="steps/step.html?id=' + encodeURIComponent(idea.step_id) + '">→ ' + esc(phaseRef) + ' / ' + esc(idea.step_id) + '</a></div>';
     }
 
     // Phase/Step assign dropdowns

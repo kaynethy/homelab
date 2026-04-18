@@ -101,7 +101,7 @@
   function renderStepCards(steps, pNum) {
     var cards = steps.map(function(step) {
       var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
-      return '<a href="../steps/' + escHtml(step.id) + '.html" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block">' +
+      return '<a href="../steps/step.html?id=' + encodeURIComponent(step.id) + '" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block">' +
         '<div class="card-status status-' + step.status + '" title="' + step.status + '"></div>' +
         '<div class="card-title">' + escHtml(step.title) + '</div>' +
         '<div class="card-desc">' + escHtml(step.desc || '') + '</div>' +

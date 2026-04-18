@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Step</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb" id="breadcrumb">
+    <a href="../index.html">Dashboard</a><span class="sep">›</span>
+    <a href="" id="bc-phase">Phase</a><span class="sep">›</span>
+    <span id="bc-step">Step</span>
+  </div>
+
+  <div id="step-content"><p style="color:var(--muted)">Lade...</p></div>
+
+  <footer>homelab_roadmap · <span>step_detail</span></footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var PHASE_NUM = { phase1: 1, phase2: 2, phase3: 3, phase4: 4 };
+
+  function getStepId() {
+    // 1. URL-Parameter ?id=STEP_ID (generischer Modus)
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('id')) return params.get('id');
+    // 2. Hash #STEP_ID
+    if (window.location.hash && window.location.hash.length > 1) return window.location.hash.substring(1);
+    // 3. Fallback: Dateiname (für individuelle Step-Dateien wie p1-bios.html)
+    var path = window.location.pathname;
+    var file = path.split('/').pop();
+    var name = file.replace('.html', '');
+    if (name !== 'step') return name;
+    return null;
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function init() {
+    if (!window.STATE) return;
+    var stepId = getStepId();
+    if (!stepId) {
+      document.getElementById('step-content').innerHTML = '<p style="color:var(--muted)">Kein Step angegeben. Nutze ?id=STEP_ID</p>';
+      return;
+    }
+    var result = window.findStep(stepId);
+    if (!result) {
+      document.getElementById('step-content').innerHTML = '<p style="color:var(--muted)">Step nicht gefunden: ' + escHtml(stepId) + '</p>';
+      return;
+    }
+
+    var step = result.step;
+    var phase = result.phase;
+    var pNum = PHASE_NUM[phase.id];
+
+    document.title = 'Homelab – ' + step.title;
+    document.getElementById('bc-phase').href = '../phases/' + phase.id + '.html';
+    document.getElementById('bc-phase').textContent = 'Phase ' + pNum + ' – ' + phase.title;
+    document.getElementById('bc-step').textContent = step.title;
+
+    renderStep(step, phase, pNum);
+  }
+
+  function renderStep(step, phase, pNum) {
+    var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
+    var statusColors = { done: 'var(--done)', wip: 'var(--wip)', todo: 'var(--muted)' };
+    var sc = statusColors[step.status] || 'var(--border)';
+    var statusBadge = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid ' + sc + ';color:' + sc + ';background:transparent">' + step.status + '</span>';
+
+    var detailsHtml = '';
+    if (step.details) {
+      var entries = Object.keys(step.details);
+      var mainObj = {};
+      entries.forEach(function(k) { if (!k.endsWith('_why')) mainObj[k] = step.details[k]; });
+      detailsHtml = '<div class="section-label">Details</div><div class="details-block">' + escHtml(JSON.stringify(mainObj, null, 2)) + '</div>';
+      entries.forEach(function(k) {
+        if (k.endsWith('_why')) {
+          var label = k.replace('_why','').replace(/_/g,' ').toUpperCase();
+          detailsHtml += '<div class="callout"><div class="callout-label">ℹ️ Warum ' + escHtml(label) + '?</div>' + escHtml(String(step.details[k])) + '</div>';
+        }
+      });
+    }
+
+    var log = (step.log || []).slice().sort(function(a,b) { return b.date.localeCompare(a.date); });
+    var logHtml = log.length
+      ? log.map(function(l) { return '<li class="log-entry"><span class="log-date">' + escHtml(l.date) + '</span><span class="log-text">' + escHtml(l.entry) + '</span></li>'; }).join('')
+      : '<li class="log-entry" style="color:var(--muted);font-style:italic">Keine Einträge</li>';
+
+    var stepIdeas = (window.STATE.ideas || []).filter(function(i) { return i.step_id === step.id; });
+    var ideasHtml = stepIdeas.length
+      ? stepIdeas.map(function(i) {
+          return '<div class="card" style="margin-bottom:8px">' +
+            '<span class="prio-badge ' + i.prio + '">' + i.prio + '</span>' +
+            '<div class="card-title" style="margin-top:6px">' + escHtml(i.title) + '</div>' +
+            '<div class="card-desc">' + escHtml(i.desc||'') + '</div>' +
+          '</div>';
+        }).join('')
+      : '<p style="color:var(--muted);font-size:12px;margin-bottom:12px">Keine Ideen zu diesem Step.</p>';
+
+    document.getElementById('step-content').innerHTML =
+      '<div class="step-header">' +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">' +
+          '<span class="phase-num p' + pNum + '" style="display:inline-block">PHASE ' + pNum + '</span>' +
+          statusBadge +
+        '</div>' +
+        '<div class="step-title">' + escHtml(step.title) + '</div>' +
+        '<div class="tags">' + tags + '</div>' +
+      '</div>' +
+      '<div class="status-toggles" id="status-toggles"></div>' +
+      '<div class="section-label">Beschreibung</div>' +
+      '<div style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:16px">' + escHtml(step.desc||'') + '</div>' +
+      detailsHtml +
+      '<div class="section-label">Notizen</div>' +
+      '<textarea class="notes-area" id="step-notes" placeholder="Notizen hier...">' + escHtml(step.notes||'') + '</textarea>' +
+      '<div class="section-label" style="margin-top:20px">Log</div>' +
+      '<ul class="log-list" id="log-list">' + logHtml + '</ul>' +
+      '<div class="log-form" style="margin-bottom:24px">' +
+        '<input type="text" id="log-input" placeholder="Neuer Log-Eintrag...">' +
+        '<button class="btn btn-sm" id="log-add">+ Log</button>' +
+      '</div>' +
+      '<div class="section-label">Ideen zu diesem Step</div>' +
+      '<div id="step-ideas">' + ideasHtml + '</div>' +
+      '<button class="btn btn-sm" id="btn-add-idea">+ Idee hinzufügen</button>' +
+      '<div class="form-inline" id="step-idea-form" style="margin-top:12px">' +
+        '<div class="form-group"><label>Titel</label><input type="text" id="si-title" placeholder="Ideen-Titel..."></div>' +
+        '<div class="form-group"><label>Beschreibung</label><textarea id="si-desc" placeholder="Kurze Beschreibung..."></textarea></div>' +
+        '<div class="form-group"><label>Priorität</label><select id="si-prio"><option value="high">⚡ High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>' +
+        '<div class="form-actions">' +
+          '<button class="btn-accent" id="si-save">Speichern</button>' +
+          '<button class="btn btn-secondary" id="si-cancel">Abbrechen</button>' +
+        '</div>' +
+      '</div>';
+
+    renderStatusToggles(step, phase);
+    bindStepEvents(step, phase);
+  }
+
+  function renderStatusToggles(step, phase) {
+    var statuses = ['todo','wip','done'];
+    document.getElementById('status-toggles').innerHTML = statuses.map(function(s) {
+      return '<button class="status-btn' + (s === step.status ? ' active-'+s : '') + '" data-status="' + s + '">' + s + '</button>';
+    }).join('');
+
+    document.querySelectorAll('#status-toggles .status-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        step.status = btn.dataset.status;
+        window.saveState();
+        renderStatusToggles(step, phase);
+      });
+    });
+  }
+
+  function bindStepEvents(step, phase) {
+    document.getElementById('step-notes').addEventListener('blur', function() {
+      step.notes = document.getElementById('step-notes').value;
+      window.saveState();
+    });
+
+    function logAdd() {
+      var input = document.getElementById('log-input');
+      var text = input.value.trim();
+      if (!text) return;
+      if (!step.log) step.log = [];
+      var today = new Date().toISOString().split('T')[0];
+      step.log.push({ date: today, entry: text });
+      window.saveState();
+      input.value = '';
+      var sorted = step.log.slice().sort(function(a,b) { return b.date.localeCompare(a.date); });
+      document.getElementById('log-list').innerHTML = sorted.map(function(l) {
+        return '<li class="log-entry"><span class="log-date">' + escHtml(l.date) + '</span><span class="log-text">' + escHtml(l.entry) + '</span></li>';
+      }).join('');
+    }
+
+    document.getElementById('log-add').addEventListener('click', logAdd);
+    document.getElementById('log-input').addEventListener('keydown', function(e) { if (e.key==='Enter') logAdd(); });
+
+    document.getElementById('btn-add-idea').addEventListener('click', function() {
+      document.getElementById('step-idea-form').classList.toggle('open');
+    });
+    document.getElementById('si-cancel').addEventListener('click', function() {
+      document.getElementById('step-idea-form').classList.remove('open');
+    });
+    document.getElementById('si-save').addEventListener('click', function() {
+      var title = document.getElementById('si-title').value.trim();
+      if (!title) return;
+      var desc = document.getElementById('si-desc').value.trim();
+      var prio = document.getElementById('si-prio').value;
+      if (!window.STATE.ideas) window.STATE.ideas = [];
+      var id = 'idea-' + Date.now();
+      window.STATE.ideas.push({ id: id, title: title, desc: desc, phase_id: phase.id, step_id: step.id, prio: prio, status: 'idea', tags: [], comments: [] });
+      window.saveState();
+      document.getElementById('si-title').value = '';
+      document.getElementById('si-desc').value = '';
+      document.getElementById('step-idea-form').classList.remove('open');
+      var stepIdeas = (window.STATE.ideas || []).filter(function(i) { return i.step_id === step.id; });
+      document.getElementById('step-ideas').innerHTML = stepIdeas.map(function(i) {
+        return '<div class="card" style="margin-bottom:8px">' +
+          '<span class="prio-badge ' + i.prio + '">' + i.prio + '</span>' +
+          '<div class="card-title" style="margin-top:6px">' + escHtml(i.title) + '</div>' +
+          '<div class="card-desc">' + escHtml(i.desc||'') + '</div>' +
+        '</div>';
+      }).join('');
+    });
+  }
+
+  window.addEventListener('state-ready', init);
+})();
+</script>
+</body>
+</html>
