@@ -42,7 +42,7 @@
     if (!phase) return;
 
     var pNum = PHASE_NUM[phase.id];
-    var allSteps = getPhaseSteps(phase);
+    var allSteps = getPhaseSteps(phase).filter(function(s) { return s.status !== 'deferred'; });
     var doneCount = allSteps.filter(function(s) { return s.status === 'done'; }).length;
     var pct = allSteps.length > 0 ? Math.round(doneCount / allSteps.length * 100) : 0;
 
@@ -99,7 +99,7 @@
   }
 
   function renderStepCards(steps, pNum) {
-    var cards = steps.map(function(step) {
+    var cards = steps.filter(function(s) { return s.status !== 'deferred'; }).map(function(step) {
       var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
       return '<a href="../steps/step.html?id=' + encodeURIComponent(step.id) + '" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block">' +
         '<div class="card-status status-' + step.status + '" title="' + step.status + '"></div>' +

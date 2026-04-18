@@ -52,6 +52,8 @@
   <div class="section-label">Phasen</div>
   <div class="phase-cards-grid" id="phase-cards"></div>
 
+  <div id="deferred-section" style="display:none;margin-bottom:32px"></div>
+
   <div class="section-label">Dokumentation</div>
   <div style="margin-bottom:32px">
     <a href="wiki-preview.html" class="phase-card" style="border-left:3px solid var(--accent2);max-width:320px;display:block;text-decoration:none">
@@ -118,7 +120,7 @@
     for (var i = 0; i < s.phases.length; i++) {
       var phase = s.phases[i];
       var pNum = PHASE_NUM[phase.id] || '?';
-      var steps = getPhaseSteps(phase);
+      var steps = getPhaseSteps(phase).filter(function(st) { return st.status !== 'deferred'; });
       var doneCount = steps.filter(function(st) { return st.status === 'done'; }).length;
       var isActive = phase.status === 'active';
 
@@ -134,6 +136,24 @@
       grid.appendChild(card);
     }
 
+    // Später-Card anzeigen wenn deferred Steps existieren
+    var deferred = window.getDeferredSteps ? window.getDeferredSteps() : [];
+    if (deferred.length > 0) {
+      var dCard = document.createElement('div');
+      dCard.className = 'phase-card';
+      dCard.style.borderColor = 'var(--muted)';
+      dCard.style.cursor = 'default';
+      dCard.innerHTML =
+        '<span class="phase-num" style="display:inline-block;margin-bottom:10px;background:rgba(90,98,120,0.12);color:var(--muted);border:1px solid rgba(90,98,120,0.25)">SPÄTER</span>' +
+        '<div class="phase-card-title" style="color:var(--muted)">Zurückgestellt</div>' +
+        '<div class="phase-card-subtitle" style="color:var(--muted)">Geparkte Steps</div>' +
+        '<div class="phase-card-step-count">' + deferred.length + ' Step' + (deferred.length !== 1 ? 's' : '') + '</div>';
+      grid.appendChild(dCard);
+    }
+
+    // Später — Offene Baustellen (grouped by phase)
+    renderDeferredSection(deferred);
+
     var diaryEl = document.getElementById('last-activity');
     if (s.diary && s.diary.length > 0) {
       var last = s.diary.slice().sort(function(a, b) { return b.date.localeCompare(a.date); })[0];
@@ -147,6 +167,65 @@
 
     var highCount = (s.ideas || []).filter(function(i) { return i.prio === 'high'; }).length;
     document.getElementById('high-ideas-count').textContent = highCount;
+  }
+
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function renderDeferredSection(deferred) {
+    var container = document.getElementById('deferred-section');
+    if (!deferred || deferred.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = '';
+
+    // Group by phase
+    var grouped = {};
+    var phaseOrder = ['phase1','phase2','phase3','phase4'];
+    phaseOrder.forEach(function(pid) { grouped[pid] = []; });
+    deferred.forEach(function(d) {
+      if (!grouped[d.phase.id]) grouped[d.phase.id] = [];
+      grouped[d.phase.id].push(d);
+    });
+
+    var html = '<div class="section-label">Später — Offene Baustellen</div>' +
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--muted);border-radius:8px;padding:16px 20px">';
+
+    phaseOrder.forEach(function(pid) {
+      var pNum = PHASE_NUM[pid] || '?';
+      var items = grouped[pid] || [];
+      html += '<div style="margin-bottom:12px">';
+      html += '<span class="phase-num p' + pNum + '" style="font-size:9px;padding:2px 6px;display:inline-block;margin-bottom:6px">PHASE ' + pNum + '</span>';
+
+      if (items.length === 0) {
+        html += '<div style="font-size:12px;color:var(--muted);font-style:italic;padding-left:8px">(noch nichts)</div>';
+      } else {
+        items.forEach(function(d) {
+          var reason = d.step.deferred_reason ? '<span style="color:var(--muted);font-style:italic;margin-left:8px">– ' + escH(d.step.deferred_reason) + '</span>' : '';
+          html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0 4px 8px;flex-wrap:wrap">' +
+            '<a href="steps/step.html?id=' + encodeURIComponent(d.step.id) + '" style="font-size:13px;color:var(--text);text-decoration:none">' + escH(d.step.title) + '</a>' +
+            reason +
+            '<button class="deferred-reactivate-btn" data-step-id="' + escH(d.step.id) + '" ' +
+              'style="margin-left:auto;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap">Reaktivieren</button>' +
+          '</div>';
+        });
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.deferred-reactivate-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var result = window.findStep(btn.dataset.stepId);
+        if (result) {
+          result.step.deferred_reason = '';
+          result.step.status = 'todo';
+          window.saveState();
+          location.reload();
+        }
+      });
+    });
   }
 
   window.addEventListener('state-ready', init);

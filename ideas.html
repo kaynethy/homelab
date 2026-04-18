@@ -904,8 +904,15 @@
   }
 
   function getAllTags() {
+    // Nur Tags aus Ideen zeigen die dem aktuellen Phase-/Prio-Filter entsprechen
+    // (Tag-Filter selbst wird ignoriert, sonst verschwinden Tags beim Anwählen)
     var tagMap = {};
-    getIdeas().forEach(function(i) {
+    getIdeas().filter(function(i) {
+      var phaseOk = activePhase === 'all' ||
+        (activePhase === 'open' ? !i.phase_id : i.phase_id === activePhase);
+      var prioOk = activePrio === 'all' || i.prio === activePrio;
+      return phaseOk && prioOk;
+    }).forEach(function(i) {
       (i.tags || []).forEach(function(t) {
         var key = t.toLowerCase();
         if (!tagMap[key]) tagMap[key] = t;
@@ -976,6 +983,9 @@
 
     // Tag filter section
     var allTags = getAllTags();
+    // Aktive Tags bereinigen die nicht mehr in sichtbaren Ideen vorkommen
+    var allTagsLower = allTags.map(function(t) { return t.toLowerCase(); });
+    activeTags = activeTags.filter(function(t) { return allTagsLower.indexOf(t) >= 0; });
     if (allTags.length > 0) {
       html += '<div class="sb-section">Tags</div>';
       html += '<div class="sb-tags-wrap">';

@@ -47,6 +47,73 @@
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  function formatKey(key) {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+  }
+
+  function isSpecialKey(key, suffix) {
+    return key.endsWith(suffix);
+  }
+
+  function renderDetails(obj) {
+    var html = '';
+    var keys = Object.keys(obj);
+    keys.forEach(function(key) {
+      html += renderDetailEntry(key, obj[key], 0);
+    });
+    return html;
+  }
+
+  function renderDetailEntry(key, value, depth) {
+    if (depth >= 3) {
+      return '<div class="details-block" style="margin:8px 0">' + escHtml(JSON.stringify(value, null, 2)) + '</div>';
+    }
+
+    // _why / _note → callout
+    if (isSpecialKey(key, '_why') || isSpecialKey(key, '_note')) {
+      var label = key.replace(/_(why|note)$/, '').replace(/_/g, ' ').toUpperCase();
+      var icon = isSpecialKey(key, '_why') ? 'ℹ️ Warum' : '📝';
+      return '<div class="callout"><div class="callout-label">' + icon + ' ' + escHtml(label) + '</div>' + escHtml(String(value)) + '</div>';
+    }
+
+    // _cmd / _command → code block with copy button
+    if (isSpecialKey(key, '_cmd') || isSpecialKey(key, '_command')) {
+      var cmdLabel = key.replace(/_(cmd|command)$/, '').replace(/_/g, ' ').toUpperCase();
+      var cmdId = 'cmd-' + Math.random().toString(36).substr(2, 6);
+      return '<div class="detail-section"><div class="detail-section-label">' + escHtml(cmdLabel) + '</div>' +
+        '<div class="detail-code-wrap"><pre class="detail-code" id="' + cmdId + '">' + escHtml(String(value)) + '</pre>' +
+        '<button class="detail-copy-btn" onclick="var t=document.getElementById(\'' + cmdId + '\').textContent;navigator.clipboard.writeText(t);this.textContent=\'✓\';var b=this;setTimeout(function(){b.textContent=\'Copy\'},1200)">Copy</button></div></div>';
+    }
+
+    var label = formatKey(key);
+
+    // String / Number / Boolean
+    if (value === null || typeof value !== 'object') {
+      return '<div class="detail-kv"><span class="detail-key">' + escHtml(label) + '</span><span class="detail-val">' + escHtml(String(value)) + '</span></div>';
+    }
+
+    // Array
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '';
+      // Array of primitives → list
+      if (typeof value[0] !== 'object') {
+        var items = value.map(function(v, i) { return '<li>' + escHtml(String(v)) + '</li>'; }).join('');
+        return '<div class="detail-section"><div class="detail-section-label">' + escHtml(label) + '</div><ol class="detail-list">' + items + '</ol></div>';
+      }
+      // Array of objects → recurse
+      var arrHtml = value.map(function(v, i) { return renderDetailEntry(String(i), v, depth + 1); }).join('');
+      return '<div class="detail-section"><div class="detail-section-label">' + escHtml(label) + '</div>' + arrHtml + '</div>';
+    }
+
+    // Object → subsection with recursion
+    var subKeys = Object.keys(value);
+    var inner = '';
+    subKeys.forEach(function(sk) {
+      inner += renderDetailEntry(sk, value[sk], depth + 1);
+    });
+    return '<div class="detail-section"><div class="detail-section-label">' + escHtml(label) + '</div><div class="detail-nested">' + inner + '</div></div>';
+  }
+
   function init() {
     if (!window.STATE) return;
     var stepId = getStepId();
@@ -74,22 +141,14 @@
 
   function renderStep(step, phase, pNum) {
     var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
-    var statusColors = { done: 'var(--done)', wip: 'var(--wip)', todo: 'var(--muted)' };
+    var statusColors = { done: 'var(--done)', wip: 'var(--wip)', todo: 'var(--muted)', deferred: 'var(--muted)' };
     var sc = statusColors[step.status] || 'var(--border)';
-    var statusBadge = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid ' + sc + ';color:' + sc + ';background:transparent">' + step.status + '</span>';
+    var statusLabel = step.status === 'deferred' ? 'später' : step.status;
+    var statusBadge = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid ' + sc + ';color:' + sc + ';background:transparent">' + statusLabel + '</span>';
 
     var detailsHtml = '';
     if (step.details) {
-      var entries = Object.keys(step.details);
-      var mainObj = {};
-      entries.forEach(function(k) { if (!k.endsWith('_why')) mainObj[k] = step.details[k]; });
-      detailsHtml = '<div class="section-label">Details</div><div class="details-block">' + escHtml(JSON.stringify(mainObj, null, 2)) + '</div>';
-      entries.forEach(function(k) {
-        if (k.endsWith('_why')) {
-          var label = k.replace('_why','').replace(/_/g,' ').toUpperCase();
-          detailsHtml += '<div class="callout"><div class="callout-label">ℹ️ Warum ' + escHtml(label) + '?</div>' + escHtml(String(step.details[k])) + '</div>';
-        }
-      });
+      detailsHtml = '<div class="section-label">Details</div>' + renderDetails(step.details);
     }
 
     var log = (step.log || []).slice().sort(function(a,b) { return b.date.localeCompare(a.date); });
@@ -147,18 +206,67 @@
   }
 
   function renderStatusToggles(step, phase) {
-    var statuses = ['todo','wip','done'];
-    document.getElementById('status-toggles').innerHTML = statuses.map(function(s) {
-      return '<button class="status-btn' + (s === step.status ? ' active-'+s : '') + '" data-status="' + s + '">' + s + '</button>';
+    var statuses = ['todo','wip','done','deferred'];
+    var labels = { todo: 'todo', wip: 'wip', done: 'done', deferred: 'später' };
+    var html = statuses.map(function(s) {
+      return '<button class="status-btn' + (s === step.status ? ' active-'+s : '') + '" data-status="' + s + '">' + labels[s] + '</button>';
     }).join('');
+
+    // Deferred reason inline form (hidden by default)
+    html += '<div id="deferred-reason-form" style="display:none;margin-top:10px;width:100%">' +
+      '<input type="text" id="deferred-reason-input" placeholder="Warum zurückstellen? (optional)" ' +
+        'style="width:100%;max-width:400px;padding:6px 10px;font-size:12px;font-family:\'JetBrains Mono\',monospace;' +
+        'background:var(--bg);border:1px solid var(--muted);border-radius:4px;color:var(--text);outline:none">' +
+      '<div style="display:flex;gap:8px;margin-top:6px">' +
+        '<button class="btn btn-sm" id="deferred-confirm" style="border-color:var(--muted);color:var(--muted)">Zurückstellen</button>' +
+        '<button class="btn btn-sm" id="deferred-cancel">Abbrechen</button>' +
+      '</div>' +
+    '</div>';
+
+    // Show existing reason if deferred
+    if (step.status === 'deferred' && step.deferred_reason) {
+      html += '<div style="margin-top:8px;font-size:12px;color:var(--muted);font-style:italic">' +
+        '⏸ ' + escHtml(step.deferred_reason) + '</div>';
+    }
+
+    document.getElementById('status-toggles').innerHTML = html;
 
     document.querySelectorAll('#status-toggles .status-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        step.status = btn.dataset.status;
+        var newStatus = btn.dataset.status;
+        if (newStatus === 'deferred') {
+          // Show reason form instead of immediately setting
+          var form = document.getElementById('deferred-reason-form');
+          form.style.display = 'block';
+          document.getElementById('deferred-reason-input').value = step.deferred_reason || '';
+          document.getElementById('deferred-reason-input').focus();
+          return;
+        }
+        // Non-deferred: if reactivating, clear reason
+        if (step.status === 'deferred') {
+          step.deferred_reason = '';
+        }
+        step.status = newStatus;
         window.saveState();
         renderStatusToggles(step, phase);
       });
     });
+
+    var confirmBtn = document.getElementById('deferred-confirm');
+    var cancelBtn = document.getElementById('deferred-cancel');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function() {
+        step.deferred_reason = document.getElementById('deferred-reason-input').value.trim();
+        step.status = 'deferred';
+        window.saveState();
+        renderStatusToggles(step, phase);
+      });
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function() {
+        document.getElementById('deferred-reason-form').style.display = 'none';
+      });
+    }
   }
 
   function bindStepEvents(step, phase) {

@@ -25,6 +25,7 @@
               if (c.status !== undefined) step.status = c.status;
               if (c.notes !== undefined) step.notes = c.notes;
               if (c.log !== undefined) step.log = c.log;
+              if (c.deferred_reason !== undefined) step.deferred_reason = c.deferred_reason;
             }
           }
         };
@@ -52,6 +53,7 @@
         ...(phase.sections || []).flatMap(s => s.steps || [])
       ];
       for (const step of steps) {
+        if (step.status === 'deferred') continue; // deferred zählt nicht
         total++;
         if (step.status === 'done') done++;
         else if (step.status === 'wip') wip++;
@@ -131,6 +133,7 @@
           changes.steps[step.id].status = step.status;
           changes.steps[step.id].notes  = step.notes || '';
           changes.steps[step.id].log    = step.log || [];
+          changes.steps[step.id].deferred_reason = step.deferred_reason || '';
         }
       };
       if (phase.steps) saveSteps(phase.steps);
@@ -193,7 +196,7 @@
     return steps;
   };
 
-  // Cycle status: todo → wip → done → todo
+  // Cycle status: todo → wip → done → todo (deferred is separate, set explicitly)
   window.cycleStatus = function (stepId) {
     const result = window.findStep(stepId);
     if (!result) return;
@@ -202,6 +205,22 @@
     result.step.status = order[(idx + 1) % order.length];
     window.saveState();
     return result.step.status;
+  };
+
+  // Get all deferred steps with their phase info
+  window.getDeferredSteps = function () {
+    if (!window.STATE) return [];
+    const result = [];
+    for (const phase of window.STATE.phases) {
+      const collect = (steps) => {
+        for (const step of steps) {
+          if (step.status === 'deferred') result.push({ step, phase });
+        }
+      };
+      if (phase.steps) collect(phase.steps);
+      if (phase.sections) phase.sections.forEach(s => collect(s.steps));
+    }
+    return result;
   };
 
   loadState();
