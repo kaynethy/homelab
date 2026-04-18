@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Phase 2</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="../index.html">Dashboard</a><span class="sep">›</span><span id="bc-title">Phase 2</span></div>
+
+  <div id="phase-content"></div>
+
+  <footer>homelab_roadmap · <span>phase_overview</span></footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var PHASE_ID = 'phase2';
+  var PHASE_NUM = { phase1: 1, phase2: 2, phase3: 3, phase4: 4 };
+
+  function getPhaseSteps(phase) {
+    if (phase.steps) return phase.steps;
+    if (phase.sections) return phase.sections.reduce(function(acc, s) { return acc.concat(s.steps); }, []);
+    return [];
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function init() {
+    if (!window.STATE) return;
+    var phase = window.STATE.phases.find(function(p) { return p.id === PHASE_ID; });
+    if (!phase) return;
+
+    var pNum = PHASE_NUM[phase.id];
+    var allSteps = getPhaseSteps(phase);
+    var doneCount = allSteps.filter(function(s) { return s.status === 'done'; }).length;
+    var pct = allSteps.length > 0 ? Math.round(doneCount / allSteps.length * 100) : 0;
+
+    document.title = 'Homelab – Phase ' + pNum + ': ' + phase.title;
+    document.getElementById('bc-title').textContent = 'Phase ' + pNum + ' – ' + phase.title;
+
+    var hwHtml = (phase.id === 'phase1' && window.STATE.hardware) ? renderHardware() : '';
+
+    var stepsHtml = '';
+    if (phase.steps) {
+      stepsHtml += '<div class="section-label">Setup-Schritte</div>';
+      stepsHtml += renderStepCards(phase.steps, pNum);
+    }
+    if (phase.sections) {
+      for (var i = 0; i < phase.sections.length; i++) {
+        stepsHtml += '<div class="section-label">' + phase.sections[i].label + '</div>';
+        stepsHtml += renderStepCards(phase.sections[i].steps, pNum);
+      }
+    }
+
+    var phaseIdeas = (window.STATE.ideas || []).filter(function(i) { return i.phase_id === phase.id; });
+    var ideasHtml = renderIdeasPreview(phase.id, phaseIdeas);
+    var notes = phase.notes || '';
+
+    document.getElementById('phase-content').innerHTML =
+      '<div class="page-header">' +
+        '<span class="phase-num p' + pNum + '" style="display:inline-block;margin-bottom:10px">PHASE ' + pNum + '</span>' +
+        (phase.status === 'active' ? '<span class="current-tag" style="margin-left:8px">← aktiv</span>' : '') +
+        '<h1 style="font-family:\'JetBrains Mono\',monospace;font-size:22px;font-weight:700;color:#fff;margin-bottom:4px">' + escHtml(phase.title) + '</h1>' +
+        '<div style="font-size:13px;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin-bottom:16px">' + escHtml(phase.subtitle || '') + '</div>' +
+        '<div class="progress-bar" style="margin-bottom:0">' +
+          '<span class="progress-label">PHASE FORTSCHRITT</span>' +
+          '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<span class="progress-pct">' + doneCount + '/' + allSteps.length + '</span>' +
+        '</div>' +
+      '</div>' +
+      hwHtml + stepsHtml + ideasHtml +
+      '<div class="section-label" style="margin-top:24px">Phase-Notizen</div>' +
+      '<textarea class="phase-notes" id="phase-notes" placeholder="Notizen zu dieser Phase...">' + escHtml(notes) + '</textarea>';
+
+    document.getElementById('phase-notes').addEventListener('blur', function() {
+      phase.notes = document.getElementById('phase-notes').value;
+      window.saveState();
+    });
+  }
+
+  function renderHardware() {
+    var hw = window.STATE.hardware;
+    var rows = Object.keys(hw).map(function(k) {
+      var label = k.replace(/_/g,' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      return '<div class="hw-row"><span class="hw-key">' + escHtml(label) + '</span><span class="hw-val">' + escHtml(String(hw[k])) + '</span></div>';
+    }).join('');
+    return '<div class="section-label">Hardware</div><div class="hw-box" style="margin-bottom:20px">' + rows + '</div>';
+  }
+
+  function renderStepCards(steps, pNum) {
+    var cards = steps.map(function(step) {
+      var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
+      return '<a href="../steps/' + escHtml(step.id) + '.html" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block">' +
+        '<div class="card-status status-' + step.status + '" title="' + step.status + '"></div>' +
+        '<div class="card-title">' + escHtml(step.title) + '</div>' +
+        '<div class="card-desc">' + escHtml(step.desc || '') + '</div>' +
+        '<div class="tags">' + tags + '</div>' +
+      '</a>';
+    }).join('');
+    return '<div class="cards">' + cards + '</div>';
+  }
+
+  function renderIdeasPreview(phaseId, ideas) {
+    if (ideas.length === 0) return '';
+    var items = ideas.map(function(i) {
+      return '<li><span class="prio-badge ' + i.prio + '" style="margin:0;flex-shrink:0">' + i.prio + '</span>' + escHtml(i.title) + '</li>';
+    }).join('');
+    return '<div class="section-label" style="margin-top:24px">Ideen zu dieser Phase</div>' +
+      '<div class="info-box-sm" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">' +
+        '<ul class="ideas-preview">' + items + '</ul>' +
+        '<a href="../ideas.html?filter=' + phaseId + '" style="font-family:\'JetBrains Mono\',monospace;font-size:11px">Alle Ideen anzeigen →</a>' +
+      '</div>';
+  }
+
+  window.addEventListener('state-ready', init);
+})();
+</script>
+</body>
+</html>

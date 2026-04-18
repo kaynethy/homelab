@@ -1,0 +1,15 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Proxmox ISO (large file)
+*.iso
+
+# KeePass DB
+*.kdbx
+
+# Greenshot installer
+*.exe
+
+# Node modules (if ever added)
+node_modules/

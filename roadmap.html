@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homelab Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg:       #0d0f14;
+    --bg2:      #13161e;
+    --bg3:      #1a1e29;
+    --border:   #2a2f3f;
+    --border2:  #3a4055;
+    --text:     #c8cedd;
+    --muted:    #5a6278;
+    --accent:   #4fffb0;
+    --accent2:  #7b61ff;
+    --accent3:  #ff6b6b;
+    --amber:    #ffb547;
+    --blue:     #4db8ff;
+    --phase1:   #00d4aa;
+    --phase2:   #4db8ff;
+    --phase3:   #a78bfa;
+    --phase4:   #fb923c;
+    --done:     #22c55e;
+    --wip:      #eab308;
+    --todo:     #3a4055;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .header-left h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  .header-left h1 span { color: var(--accent); }
+
+  .header-left p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .version-badge {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .version-badge span { color: var(--accent); }
+
+  /* Progress bar */
+  .progress-bar {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .progress-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 4%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+
+  .progress-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* Phase block */
+  .phase {
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg2);
+    transition: border-color 0.2s;
+  }
+
+  .phase:hover { border-color: var(--border2); }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phase-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .phase-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    flex: 1;
+  }
+
+  .phase-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .phase-toggle {
+    color: var(--muted);
+    font-size: 18px;
+    transition: transform 0.2s;
+    line-height: 1;
+  }
+
+  .phase.open .phase-toggle { transform: rotate(180deg); }
+
+  .phase-body {
+    display: none;
+    padding: 20px;
+  }
+
+  .phase.open .phase-body { display: block; }
+
+  /* Current phase indicator */
+  .phase.current { border-color: var(--accent); }
+  .phase.current .phase-header { background: rgba(79,255,176,0.04); }
+
+  /* Cards grid */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    position: relative;
+  }
+
+  .card:hover {
+    border-color: var(--border2);
+    background: #1f2435;
+    transform: translateY(-1px);
+  }
+
+  .card-title {
+    font-weight: 500;
+    font-size: 13px;
+    color: #e8ecf5;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .card-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  .status-done  { background: var(--done); box-shadow: 0 0 6px var(--done); }
+  .status-wip   { background: var(--wip);  box-shadow: 0 0 6px var(--wib); animation: pulse 2s infinite; }
+  .status-todo  { background: var(--todo); }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* Notes box */
+  .notes {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .notes strong { color: var(--text); font-weight: 500; }
+
+  /* Phase color coding */
+  .p1 { background: rgba(0,212,170,0.12); color: var(--phase1); border: 1px solid rgba(0,212,170,0.25); }
+  .p2 { background: rgba(77,184,255,0.12); color: var(--phase2); border: 1px solid rgba(77,184,255,0.25); }
+  .p3 { background: rgba(167,139,250,0.12); color: var(--phase3); border: 1px solid rgba(167,139,250,0.25); }
+  .p4 { background: rgba(251,146,60,0.12);  color: var(--phase4); border: 1px solid rgba(251,146,60,0.25); }
+
+  .phase1-accent { border-left: 3px solid var(--phase1); }
+  .phase2-accent { border-left: 3px solid var(--phase2); }
+  .phase3-accent { border-left: 3px solid var(--phase3); }
+  .phase4-accent { border-left: 3px solid var(--phase4); }
+
+  /* Separator */
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 18px;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  footer span { color: var(--accent); }
+
+  /* Current tag */
+  .current-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(79,255,176,0.1);
+    border: 1px solid rgba(79,255,176,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+
+  /* Hardware box */
+  .hw-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 20px;
+    font-size: 12px;
+  }
+
+  .hw-row { display: flex; justify-content: space-between; gap: 8px; }
+  .hw-key { color: var(--muted); }
+  .hw-val { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-left">
+      <h1>// homelab<span>_roadmap</span></h1>
+      <p>Skalierender Infrastruktur- & Lernplan · persönlich · living document</p>
+    </div>
+    <div class="version-badge">v<span>0.2</span> · Stand: April 2025</div>
+  </header>
+
+  <div class="progress-bar">
+    <span class="progress-label">GESAMT-FORTSCHRITT</span>
+    <div class="progress-track"><div class="progress-fill" style="width:4%"></div></div>
+    <span class="progress-pct">~4%</span>
+  </div>
+
+  <!-- PHASE 1 -->
+  <div class="phase current open" id="phase1">
+    <div class="phase-header" onclick="togglePhase('phase1')">
+      <span class="phase-num p1">PHASE 1</span>
+      <div>
+        <div class="phase-title">Fundament <span class="current-tag">← aktiv</span></div>
+        <div class="phase-sub">Hypervisor · Erstes Netz · Linux-Grundlagen · IP-Planung</div>
+      </div>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body">
+
+      <div class="section-label">Hardware</div>
+      <div class="hw-box">
+        <div class="hw-row"><span class="hw-key">CPU</span><span class="hw-val">Ryzen 7 5800X (8C/16T)</span></div>
+        <div class="hw-row"><span class="hw-key">RAM</span><span class="hw-val">64 GB DDR4</span></div>
+        <div class="hw-row"><span class="hw-key">GPU</span><span class="hw-val">RTX 3060 OC 12 GB</span></div>
+        <div class="hw-row"><span class="hw-key">Disk</span><span class="hw-val">1 TB SSD</span></div>
+        <div class="hw-row"><span class="hw-key">Host OS</span><span class="hw-val">Windows 11 (bleibt)</span></div>
+        <div class="hw-row"><span class="hw-key">Router</span><span class="hw-val">Heimrouter (TBD)</span></div>
+      </div>
+
+      <div class="section-label">Setup-Schritte</div>
+      <div class="cards">
+        <div class="card phase1-accent">
+          <div class="card-status status-wip"></div>
+          <div class="card-title">BIOS: Virtualisierung aktivieren</div>
+          <div class="card-desc">AMD-V (SVM Mode) im BIOS einschalten. Bei Ryzen: BIOS → Advanced → CPU → SVM Mode → Enabled</div>
+          <div class="tags"><span class="tag">BIOS</span><span class="tag">AMD-V</span></div>
+        </div>
+        <div class="card phase1-accent">
+          <div class="card-status status-wip"></div>
+          <div class="card-title">Hyper-V aktivieren</div>
+          <div class="card-desc">Windows-Feature einschalten. PowerShell als Admin: Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All</div>
+          <div class="tags"><span class="tag">Windows</span><span class="tag">Hyper-V</span></div>
+        </div>
+        <div class="card phase1-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Proxmox VM erstellen</div>
+          <div class="card-desc">Proxmox ISO als nested VM unter Hyper-V. 8 Cores, 16 GB RAM, 120 GB Disk. Nested Virtualization per PowerShell aktivieren.</div>
+          <div class="tags"><span class="tag">Proxmox</span><span class="tag">nested virt</span></div>
+        </div>
+        <div class="card phase1-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">IP-Plan & Subnetting</div>
+          <div class="card-desc">Netzwerkbereiche festlegen: Management, Services, Lab, DMZ. RFC1918 Ranges planen.</div>
+          <div class="tags"><span class="tag">Netzwerk</span><span class="tag">IP</span><span class="tag">Subnetting</span></div>
+        </div>
+        <div class="card phase1-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Erste Linux VM</div>
+          <div class="card-desc">Ubuntu Server 24.04 LTS in Proxmox. SSH einrichten, Grundkonfiguration, Updates.</div>
+          <div class="tags"><span class="tag">Linux</span><span class="tag">Ubuntu</span><span class="tag">SSH</span></div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <strong>Strategie:</strong> Proxmox läuft als VM unter Hyper-V (nested virtualization). Windows 11 bleibt unangetastet als Host. Ryzen 5800X unterstützt AMD-V nativ — nested virt funktioniert gut. Ressourcen sind dynamisch anpassbar, also lieber jetzt konservativ starten (8C / 16 GB) und später hochskalieren.
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase" id="phase2">
+    <div class="phase-header" onclick="togglePhase('phase2')">
+      <span class="phase-num p2">PHASE 2</span>
+      <div>
+        <div class="phase-title">Netz & Erreichbarkeit</div>
+        <div class="phase-sub">VPN · Reverse Proxy · DNS · VLANs · Firewall</div>
+      </div>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body">
+      <div class="cards">
+        <div class="card phase2-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">WireGuard VPN</div>
+          <div class="card-desc">Homelab von außen erreichbar machen. Eigener VPN-Endpunkt, sichere Verbindung von unterwegs.</div>
+          <div class="tags"><span class="tag">VPN</span><span class="tag">WireGuard</span><span class="tag">Security</span></div>
+        </div>
+        <div class="card phase2-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Reverse Proxy</div>
+          <div class="card-desc">Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.</div>
+          <div class="tags"><span class="tag">Nginx</span><span class="tag">Traefik</span><span class="tag">TLS</span></div>
+        </div>
+        <div class="card phase2-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Interner DNS</div>
+          <div class="card-desc">Pi-hole oder AdGuard Home. Interne Hostnamen auflösen, DNS-Filter, lokale Domains.</div>
+          <div class="tags"><span class="tag">DNS</span><span class="tag">Pi-hole</span><span class="tag">AdGuard</span></div>
+        </div>
+        <div class="card phase2-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">VLANs konfigurieren</div>
+          <div class="card-desc">Netzwerksegmentierung: Management VLAN, Service VLAN, Lab VLAN. Isolation zwischen Bereichen.</div>
+          <div class="tags"><span class="tag">VLAN</span><span class="tag">Switch</span><span class="tag">Isolation</span></div>
+        </div>
+        <div class="card phase2-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">pfSense / OPNsense</div>
+          <div class="card-desc">Virtuelle Firewall-VM in Proxmox. Routing zwischen VLANs, Firewall-Regeln, NAT.</div>
+          <div class="tags"><span class="tag">Firewall</span><span class="tag">pfSense</span><span class="tag">Routing</span></div>
+        </div>
+        <div class="card phase2-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Dynamisches DNS (DDNS)</div>
+          <div class="card-desc">Externe Erreichbarkeit trotz wechselnder Heim-IP. Cloudflare DDNS oder DuckDNS.</div>
+          <div class="tags"><span class="tag">DDNS</span><span class="tag">Cloudflare</span><span class="tag">DNS</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="phase" id="phase3">
+    <div class="phase-header" onclick="togglePhase('phase3')">
+      <span class="phase-num p3">PHASE 3</span>
+      <div>
+        <div class="phase-title">Dienste & Intranet</div>
+        <div class="phase-sub">Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website</div>
+      </div>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body">
+      <div class="section-label">Web & Intranet</div>
+      <div class="cards">
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Webserver / Static Sites</div>
+          <div class="card-desc">Nginx oder Caddy. Eigene Website direkt von zuhause hosten, öffentlich erreichbar.</div>
+          <div class="tags"><span class="tag">Nginx</span><span class="tag">Caddy</span><span class="tag">Web</span></div>
+        </div>
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Internes Wiki / Docs</div>
+          <div class="card-desc">Wikijs oder Outline. Dokumentation aller Homelab-Konfigurationen, Passwörter, Netzpläne.</div>
+          <div class="tags"><span class="tag">Wiki</span><span class="tag">Docs</span><span class="tag">Wikijs</span></div>
+        </div>
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Passwortmanager</div>
+          <div class="card-desc">Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager für alle Accounts.</div>
+          <div class="tags"><span class="tag">Vaultwarden</span><span class="tag">Security</span></div>
+        </div>
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Git Server</div>
+          <div class="card-desc">Gitea oder Forgejo. Eigener privater Git-Host für Konfig-Repos, Skripte, Projekte.</div>
+          <div class="tags"><span class="tag">Gitea</span><span class="tag">Git</span><span class="tag">DevOps</span></div>
+        </div>
+      </div>
+
+      <div class="section-label">Kommunikation & Mail</div>
+      <div class="cards">
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Mailserver</div>
+          <div class="card-desc">Mailcow oder Maddy. Eigene Domain, SMTP/IMAP, SPF/DKIM/DMARC konfigurieren.</div>
+          <div class="tags"><span class="tag">Mail</span><span class="tag">Mailcow</span><span class="tag">SMTP</span></div>
+        </div>
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Chat / Notifications</div>
+          <div class="card-desc">Matrix/Element oder Ntfy für interne Benachrichtigungen aus Automatisierungen.</div>
+          <div class="tags"><span class="tag">Matrix</span><span class="tag">Ntfy</span><span class="tag">Chat</span></div>
+        </div>
+      </div>
+
+      <div class="section-label">Automatisierung</div>
+      <div class="cards">
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">n8n Workflows</div>
+          <div class="card-desc">No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.</div>
+          <div class="tags"><span class="tag">n8n</span><span class="tag">Automation</span></div>
+        </div>
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Ansible Playbooks</div>
+          <div class="card-desc">Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.</div>
+          <div class="tags"><span class="tag">Ansible</span><span class="tag">IaC</span><span class="tag">DevOps</span></div>
+        </div>
+        <div class="card phase3-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Container Orchestration</div>
+          <div class="card-desc">Docker Compose für einfache Stacks. Optional später: K3s (leichtes Kubernetes) für Cluster-Erfahrung.</div>
+          <div class="tags"><span class="tag">Docker</span><span class="tag">K3s</span><span class="tag">Container</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 4 -->
+  <div class="phase" id="phase4">
+    <div class="phase-header" onclick="togglePhase('phase4')">
+      <span class="phase-num p4">PHASE 4</span>
+      <div>
+        <div class="phase-title">Security & Experimente</div>
+        <div class="phase-sub">Auth · Zertifikate · Monitoring · Pentesting · Härtung</div>
+      </div>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body">
+      <div class="section-label">Identity & Auth</div>
+      <div class="cards">
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">SSO / Identity Provider</div>
+          <div class="card-desc">Authentik oder Keycloak. Zentrales Login für alle Dienste. OIDC, SAML, LDAP testen.</div>
+          <div class="tags"><span class="tag">SSO</span><span class="tag">Authentik</span><span class="tag">OIDC</span></div>
+        </div>
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">2FA / MFA testen</div>
+          <div class="card-desc">TOTP, Hardware-Keys (YubiKey), Passkeys. Verschiedene Auth-Methoden im echten System testen.</div>
+          <div class="tags"><span class="tag">2FA</span><span class="tag">TOTP</span><span class="tag">YubiKey</span></div>
+        </div>
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Certificate Authority</div>
+          <div class="card-desc">Eigene interne CA mit Step-CA oder CFSSL. Interne TLS-Zertifikate für alle Dienste.</div>
+          <div class="tags"><span class="tag">PKI</span><span class="tag">TLS</span><span class="tag">CA</span></div>
+        </div>
+      </div>
+
+      <div class="section-label">Monitoring & Observability</div>
+      <div class="cards">
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Grafana + Prometheus</div>
+          <div class="card-desc">Metriken aller VMs und Dienste. Dashboards für CPU, RAM, Netz, Disk. Alerting.</div>
+          <div class="tags"><span class="tag">Grafana</span><span class="tag">Prometheus</span><span class="tag">Metrics</span></div>
+        </div>
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Loki / Logging Stack</div>
+          <div class="card-desc">Zentrales Log-Management. Alle Dienste loggen nach Loki, Suche in Grafana.</div>
+          <div class="tags"><span class="tag">Loki</span><span class="tag">Logging</span><span class="tag">SIEM</span></div>
+        </div>
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Uptime Kuma</div>
+          <div class="card-desc">Status-Seite für alle eigenen Dienste. Alerting via Mail/Ntfy wenn ein Dienst down ist.</div>
+          <div class="tags"><span class="tag">Monitoring</span><span class="tag">Uptime</span><span class="tag">Alerts</span></div>
+        </div>
+      </div>
+
+      <div class="section-label">Security Lab</div>
+      <div class="cards">
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">Isoliertes Pentest-Netz</div>
+          <div class="card-desc">Separates VLAN/Netz für Security-Experimente. Kali Linux VM, Metasploitable, DVWA.</div>
+          <div class="tags"><span class="tag">Kali</span><span class="tag">Pentest</span><span class="tag">Lab</span></div>
+        </div>
+        <div class="card phase4-accent">
+          <div class="card-status status-todo"></div>
+          <div class="card-title">IDS / Intrusion Detection</div>
+          <div class="card-desc">Suricata oder Zeek. Netzwerkverkehr analysieren, Angriffsmuster erkennen.</div>
+          <div class="tags"><span class="tag">IDS</span><span class="tag">Suricata</span><span class="tag">Security</span></div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <strong>Ideen-Backlog:</strong> Eigene Domain kaufen · Let's Encrypt Wildcard Zerts · Homelab-Blog öffentlich hosten · Matrix Homeserver · Backup-Strategie (3-2-1) · Mini-Rack später · Tailscale als Alternative zu WireGuard · Terraform für Proxmox-Provisioning
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    homelab_roadmap · <span>living document</span> · wird mit jedem Chat-Update neu gepostet
+  </footer>
+
+</div>
+
+<script>
+function togglePhase(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+</script>
+</body>
+</html>

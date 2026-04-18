@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Docs & Wiki</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    /* === WIKI LAYOUT === */
+    .wiki-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 640px) {
+      .wiki-layout { grid-template-columns: 1fr; }
+      .wiki-sidebar { display: flex; flex-wrap: wrap; gap: 8px; }
+    }
+
+    /* Sidebar */
+    .wiki-sidebar {
+      position: sticky;
+      top: 20px;
+    }
+
+    .wiki-ns-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .wiki-ns-item:hover { background: var(--bg2); color: var(--text); }
+
+    .wiki-ns-item.active {
+      background: var(--bg2);
+      color: var(--text);
+      border-left-color: var(--accent);
+    }
+
+    .wiki-ns-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .wiki-ns-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    /* Article cards */
+    .wiki-article {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .wiki-article:hover { border-color: var(--border2); }
+    .wiki-article.open { border-color: var(--accent2); }
+
+    .wiki-article-header {
+      padding: 16px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .wiki-article-meta { flex: 1; min-width: 0; }
+
+    .wiki-article-ns {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .wiki-article-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .wiki-article-summary {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .wiki-toggle-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(79,255,176,0.07);
+      border: 1px solid rgba(79,255,176,0.2);
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .wiki-toggle-btn:hover { background: rgba(79,255,176,0.15); }
+
+    /* Accordion body */
+    .wiki-article-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+      border-top: 1px solid transparent;
+    }
+
+    .wiki-article.open .wiki-article-body {
+      max-height: 9999px;
+      border-top-color: var(--border);
+    }
+
+    .wiki-article-body-inner { padding: 20px; }
+
+    /* Snippet block */
+    .snippet-block {
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .snippet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .snippet-lang {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .snippet-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      flex: 1;
+      margin: 0 12px;
+    }
+
+    .copy-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      background: none;
+      border: 1px solid rgba(79,255,176,0.25);
+      padding: 2px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover { background: rgba(79,255,176,0.1); }
+    .copy-btn.copied { color: var(--done); border-color: var(--done); }
+
+    .snippet-block pre {
+      margin: 0;
+      background: var(--bg) !important;
+    }
+
+    .snippet-block code {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 12px !important;
+      padding: 14px 16px !important;
+      display: block;
+    }
+
+    /* Gotcha block */
+    .gotcha-block {
+      background: rgba(251,146,60,0.07);
+      border-left: 3px solid var(--phase4);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      gap: 10px;
+    }
+
+    .gotcha-icon {
+      color: var(--phase4);
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Links */
+    .wiki-links { list-style: none; }
+    .wiki-links li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .wiki-links li:last-child { border-bottom: none; }
+    .wiki-links a { font-size: 13px; color: var(--accent); }
+    .wiki-links .link-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* Status banner */
+    .wiki-phase-banner {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--phase3);
+      background: rgba(167,139,250,0.08);
+      border: 1px solid rgba(167,139,250,0.25);
+      padding: 4px 12px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><span>Docs &amp; Wiki</span></div>
+
+  <header>
+    <div class="header-left">
+      <h1>// docs<span>_wiki</span></h1>
+      <p id="wiki-subtitle">Lade...</p>
+    </div>
+    <span class="wiki-phase-banner">DokuWiki geplant – Phase 3</span>
+  </header>
+
+  <div class="wiki-layout">
+    <!-- Sidebar -->
+    <aside class="wiki-sidebar">
+      <div class="section-label">Namespaces</div>
+      <div id="wiki-namespaces"></div>
+    </aside>
+
+    <!-- Article area -->
+    <main id="wiki-articles"></main>
+  </div>
+
+  <footer>homelab_roadmap · <span>docs_wiki</span></footer>
+</div>
+
+<script src="assets/state.js"></script>
+<script src="assets/wiki-state.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  const COLOR_MAP = { teal: 'var(--phase1)', blue: 'var(--phase2)', purple: 'var(--phase3)', amber: 'var(--phase4)' };
+  let activeNs = 'all';
+  let openArticleId = null;
+
+  function init() {
+    if (!window.WIKI) return;
+    const W = window.WIKI;
+
+    // Header subtitle
+    const total = W.articles.length;
+    const nsCount = W.namespaces.length;
+    document.getElementById('wiki-subtitle').textContent =
+      total + ' Artikel · ' + nsCount + ' Namespaces';
+
+    renderSidebar();
+    renderArticles();
+  }
+
+  function renderSidebar() {
+    const W = window.WIKI;
+    const container = document.getElementById('wiki-namespaces');
+
+    const allCount = W.articles.length;
+    let html = `<div class="wiki-ns-item active" data-ns="all">
+      <span class="wiki-ns-dot" style="background:var(--accent)"></span>
+      Alle
+      <span class="wiki-ns-count">${allCount}</span>
+    </div>`;
+
+    for (const ns of W.namespaces) {
+      const count = W.articles.filter(a => a.namespace.startsWith(ns.id)).length;
+      const color = COLOR_MAP[ns.color] || 'var(--muted)';
+      html += `<div class="wiki-ns-item" data-ns="${ns.id}">
+        <span class="wiki-ns-dot" style="background:${color}"></span>
+        ${ns.label}
+        <span class="wiki-ns-count">${count}</span>
+      </div>`;
+    }
+
+    container.innerHTML = html;
+
+    container.addEventListener('click', function(e) {
+      const item = e.target.closest('.wiki-ns-item');
+      if (!item) return;
+      activeNs = item.dataset.ns;
+      container.querySelectorAll('.wiki-ns-item').forEach(el => el.classList.toggle('active', el === item));
+      openArticleId = null;
+      renderArticles();
+    });
+  }
+
+  function getFilteredArticles() {
+    const W = window.WIKI;
+    if (activeNs === 'all') return W.articles;
+    return W.articles.filter(a => a.namespace.startsWith(activeNs));
+  }
+
+  function renderArticles() {
+    const container = document.getElementById('wiki-articles');
+    const articles = getFilteredArticles();
+
+    if (articles.length === 0) {
+      container.innerHTML = '<p style="color:var(--muted);font-family:\'JetBrains Mono\',monospace;font-size:12px">Keine Artikel in diesem Namespace.</p>';
+      return;
+    }
+
+    container.innerHTML = articles.map(a => renderArticleCard(a)).join('');
+
+    // Re-open previously open article
+    if (openArticleId) {
+      const el = document.getElementById('art-' + openArticleId);
+      if (el) expandArticle(el, openArticleId);
+    }
+
+    // Bind clicks
+    container.querySelectorAll('.wiki-article-header').forEach(header => {
+      header.addEventListener('click', function(e) {
+        if (e.target.closest('.copy-btn')) return;
+        const artEl = header.closest('.wiki-article');
+        const id = artEl.dataset.id;
+        toggleArticle(artEl, id);
+      });
+    });
+
+    container.querySelectorAll('.wiki-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const artEl = btn.closest('.wiki-article');
+        const id = artEl.dataset.id;
+        toggleArticle(artEl, id);
+      });
+    });
+
+    bindCopyButtons(container);
+  }
+
+  function renderArticleCard(article) {
+    const W = window.WIKI;
+    const ns = W.namespaces.find(n => article.namespace.startsWith(n.id));
+    const nsColor = ns ? (COLOR_MAP[ns.color] || 'var(--muted)') : 'var(--muted)';
+    const tags = (article.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+    const isOpen = openArticleId === article.id;
+
+    const snippetsHtml = (article.snippets || []).map(s => `
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-lang">${s.lang || 'code'}</span>
+          <span class="snippet-title">${s.title || ''}</span>
+          <button class="copy-btn" data-code="${encodeURIComponent(s.code)}">Copy ⧉</button>
+        </div>
+        <pre><code class="language-${s.lang || 'plaintext'}">${escHtml(s.code)}</code></pre>
+      </div>
+    `).join('');
+
+    const gotchasHtml = (article.gotchas || []).map(g => `
+      <div class="gotcha-block">
+        <span class="gotcha-icon">⚠</span>
+        <span>${escHtml(g)}</span>
+      </div>
+    `).join('');
+
+    const linksHtml = (article.links || []).map(l => `
+      <li>
+        <a href="${l.url}" target="_blank">${escHtml(l.title)} ↗</a>
+        <span class="link-url">${l.url}</span>
+      </li>
+    `).join('');
+
+    return `
+      <div class="wiki-article${isOpen ? ' open' : ''}" id="art-${article.id}" data-id="${article.id}">
+        <div class="wiki-article-header">
+          <div class="wiki-article-meta">
+            <div class="wiki-article-ns">
+              <span style="color:${nsColor};font-size:11px">⬡</span>
+              ${article.namespace}
+              <span style="margin-left:4px;display:flex;gap:4px;flex-wrap:wrap">${tags}</span>
+            </div>
+            <div class="wiki-article-title">${escHtml(article.title)}</div>
+            <div class="wiki-article-summary">${escHtml(article.summary || '')}</div>
+          </div>
+          <button class="wiki-toggle-btn">${isOpen ? 'Schließen ▴' : 'Öffnen ▾'}</button>
+        </div>
+        <div class="wiki-article-body">
+          <div class="wiki-article-body-inner">
+            ${snippetsHtml ? `<div class="section-label">Befehle &amp; Snippets</div>${snippetsHtml}` : ''}
+            ${gotchasHtml ? `<div class="section-label" style="margin-top:16px">Stolpersteine &amp; Lösungen</div>${gotchasHtml}` : ''}
+            ${linksHtml ? `<div class="section-label" style="margin-top:16px">Weiterführende Links</div><ul class="wiki-links">${linksHtml}</ul>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleArticle(artEl, id) {
+    const isOpen = artEl.classList.contains('open');
+    // Close all
+    document.querySelectorAll('.wiki-article.open').forEach(el => {
+      el.classList.remove('open');
+      const btn = el.querySelector('.wiki-toggle-btn');
+      if (btn) btn.textContent = 'Öffnen ▾';
+    });
+    if (!isOpen) {
+      expandArticle(artEl, id);
+    } else {
+      openArticleId = null;
+    }
+  }
+
+  function expandArticle(artEl, id) {
+    artEl.classList.add('open');
+    openArticleId = id;
+    const btn = artEl.querySelector('.wiki-toggle-btn');
+    if (btn) btn.textContent = 'Schließen ▴';
+    // Syntax highlighting
+    artEl.querySelectorAll('pre code').forEach(block => {
+      hljs.highlightElement(block);
+    });
+  }
+
+  function bindCopyButtons(container) {
+    container.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const code = decodeURIComponent(btn.dataset.code);
+        navigator.clipboard.writeText(code).then(() => {
+          btn.textContent = 'Kopiert ✓';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = 'Copy ⧉';
+            btn.classList.remove('copied');
+          }, 1500);
+        }).catch(() => {
+          btn.textContent = 'Fehler ✕';
+          setTimeout(() => { btn.textContent = 'Copy ⧉'; }, 1500);
+        });
+      });
+    });
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  window.addEventListener('wiki-ready', init);
+})();
+</script>
+</body>
+</html>

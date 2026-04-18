@@ -1,0 +1,548 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "progress_pct": 52,
+    "description": "Homelab Roadmap – Skalierender Infrastruktur- & Lernplan",
+    "backlog_migrated": true,
+    "network": {
+      "home_subnet": "192.168.0.0/24",
+      "host_ip": "192.168.0.155",
+      "gateway": "192.168.0.1",
+      "proxmox_ip": "192.168.0.200",
+      "proxmox_ui": "https://192.168.0.200:8006"
+    },
+    "repository": {
+      "url": "https://github.com/kaynethy/homelab",
+      "ssh": "git@github.com:kaynethy/homelab.git",
+      "branch": "main",
+      "local": "Y:/HomeLab/Dokumentation"
+    },
+    "wiki": {
+      "state_file": "homelab-wiki.json",
+      "tool": "DokuWiki",
+      "step_id": "p3-dokuwiki",
+      "preview_page": "wiki-preview.html"
+    },
+    "ideas_file": "homelab-ideas.json"
+  },
+  "hardware": {
+    "cpu": "AMD Ryzen 7 5800X (8C/16T)",
+    "ram": "64 GB DDR4",
+    "gpu": "RTX 3060 OC 12 GB",
+    "disk": "1 TB SSD",
+    "host_os": "Windows 11 (bleibt, kein Dualboot)",
+    "router": "TP-Link Archer C80",
+    "strategy": "Proxmox läuft als nested VM unter Hyper-V. Windows 11 bleibt unangetastet. Ressourcen dynamisch anpassbar."
+  },
+  "phases": [
+    {
+      "id": "phase1",
+      "label": "PHASE 1",
+      "title": "Fundament",
+      "subtitle": "Hypervisor · Erstes Netz · Linux-Grundlagen · IP-Planung",
+      "status": "active",
+      "color": "teal",
+      "steps": [
+        {
+          "id": "p1-bios",
+          "title": "BIOS: AMD-V / SVM aktivieren",
+          "status": "done",
+          "tags": ["BIOS", "AMD-V", "SVM"],
+          "desc": "SVM Mode im BIOS aktiviert. AMD Ryzen 5800X unterstützt AMD-V nativ.",
+          "notes": "Erledigt. Im BIOS unter Advanced → CPU Configuration → SVM Mode → Enabled.",
+          "log": [{ "date": "2026-04-16", "entry": "SVM Mode im BIOS aktiviert. Kein Problem." }]
+        },
+        {
+          "id": "p1-hyperv",
+          "title": "Hyper-V aktivieren",
+          "status": "done",
+          "tags": ["Windows", "Hyper-V"],
+          "desc": "Windows-Feature einschalten. PowerShell als Admin: Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All",
+          "notes": "Erledigt via PowerShell. Nested Virtualization aktiviert nach VM-Erstellung.",
+          "log": [{ "date": "2026-04-16", "entry": "Hyper-V aktiviert via PowerShell. Neustart durchgeführt." }]
+        },
+        {
+          "id": "p1-proxmox-vm",
+          "title": "Proxmox VM erstellen",
+          "status": "done",
+          "tags": ["Proxmox", "Hyper-V", "nested virt"],
+          "desc": "Proxmox ISO als nested VM unter Hyper-V. Generation 2, Secure Boot deaktivieren. 8 Cores, 16 GB RAM, 120 GB Disk.",
+          "notes": "Proxmox installiert, Web-UI läuft unter https://192.168.0.200:8006. System aktuell (9.1.7).",
+          "details": {
+            "cores": 8, "ram_gb": 16, "disk_gb": 120, "generation": 2,
+            "secure_boot": false, "dynamic_ram": false,
+            "dynamic_ram_why": "Proxmox ist selbst ein Hypervisor und plant RAM beim Start für seine eigenen VMs. Hyper-V Dynamic Memory entzieht oder gibt RAM im laufenden Betrieb – das bringt Proxmox aus dem Takt und kann VMs inside Proxmox zum Absturz bringen. Festes RAM = Proxmox weiß immer exakt was er hat.",
+            "dynamic_disk": true,
+            "dynamic_disk_why": "Bei der Disk kein Problem – Proxmox sieht immer die volle 120 GB, Hyper-V belegt auf der SSD nur was tatsächlich genutzt wird. Kein Entzug im laufenden Betrieb.",
+            "nested_virt_cmd": "Set-VMProcessor -VMName 'Proxmox' -ExposeVirtualizationExtensions $true",
+            "secure_boot_cmd": "Set-VMFirmware -VMName 'Proxmox' -EnableSecureBoot Off",
+            "installer_network": { "ip": "192.168.0.200/24", "gateway": "192.168.0.1", "dns": "192.168.0.1" },
+            "admin_email_note": "Für Proxmox-Systembenachrichtigungen (Disk voll, Backup-Fehler etc.). Kann später mit eigenem Mailserver (Phase 3) verkoppelt werden.",
+            "installer_summary": {
+              "filesystem": "ext4", "disk": "/dev/sda", "timezone": "Europe/Vienna",
+              "keyboard": "German", "hostname": "pve.homelab.local",
+              "ip": "192.168.0.200/24", "gateway": "192.168.0.1", "dns": "192.168.0.1",
+              "admin_email": "root@homelab.local"
+            },
+            "external_switch_fix": "Default Switch von Hyper-V hatte 172.31.x.x statt 192.168.0.x. Fix: New-VMSwitch ExternalSwitch auf Ethernet-Adapter, dann VM umgestellt."
+          },
+          "log": [
+            { "date": "2026-04-16", "entry": "Hyper-V Manager geöffnet. ISO-Download von proxmox.com gestartet." },
+            { "date": "2026-04-16", "entry": "VM erstellt: Generation 2, 16 GB RAM fest, 120 GB VHDX dynamisch, 8 Cores" },
+            { "date": "2026-04-16", "entry": "Secure Boot deaktiviert, nested virt via Set-VMProcessor aktiviert." },
+            { "date": "2026-04-16", "entry": "Proxmox Installer gestartet. Netzwerk-Konfiguration: 192.168.0.200/24, GW 192.168.0.1." },
+            { "date": "2026-04-16", "entry": "Root-Passwort gesetzt. Admin-Email: root@homelab.local (Platzhalter, Phase 3 Mailserver)" },
+            { "date": "2026-04-16", "entry": "Installer-Zusammenfassung bestätigt: ext4, /dev/sda, Europe/Vienna, German keyboard, pve.homelab.local" },
+            { "date": "2026-04-16", "entry": "Install gedrückt – Installation läuft." },
+            { "date": "2026-04-16", "entry": "Installation abgeschlossen. Netzwerkproblem behoben: ExternalSwitch in Hyper-V erstellt, VM umgestellt. Web-UI unter https://192.168.0.200:8006 erreichbar." }
+          ]
+        },
+        {
+          "id": "p1-ipplan",
+          "title": "IP-Plan & Subnetting",
+          "status": "todo",
+          "tags": ["Netzwerk", "IP", "Subnetting", "RFC1918"],
+          "desc": "Netzwerkbereiche festlegen: Management, Services, Lab, DMZ. RFC1918 Ranges planen.",
+          "notes": "",
+          "ideas": [
+            "10.0.1.0/24 – Management (Proxmox, Router, DNS)",
+            "10.0.2.0/24 – Services (Webserver, Mail, Wiki)",
+            "10.0.3.0/24 – Lab (VMs zum Experimentieren)",
+            "10.0.4.0/24 – DMZ (öffentlich erreichbare Dienste)"
+          ],
+          "log": []
+        },
+        {
+          "id": "p1-vm-plan",
+          "title": "VM-Plan & Abhängigkeiten",
+          "status": "wip",
+          "tags": ["Planung", "VMs", "Architektur"],
+          "desc": "Welche VMs werden gebraucht, in welcher Reihenfolge, in welchem Subnetz. Abhängigkeiten klären bevor Deployment beginnt.",
+          "notes": "",
+          "details": {
+            "boot_order": [
+              "1. OPNsense / pfSense  – Firewall & Router zwischen Subnetzen",
+              "2. Pi-hole / AdGuard   – DNS, alle anderen VMs brauchen Namensauflösung",
+              "3. Reverse Proxy       – Nginx/Traefik, damit Dienste über Namen erreichbar",
+              "4. Vaultwarden         – Passwörter sicher speichern bevor Dienste starten",
+              "5. Gitea               – Versionierung für Configs & Playbooks",
+              "6. Ansible             – Automatisierung sobald Grundinfra steht",
+              "7. Monitoring          – Grafana/Prometheus wenn genug läuft",
+              "8. TACACS+/RADIUS      – AAA-Lab wenn Netz stabil ist"
+            ],
+            "subnet_plan": {
+              "10.0.1.0/24": "Management – Proxmox, OPNsense, DNS/NTP, Monitoring",
+              "10.0.2.0/24": "Services   – Webserver, Mail, Wiki, Vaultwarden, Gitea",
+              "10.0.3.0/24": "Lab        – Test-VMs, Ansible, TACACS+, EVE-NG",
+              "10.0.4.0/24": "DMZ        – öffentlich erreichbare Dienste (Webserver, DDNS)"
+            },
+            "vlan_dependency": "Subnetz-Trennung setzt VLAN-fähigen Router/Switch voraus. Ohne VLANs: virtuelle Trennung nur in Proxmox via Linux Bridge möglich."
+          },
+          "log": [
+            { "date": "2026-04-17", "entry": "Abhängigkeitskette definiert: DNS und Firewall müssen zuerst laufen. Subnetz-Plan steht, VLAN-Fähigkeit des Routers muss geprüft werden." }
+          ]
+        },
+        {
+          "id": "p1-linux-vm",
+          "title": "Erste Linux VM",
+          "status": "todo",
+          "tags": ["Linux", "Ubuntu", "SSH"],
+          "desc": "Ubuntu Server 24.04 LTS in Proxmox. SSH einrichten, Grundkonfiguration, Updates.",
+          "log": []
+        },
+        {
+          "id": "p1-ssh-hardening",
+          "title": "SSH Hardening & PuTTY / KeePass Integration",
+          "status": "todo",
+          "tags": ["SSH", "Security", "Hardening", "PuTTY", "KeePass", "Keys"],
+          "desc": "SSH-Zugang von Windows via PuTTY einrichten. Key-basierte Auth auf allen VMs, Passwort-Login deaktivieren. KeePass-Einträge mit ssh://-URL für Doppelklick-Login. Grundlage für Ansible und sicheren Zugang in allen späteren Phasen.",
+          "notes": "",
+          "details": {
+            "phase": "Planung – noch nicht umgesetzt",
+            "goal": "Doppelklick auf KeePass-Eintrag → PuTTY öffnet sich → SSH-Verbindung zur VM, keine Passwort-Eingabe nötig.",
+            "step1_putty_install": {
+              "desc": "PuTTY installieren (inkl. PuTTYgen und Pageant)",
+              "download": "https://www.putty.org",
+              "components": ["putty.exe – SSH-Client", "puttygen.exe – Key-Generator", "pageant.exe – SSH-Agent (hält Keys im RAM, kein Passwort-Prompt bei jeder Verbindung)"]
+            },
+            "step2_keygen": {
+              "desc": "SSH-Keypair generieren mit PuTTYgen",
+              "tool": "puttygen.exe",
+              "key_type": "Ed25519 (modern, sicher, kurz)",
+              "steps": [
+                "puttygen.exe öffnen",
+                "Key type: EdDSA / Ed25519 wählen",
+                "Generate klicken, Maus bewegen für Entropy",
+                "Key comment: homelab-admin@windows setzen",
+                "Passphrase setzen (optional, Pageant übernimmt das dann)",
+                "Private Key speichern als: Y:/HomeLab/.secrets/homelab-admin.ppk (NICHT in Git!)",
+                "Public Key kopieren (das lange 'ssh-ed25519 AAAA...' im oberen Textfeld)"
+              ]
+            },
+            "step3_deploy_pubkey": {
+              "desc": "Public Key auf alle VMs deployen",
+              "per_vm": [
+                "mkdir -p ~/.ssh",
+                "echo 'ssh-ed25519 AAAA...' >> ~/.ssh/authorized_keys",
+                "chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+              ],
+              "targets": [
+                "root@192.168.0.200 – Proxmox",
+                "root@192.168.0.201 – AdGuard LXC"
+              ],
+              "note": "Für jede neue VM nach Deployment einmalig durchführen. Später via Ansible Base-Playbook automatisieren (idea-022)."
+            },
+            "step4_sshd_hardening": {
+              "desc": "Passwort-Login deaktivieren nach Key-Deployment",
+              "file": "/etc/ssh/sshd_config",
+              "editor": "vim /etc/ssh/sshd_config",
+              "settings": {
+                "PasswordAuthentication": "no",
+                "PermitRootLogin": "prohibit-password",
+                "PubkeyAuthentication": "yes",
+                "AuthorizedKeysFile": ".ssh/authorized_keys"
+              },
+              "apply": "systemctl restart sshd",
+              "warning": "Erst Key-Login testen, DANN Passwort deaktivieren – sonst ausgesperrt!"
+            },
+            "step5_pageant": {
+              "desc": "Pageant als SSH-Agent einrichten (Autostart mit Windows)",
+              "why": "Pageant hält den entschlüsselten Key im RAM. PuTTY und KeePass-SSH fragen automatisch bei Pageant an – kein Passphrase-Prompt bei jeder Verbindung.",
+              "autostart": "Pageant-Shortcut in C:/Users/<user>/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/ mit .ppk-Pfad als Argument"
+            },
+            "step6_keepass_integration": {
+              "desc": "KeePass-Einträge mit SSH-URL für Doppelklick-Login",
+              "why": "Alle VM-Zugangsdaten zentral in KeePass. Doppelklick auf URL-Feld öffnet PuTTY direkt mit der richtigen IP und dem richtigen User.",
+              "url_format": "ssh://root@192.168.0.200",
+              "keepass_url_handler": {
+                "desc": "KeePass muss wissen, dass ssh:// mit PuTTY geöffnet wird",
+                "method": "Windows Registry oder KeePass URL Override",
+                "registry_key": "HKEY_CLASSES_ROOT\\ssh\\shell\\open\\command",
+                "registry_value": "\"C:\\Program Files\\PuTTY\\putty.exe\" %1",
+                "alternative": "KeePass → Tools → Options → Integration → URL Overrides: ssh://  →  cmd://\"C:\\Program Files\\PuTTY\\putty.exe\" -load \"%HOST%\" {USERNAME}@{URL:HOST}"
+              },
+              "keepass_entry_template": {
+                "title": "Proxmox SSH",
+                "username": "root",
+                "password": "(leer oder Notfall-Passwort als Referenz)",
+                "url": "ssh://root@192.168.0.200",
+                "notes": "Key-Auth via Pageant. PuTTY-Session 'proxmox' vorab speichern für weitere Einstellungen."
+              },
+              "entries_to_create": [
+                { "title": "Proxmox SSH", "url": "ssh://root@192.168.0.200", "user": "root" },
+                { "title": "AdGuard LXC SSH", "url": "ssh://root@192.168.0.201", "user": "root" }
+              ]
+            },
+            "step7_putty_sessions": {
+              "desc": "PuTTY-Sessions vorab speichern für saubere Konfiguration",
+              "why": "Gespeicherte PuTTY-Sessions erlauben feinere Einstellungen (Font, Scrollback, Keepalive) und sind per Name aus KeePass ansprechbar.",
+              "per_session": [
+                "PuTTY öffnen",
+                "Host Name: 192.168.0.200, Port: 22",
+                "Connection → SSH → Auth → Private key file: Pfad zur .ppk",
+                "Connection → Seconds between keepalives: 60",
+                "Session Name: 'proxmox' → Save"
+              ]
+            },
+            "related_ideas": ["idea-023", "idea-024", "idea-027"],
+            "vim_reminder": "sshd_config immer mit vim öffnen: vim /etc/ssh/sshd_config"
+          },
+          "log": []
+        },
+        {
+          "id": "p1-proxmox-config",
+          "title": "Proxmox Grundkonfiguration",
+          "status": "done",
+          "tags": ["Proxmox", "APT", "Updates", "Repository"],
+          "desc": "Community-Repo aktivieren, Enterprise-Repos deaktivieren, System updaten, No-Subscription Popup entfernen.",
+          "notes": "Erledigt. No-Subscription Repo aktiv, 119 Pakete aktualisiert.",
+          "log": [
+            { "date": "2026-04-17", "entry": "Enterprise-Repos deaktiviert (pve-enterprise + ceph-squid)." },
+            { "date": "2026-04-17", "entry": "No-Subscription Repo hinzugefügt: http://download.proxmox.com/debian/pve trixie pve-no-subscription" },
+            { "date": "2026-04-17", "entry": "apt-get update: 17 MB, alle Quellen erreichbar, kein Fehler." },
+            { "date": "2026-04-17", "entry": "apt-get dist-upgrade: 119 Pakete, 469 MB, läuft." },
+            { "date": "2026-04-17", "entry": "System auf 9.1.7 aktualisiert. Kernel-Update + Reboot. No-Subscription Popup deaktiviert." }
+          ]
+        },
+        {
+          "id": "p1-recovery",
+          "title": "Recovery & Troubleshooting – Lessons Learned",
+          "status": "done",
+          "tags": ["Recovery", "GRUB", "Troubleshooting", "vim", "Netzwerk"],
+          "desc": "Ungeplanter Recovery-Lauf nach verlorenem Root-Passwort und defekter /etc/network/interfaces. GRUB Single-User-Mode, Passwort-Reset, Interface-Naming-Bug gefixt, vim gelernt.",
+          "notes": "Zwei Probleme gleichzeitig aufgedeckt: (1) Root-Passwort verloren → via GRUB init=/bin/bash in Root-Shell, passwd root. (2) Bridge vmbr0 referenzierte 'nic0' obwohl Interface 'eth0' heißt → systemctl networking error, keine Connectivity trotz IP.",
+          "details": {
+            "password_recovery": {
+              "method": "GRUB → 'e' beim Boot-Menü → linux-Zeile: 'ro' zu 'rw', '+ init=/bin/bash' → Strg+X → passwd root",
+              "remount_fix": "Falls root-fs trotz rw-Parameter read-only: mount -o remount,rw /",
+              "keyboard_gotcha": "Single-User-Mode hat US-Layout. Y/Z vertauscht, Sonderzeichen anders. Temporäres Passwort nur aus Kleinbuchstaben+Zahlen wählen.",
+              "clean_reboot": "sync → mount -o remount,ro / → Restart-VM -Force (OK weil fs clean)"
+            },
+            "interface_naming_bug": {
+              "symptom": "Proxmox-VM läuft (Get-VM: Running), aber 192.168.0.200 nicht erreichbar. Ping Gateway von innen: 100% packet loss. Hyper-V zeigt IPAddresses: {} am VM-NIC.",
+              "root_cause": "/etc/network/interfaces referenzierte 'nic0' als bridge-port, Interface heißt aber 'eth0' (Hyper-V synthetic NIC via hv_netvsc). Bridge vmbr0 existierte mit IP, war aber ohne Uplink.",
+              "diagnostic_chain": [
+                "ip link show → listet echte Interfaces (lo, eth0, vmbr0), KEIN nic0",
+                "MAC-Cross-Check: eth0 link/ether 00:15:5d:00:9b:01 === Hyper-V MacAddress 00155D009B01 → eth0 ist die Hyper-V NIC",
+                "systemctl status networking → 'error: vmbr0: bridge port nic0 does not exist'",
+                "Gegenprobe: ip link show nic0 → 'Device nic0 does not exist'"
+              ],
+              "fix": "vim /etc/network/interfaces → :%s/nic0/eth0/g → :wq → systemctl restart networking",
+              "verify": "ping -c 3 192.168.0.1 → 0% loss, https://192.168.0.200:8006 erreichbar"
+            },
+            "vim_basics_learned": {
+              "search_replace": ":%s/alt/neu/g – global in ganzer Datei",
+              "modes": "Normal (Esc) / Insert (i) / Command (:)",
+              "save_quit": ":wq speichern+beenden, :q! abbrechen ohne speichern, ZZ = :wq",
+              "essentials": "dd Zeile löschen, yy kopieren, p einfügen, u undo, /text suchen, gg Anfang, G Ende"
+            }
+          },
+          "log": [
+            { "date": "2026-04-18", "entry": "Nach Autostart-Versuch Proxmox unerreichbar. Ping 192.168.0.200: Zielhost nicht erreichbar." },
+            { "date": "2026-04-18", "entry": "VM-Konsole geöffnet via Hyper-V Manager – Login fehlgeschlagen: Root-Passwort nicht mehr bekannt." },
+            { "date": "2026-04-18", "entry": "GRUB Recovery: 'e' im Boot-Menü, linux-Zeile editiert (ro→rw, init=/bin/bash angehängt), Strg+X." },
+            { "date": "2026-04-18", "entry": "Root-FS trotzdem read-only gebootet → mount -o remount,rw / → passwd root erfolgreich." },
+            { "date": "2026-04-18", "entry": "Nach Reboot mit neuem Passwort: Proxmox immer noch offline. Debugging gestartet." },
+            { "date": "2026-04-18", "entry": "ip a zeigt: vmbr0 hat IP 192.168.0.200, aber eth0 state DOWN. Config hat bridge-ports nic0." },
+            { "date": "2026-04-18", "entry": "systemctl status networking: error 'vmbr0: bridge port nic0 does not exist'. Interface-Naming-Mismatch identifiziert." },
+            { "date": "2026-04-18", "entry": "MAC-Cross-Check bestätigt: eth0 (00:15:5d:00:9b:01) ist die echte Hyper-V NIC. nic0 existiert nicht." },
+            { "date": "2026-04-18", "entry": "Fix via vim: :%s/nic0/eth0/g, :wq. systemctl restart networking → keine Fehler. Ping Gateway OK. Web-UI wieder erreichbar." },
+            { "date": "2026-04-18", "entry": "vim-Grundlagen gelernt: Modi, Search&Replace, Speichern. Präferenz ab jetzt: vim statt nano." }
+          ]
+        },
+        {
+          "id": "p1-autostart",
+          "title": "Autostart – Hyper-V VM & LXC Container",
+          "status": "done",
+          "tags": ["Autostart", "Hyper-V", "Proxmox", "Resilience"],
+          "desc": "Zweistufiger Autostart: (1) Proxmox-VM startet mit Windows, (2) LXC Container startet mit Proxmox. Absicherung gegen DNS-Ausfall wenn Host neu startet.",
+          "notes": "Ebene 1 (Hyper-V): Set-VM -AutomaticStartAction Start, Delay 30s, StopAction ShutDown. Ebene 2 (Proxmox): pct set <id> --onboot 1 --startup order=1,up=10,down=60",
+          "details": {
+            "hyperv_command": "Set-VM -Name 'Proxmox' -AutomaticStartAction Start -AutomaticStartDelay 30 -AutomaticStopAction ShutDown",
+            "hyperv_verify": "Get-VM -Name 'Proxmox' | Format-List Name,State,AutomaticStartAction,AutomaticStartDelay,AutomaticStopAction",
+            "proxmox_command": "pct set 100 --onboot 1 --startup order=1,up=10,down=60",
+            "proxmox_verify": "pct config 100 | grep -E 'onboot|startup'",
+            "why_shutdown_not_save": "AutomaticStopAction=Save friert VM-RAM ein. Bei Hypervisor-in-Hypervisor führt das zu Clock-Drift, hängenden Netzwerkverbindungen und Update-Problemen. ShutDown sendet ACPI-Shutdown und Proxmox fährt eigene VMs/Container sauber runter.",
+            "why_startup_delays": "30s Hyper-V Delay: ExternalSwitch und Windows-Netzwerkstack müssen vor VM-Start bereit sein. 10s Proxmox Delay: Bridge vmbr0 muss UP sein bevor Container starten.",
+            "boot_chain": "Windows 11 → ExternalSwitch → 30s Delay → Proxmox VM → Proxmox-Netzwerkstack → 10s Delay → AdGuard LXC (CT100)",
+            "failure_scenarios": [
+              "Windows-Update braucht Reboot ohne Auto-Login → VM startet nicht → kein DNS im Heimnetz",
+              "ExternalSwitch verschwindet bei Treiber-Update → VM ohne Netzwerk",
+              "Proxmox-Boot dauert länger als AutomaticStartDelay → Race Condition"
+            ],
+            "mitigation": "Fallback-DNS (8.8.8.8) am Router und Clients → bei Autostart-Failure kein kompletter DNS-Ausfall."
+          },
+          "log": [
+            { "date": "2026-04-18", "entry": "Erster Autostart-Versuch via Set-VM nach AdGuard-Installation – scheinbar Fehler geworfen, aber Kommando wurde trotzdem ausgeführt." },
+            { "date": "2026-04-18", "entry": "Autostart-Konzept dokumentiert: 2-Ebenen-Ansatz (Hyper-V + Proxmox) mit Delays gegen Race Conditions." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase2",
+      "label": "PHASE 2",
+      "title": "Netz & Erreichbarkeit",
+      "subtitle": "VPN · Reverse Proxy · DNS · VLANs · Firewall · IPAM",
+      "status": "active",
+      "color": "blue",
+      "steps": [
+        {
+          "id": "p2-wireguard",
+          "title": "WireGuard VPN",
+          "status": "todo",
+          "tags": ["VPN", "WireGuard", "Security"],
+          "desc": "Homelab von außen erreichbar machen. Eigener VPN-Endpunkt, sichere Verbindung von unterwegs.",
+          "log": []
+        },
+        {
+          "id": "p2-reverseproxy",
+          "title": "Reverse Proxy",
+          "status": "todo",
+          "tags": ["Nginx", "Traefik", "TLS"],
+          "desc": "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
+          "log": []
+        },
+        {
+          "id": "p2-dns",
+          "title": "Interner DNS",
+          "status": "done",
+          "tags": ["DNS", "AdGuard"],
+          "desc": "AdGuard Home als LXC Container. Interne Hostnamen auflösen, DNS-Filter, DoH Upstream.",
+          "notes": "AdGuard Home läuft auf 192.168.0.201. DoH via 1.1.1.1 und 1.0.0.1 (Cloudflare). Router DHCP gibt 192.168.0.201 als DNS aus. 71+ Anfragen bereits verarbeitet.",
+          "details": {
+            "container": { "id": 100, "ip": "192.168.0.201", "os": "debian-13", "ram_mb": 512, "disk_gb": 4 },
+            "upstream_dns": ["https://1.1.1.1/dns-query", "https://1.0.0.1/dns-query"],
+            "upstream_why": "Cloudflare 1.1.1.1 – keine DNS-Logs, keine Datenweitergabe. Bewusst kein Google 8.8.8.8 als Upstream.",
+            "router": { "model": "TP-Link Archer C80", "primary_dns": "192.168.0.201", "secondary_dns": "8.8.8.8" },
+            "admin_ui": "http://192.168.0.201",
+            "blocklists_todo": ["AdGuard DNS filter", "AdGuard Tracking Protection", "OISD Blocklist"]
+          },
+          "log": [
+            { "date": "2026-04-18", "entry": "AdGuard LXC Container erstellt (CT100, debian-13, 192.168.0.201)." },
+            { "date": "2026-04-18", "entry": "MAC Spoofing auf Proxmox VM aktiviert – LXC Container hatten sonst kein Netz." },
+            { "date": "2026-04-18", "entry": "DNS Port 53 vom Router geblockt – /etc/hosts Workaround für Installation genutzt." },
+            { "date": "2026-04-18", "entry": "AdGuard installiert, Setup abgeschlossen, Admin-UI auf Port 80." },
+            { "date": "2026-04-18", "entry": "DoH Upstream: https://1.1.1.1/dns-query + https://1.0.0.1/dns-query (Cloudflare, privacy-first)." },
+            { "date": "2026-04-18", "entry": "TP-Link Archer C80 DHCP: Primary DNS 192.168.0.201, Secondary 8.8.8.8 als Fallback." },
+            { "date": "2026-04-18", "entry": "DNS-Ausfall durch Set-DnsClientServerAddress – Windows schaltet DHCP auf manuell. Fix: GUI ncpa.cpl, DNS automatisch beziehen." },
+            { "date": "2026-04-18", "entry": "AdGuard aktiv: 71 DNS-Anfragen verarbeitet. Microsoft-Telemetrie und Tracking sichtbar." },
+            { "date": "2026-04-18", "entry": "Erkenntnis: Cloudflare DoH über IP (1.1.1.1) statt Hostname nötig weil DNS noch nicht vollständig aufgelöst." },
+            { "date": "2026-04-19", "entry": "AdGuard Passwort nicht mehr bekannt (KeePass-DB verloren). Reset-Versuche via bcrypt gescheitert – auth_attempts-Sperre und $2y/$2a Kompatibilitätsproblem." },
+            { "date": "2026-04-19", "entry": "Neuinstallation: systemctl stop/disable AdGuardHome, rm -rf /opt/AdGuardHome, Service-File entfernt, daemon-reload." },
+            { "date": "2026-04-19", "entry": "curl Install-Script erneut: AdGuard v0.107.74 installiert. Setup-Wizard auf Port 3000 durchlaufen." },
+            { "date": "2026-04-19", "entry": "Neuer Login gesetzt, sofort in KeePass eingetragen. DoH Upstream: 1.1.1.1 + 1.0.0.1." },
+            { "date": "2026-04-19", "entry": "Blocklisten aktiviert: AdGuard DNS filter, OISD Small, Phishing URL, HaGeZi DNS Rebind, Malicious URL (URLHaus)." },
+            { "date": "2026-04-19", "entry": "Autostart gesetzt: pct set 100 --onboot 1 --startup order=1,up=30,down=60. TP-Link DNS wieder auf 192.168.0.201." }
+          ]
+        },
+        {
+          "id": "p2-ipam",
+          "title": "IPAM – IP Address Management (NetBox)",
+          "status": "todo",
+          "tags": ["IPAM", "NetBox", "Netzwerk", "IP-Management"],
+          "desc": "NetBox als zentrales IPAM. Alle IP-Ranges, Prefixes, VLANs und Devices dokumentieren und planen. REST-API für spätere Ansible/Terraform-Integration.",
+          "notes": "",
+          "details": {
+            "why_netbox": "Branchenstandard im Network Engineering – direkter Lernwert für den Job. REST-API ermöglicht Ansible Dynamic Inventory und automatische IP-Vergabe beim VM-Deployment via Terraform.",
+            "alternative": "phpIPAM – leichtgewichtiger, nur IP-Management ohne DCIM. Sinnvoll wenn NetBox zu viel Overhead ist für den Start.",
+            "deployment": "Docker Compose Stack empfohlen. Ressourcen: 1-2 Cores, 2 GB RAM, 10 GB Disk.",
+            "ip_management_triad": "DHCP (Vergabe) + DNS (Auflösung) + IPAM (Planung & Dokumentation) – alle drei zusammen = vollständiges IP-Management.",
+            "initial_data_to_enter": [
+              "Prefix 192.168.0.0/24 – aktuelles Heimnetz (Home LAN)",
+              "Prefix 10.0.1.0/24 – Management VLAN (geplant)",
+              "Prefix 10.0.2.0/24 – Services VLAN (geplant)",
+              "Prefix 10.0.3.0/24 – Lab VLAN (geplant)",
+              "Prefix 10.0.4.0/24 – DMZ (geplant)",
+              "IP 192.168.0.155 – Windows Host",
+              "IP 192.168.0.200 – Proxmox (pve.homelab.local)",
+              "IP 192.168.0.201 – AdGuard LXC (adguard.homelab.local)"
+            ],
+            "later_integration": "Ansible: netbox.netbox Collection für Dynamic Inventory. Terraform: netbox Provider für automatische IP-Zuweisung beim VM-Deployment.",
+            "related_ideas": ["idea-032", "idea-020"]
+          },
+          "log": []
+        },
+        {
+          "id": "p2-vlans",
+          "title": "VLANs konfigurieren",
+          "status": "todo",
+          "tags": ["VLAN", "Switch", "Segmentierung"],
+          "desc": "Netzwerksegmentierung: Management VLAN, Service VLAN, Lab VLAN. Isolation zwischen Bereichen.",
+          "log": []
+        },
+        {
+          "id": "p2-firewall",
+          "title": "pfSense / OPNsense",
+          "status": "todo",
+          "tags": ["Firewall", "pfSense", "Routing", "NAT"],
+          "desc": "Virtuelle Firewall-VM in Proxmox. Routing zwischen VLANs, Firewall-Regeln, NAT.",
+          "log": []
+        },
+        {
+          "id": "p2-ddns",
+          "title": "Dynamisches DNS (DDNS)",
+          "status": "todo",
+          "tags": ["DDNS", "Cloudflare", "DNS"],
+          "desc": "Externe Erreichbarkeit trotz wechselnder Heim-IP. Cloudflare DDNS oder DuckDNS.",
+          "log": []
+        }
+      ]
+    },
+    {
+      "id": "phase3",
+      "label": "PHASE 3",
+      "title": "Dienste & Intranet",
+      "subtitle": "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
+      "status": "locked",
+      "color": "purple",
+      "sections": [
+        {
+          "label": "Web & Intranet",
+          "steps": [
+            { "id": "p3-dokuwiki", "title": "DokuWiki", "status": "todo", "tags": ["Wiki", "DokuWiki", "Docs", "Self-hosted"], "desc": "Eigenes Wiki für alle Dienste, Befehle und Konfigurationen. Dateibasiert, kein MySQL nötig.", "notes": "", "details": { "why_dokuwiki": "Dateibasiert (keine Datenbank nötig), leichtgewichtig, gut skalierbar mit Namespaces.", "namespace_plan": ["proxmox/ – Installation, Konfiguration, Tipps", "netzwerk/ – WireGuard, VLANs, DNS, Subnetting", "dienste/ – Nginx, Mailcow, Vaultwarden etc.", "security/ – Auth-Methoden, Zertifikate, Firewall"], "vm_resources": "1 Core, 512 MB RAM, 10 GB Disk – sehr leichtgewichtig" }, "log": [] },
+            { "id": "p3-webserver", "title": "Webserver / Static Sites", "status": "todo", "tags": ["Nginx", "Caddy", "Web"], "desc": "Nginx oder Caddy. Eigene Website direkt von zuhause hosten, öffentlich erreichbar.", "log": [] },
+            { "id": "p3-wiki", "title": "Internes Wiki / Docs", "status": "todo", "tags": ["Wiki", "Wikijs", "Outline"], "desc": "Wikijs oder Outline. Dokumentation aller Homelab-Konfigurationen, Passwörter, Netzpläne.", "log": [] },
+            { "id": "p3-vaultwarden", "title": "Passwortmanager", "status": "todo", "tags": ["Vaultwarden", "Bitwarden", "Security"], "desc": "Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager für alle Accounts.", "log": [] },
+            { "id": "p3-git", "title": "Git Server", "status": "todo", "tags": ["Gitea", "Forgejo", "Git", "DevOps"], "desc": "Gitea oder Forgejo. Eigener privater Git-Host für Konfig-Repos, Skripte, Projekte.", "log": [] }
+          ]
+        },
+        {
+          "label": "Kommunikation & Mail",
+          "steps": [
+            { "id": "p3-mail", "title": "Mailserver", "status": "todo", "tags": ["Mail", "Mailcow", "SMTP", "DKIM"], "desc": "Mailcow oder Maddy. Eigene Domain, SMTP/IMAP, SPF/DKIM/DMARC konfigurieren.", "log": [] },
+            { "id": "p3-chat", "title": "Chat / Notifications", "status": "todo", "tags": ["Matrix", "Ntfy", "Chat"], "desc": "Matrix/Element oder Ntfy für interne Benachrichtigungen aus Automatisierungen.", "log": [] }
+          ]
+        },
+        {
+          "label": "Automatisierung",
+          "steps": [
+            { "id": "p3-n8n", "title": "n8n Workflows", "status": "todo", "tags": ["n8n", "Automation", "Webhooks"], "desc": "No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.", "log": [] },
+            { "id": "p3-ansible", "title": "Ansible Playbooks", "status": "todo", "tags": ["Ansible", "IaC", "DevOps"], "desc": "Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.", "log": [] },
+            { "id": "p3-containers", "title": "Container Orchestration", "status": "todo", "tags": ["Docker", "K3s", "Kubernetes"], "desc": "Docker Compose für einfache Stacks. Optional später: K3s (leichtes Kubernetes) für Cluster-Erfahrung.", "log": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase4",
+      "label": "PHASE 4",
+      "title": "Security & Experimente",
+      "subtitle": "Auth · Zertifikate · Monitoring · Pentesting · Härtung",
+      "status": "locked",
+      "color": "amber",
+      "sections": [
+        {
+          "label": "Identity & Auth",
+          "steps": [
+            { "id": "p4-sso", "title": "SSO / Identity Provider", "status": "todo", "tags": ["SSO", "Authentik", "Keycloak", "OIDC"], "desc": "Authentik oder Keycloak. Zentrales Login für alle Dienste. OIDC, SAML, LDAP testen.", "log": [] },
+            { "id": "p4-2fa", "title": "2FA / MFA testen", "status": "todo", "tags": ["2FA", "TOTP", "YubiKey", "Passkeys"], "desc": "TOTP, Hardware-Keys (YubiKey), Passkeys. Verschiedene Auth-Methoden im echten System testen.", "log": [] },
+            { "id": "p4-ca", "title": "Certificate Authority", "status": "todo", "tags": ["PKI", "TLS", "Step-CA", "CFSSL"], "desc": "Eigene interne CA mit Step-CA oder CFSSL. Interne TLS-Zertifikate für alle Dienste.", "log": [] }
+          ]
+        },
+        {
+          "label": "Monitoring & Observability",
+          "steps": [
+            { "id": "p4-grafana", "title": "Grafana + Prometheus", "status": "todo", "tags": ["Grafana", "Prometheus", "Metrics", "Alerting"], "desc": "Metriken aller VMs und Dienste. Dashboards für CPU, RAM, Netz, Disk. Alerting.", "log": [] },
+            { "id": "p4-loki", "title": "Loki / Logging Stack", "status": "todo", "tags": ["Loki", "Logging", "SIEM"], "desc": "Zentrales Log-Management. Alle Dienste loggen nach Loki, Suche in Grafana.", "log": [] },
+            { "id": "p4-uptime", "title": "Uptime Kuma", "status": "todo", "tags": ["Monitoring", "Uptime", "Alerts"], "desc": "Status-Seite für alle eigenen Dienste. Alerting via Mail/Ntfy wenn ein Dienst down ist.", "log": [] }
+          ]
+        },
+        {
+          "label": "Security Lab",
+          "steps": [
+            { "id": "p4-pentest", "title": "Isoliertes Pentest-Netz", "status": "todo", "tags": ["Kali", "Pentest", "Lab", "Metasploitable"], "desc": "Separates VLAN/Netz für Security-Experimente. Kali Linux VM, Metasploitable, DVWA.", "log": [] },
+            { "id": "p4-ids", "title": "IDS / Intrusion Detection", "status": "todo", "tags": ["IDS", "Suricata", "Zeek", "Security"], "desc": "Suricata oder Zeek. Netzwerkverkehr analysieren, Angriffsmuster erkennen.", "log": [] }
+          ]
+        }
+      ]
+    }
+  ],
+  "diary": [
+    { "date": "2026-04-16", "session": 1, "title": "Kickoff – Proxmox Setup", "entries": ["Roadmap und Ziele definiert: Netz lernen, Proxmox, VPN, später Dienste und Security", "Entschieden: Proxmox nested unter Hyper-V, kein Dualboot, Windows 11 bleibt", "BIOS: SVM Mode aktiviert", "Hyper-V via PowerShell aktiviert und Neustart", "Proxmox ISO 9.1-1 heruntergeladen nach Y:/HomeLab/", "Hyper-V VM erstellt: Generation 2, 16 GB RAM fest, 120 GB VHDX dynamisch, 8 Cores", "Secure Boot deaktiviert, nested virt via Set-VMProcessor aktiviert", "Proxmox Installer durchlaufen: Root-PW, root@homelab.local, pve.homelab.local", "Netzwerk konfiguriert: 192.168.0.200/24, GW 192.168.0.1, DNS 192.168.0.1", "Dokumentations-System aufgebaut: homelab-state.json", "Install-Button gedrückt – Proxmox installiert gerade"] },
+    { "date": "2026-04-17", "session": 2, "title": "Proxmox Web-UI & Grundkonfiguration", "entries": ["Proxmox Web-UI erreichbar unter https://192.168.0.200:8006", "GitHub Repo angelegt: github.com/kaynethy/homelab", "Enterprise-Repos deaktiviert, No-Subscription Repo aktiviert", "apt-get update + dist-upgrade gestartet (119 Pakete)", "System auf Proxmox VE 9.1.7 aktualisiert.", "No-Subscription Popup via sed-Befehl deaktiviert.", "Proxmox vollständig konfiguriert und bereit für erste VMs."] },
+    { "date": "2026-04-17", "session": 3, "title": "AdGuard DNS & Ideen-Erweiterung", "entries": ["VM-Plan & Abhängigkeitskette definiert: OPNsense → DNS → Proxy → Vaultwarden → ...", "Subnetz-Plan festgelegt: 10.0.1-4.0/24 für Management, Services, Lab, DMZ", "Debian 13 (Trixie) als LXC-Template heruntergeladen", "AdGuard Home LXC Container wird eingerichtet (192.168.0.201)", "Neue Ideen hinzugefügt: IKEv2/IPsec, Syslog/NTP, TACACS+, RADIUS, Access Server, Oxidized, AWX, PrivateBin, IAM, IPAM", "MAC Spoofing Fix: Hyper-V blockierte LXC Container MACs", "AdGuard Home installiert und Setup abgeschlossen"] },
+    { "date": "2026-04-18", "session": 4, "title": "AdGuard DNS – vollständig eingerichtet", "entries": ["DoH Upstream auf Cloudflare 1.1.1.1/1.0.0.1 umgestellt – bewusst kein Google", "TP-Link Archer C80 DHCP DNS auf 192.168.0.201 gesetzt", "DNS-Ausfall Lessons Learned: Set-DnsClientServerAddress schaltet Windows auf manuell", "AdGuard aktiv: 71 DNS-Anfragen, Microsoft-Telemetrie und Tracking sichtbar", "Nächste Schritte: Blocklisten aktivieren, Autostart einrichten"] },
+    { "date": "2026-04-18", "session": 5, "title": "Recovery-Marathon – Passwort, Interfaces, vim", "entries": ["Plan: AdGuard Autostart einrichten – Set-VM -AutomaticStartAction Start -AutomaticStartDelay 30", "Nach Ausführung: Proxmox 192.168.0.200 nicht mehr erreichbar", "VM-Konsole via Hyper-V Manager – Login fehlgeschlagen: Root-Passwort vergessen", "GRUB Recovery: 'e' im Boot-Menü, linux-Zeile editiert (ro→rw, init=/bin/bash)", "Root-FS trotzdem ro → mount -o remount,rw / als Fix. passwd root erfolgreich.", "Nach Reboot: Login OK, aber Proxmox unerreichbar – zweites Problem", "bridge-ports nic0 in /etc/network/interfaces – Interface heißt aber eth0", "Fix mit vim: :%s/nic0/eth0/g → systemctl restart networking → Proxmox wieder erreichbar", "vim-Grundlagen gelernt: Modi, Search&Replace, :wq, dd, yy, u", "Autostart-Konzept dokumentiert: 2-Ebenen (Hyper-V VM + Proxmox Container)" ] },
+    { "date": "2026-04-19", "session": 6, "title": "AdGuard Passwort-Desaster & Neuinstallation", "entries": [
+      "AdGuard Container startete nach Proxmox-Boot nicht automatisch – onboot-Flag war nicht gesetzt",
+      "AdGuard Web-Login schlug fehl – Passwort aus KeePass-DB nicht mehr verfügbar (DB durch AI-Prompt gelöscht)",
+      "Lessons Learned: Niemals destruktive Befehle via AI ohne eigene Prüfung ausführen – KeePass-DB war das Opfer",
+      "Passwort-Reset-Versuch via bcrypt htpasswd: Hash wurde korrekt generiert, Login trotzdem fehlgeschlagen",
+      "Ursache: auth_attempts=5 / block_auth_min=15 hatte Account nach Fehlversuchen gesperrt",
+      "Weitere Ursache: bcrypt $2y vs $2a Kompatibilitätsproblem mit AdGuard-Version",
+      "users:[] in yaml gesetzt um Setup-Wizard zu triggern – hat funktioniert, Login war danach möglich",
+      "Entscheidung: Komplette Neuinstallation für sauberen Zustand",
+      "systemctl stop AdGuardHome → rm -rf /opt/AdGuardHome",
+      "systemctl disable AdGuardHome → rm /etc/systemd/system/AdGuardHome.service → systemctl daemon-reload",
+      "curl Install-Script erneut ausgeführt → AdGuard v0.107.74 erfolgreich installiert",
+      "Setup-Wizard auf Port 3000 durchlaufen – neuer User und Passwort gesetzt, sofort in KeePass eingetragen",
+      "DoH Upstream neu konfiguriert: https://1.1.1.1/dns-query + https://1.0.0.1/dns-query",
+      "Blocklisten aktiviert: AdGuard DNS filter, OISD Blocklist Small, Phishing URL Blocklist, HaGeZi DNS Rebind Protection, Malicious URL Blocklist",
+      "Autostart via pct set 100 --onboot 1 --startup order=1,up=30,down=60 gesetzt",
+      "TP-Link Archer C80 DNS wieder auf 192.168.0.201 gesetzt",
+      "Idee: Raspberry Pi Zero 2 W als Secondary DNS für HA – unabhängig von Proxmox/Hyper-V"
+    ]}
+  ]
+}

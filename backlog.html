@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab Backlog</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<div class="wrap">
+  <div id="nav"></div>
+
+  <header>
+    <div class="header-left">
+      <h1>// ideen<span>_backlog</span></h1>
+      <p>Ideen, Wünsche und zukünftige Projekte</p>
+    </div>
+    <button class="btn" id="btn-new-idea">+ Neue Idee</button>
+  </header>
+
+  <!-- Filter bar -->
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-filter="all">Alle</button>
+    <button class="filter-btn" data-filter="high"><span style="color:var(--phase4)">●</span> High</button>
+    <button class="filter-btn" data-filter="medium"><span style="color:var(--wip)">●</span> Medium</button>
+    <button class="filter-btn" data-filter="low"><span style="color:var(--muted)">●</span> Low</button>
+  </div>
+
+  <!-- New Idea Form -->
+  <div class="form-inline" id="new-idea-form">
+    <div class="form-group">
+      <label>Titel</label>
+      <input type="text" id="idea-title" placeholder="Was willst du bauen?">
+    </div>
+    <div class="form-group">
+      <label>Tags (kommasepariert)</label>
+      <input type="text" id="idea-tags" placeholder="z.B. VPN, Backup, Docker">
+    </div>
+    <div class="form-group">
+      <label>Priorität</label>
+      <select id="idea-priority">
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btn-save-idea">Hinzufügen</button>
+      <button class="btn btn-secondary" id="btn-cancel-idea">Abbrechen</button>
+    </div>
+  </div>
+
+  <div class="cards" id="backlog-grid"></div>
+
+  <footer>
+    homelab_roadmap · <span>ideen backlog</span>
+  </footer>
+</div>
+
+<script src="assets/state.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  let currentFilter = 'all';
+
+  function init() {
+    if (!window.STATE) return;
+    renderBacklog();
+    bindEvents();
+  }
+
+  function renderBacklog() {
+    const container = document.getElementById('backlog-grid');
+    const backlog = window.STATE.backlog || [];
+
+    const filtered = currentFilter === 'all'
+      ? backlog
+      : backlog.filter(item => item.priority === currentFilter);
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px;font-style:italic;grid-column:1/-1">Keine Ideen in dieser Kategorie.</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(item => {
+      const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+      const phases = window.STATE.phases || [];
+      const options = phases.map(p => `<option value="${p.id}">Phase ${p.id}</option>`).join('');
+
+      return `
+        <div class="backlog-card" data-id="${item.id}">
+          <div class="backlog-title">${item.title}</div>
+          <div class="tags">${tags}</div>
+          <span class="prio-badge ${item.priority}">${item.priority}</span>
+          <div class="backlog-move">
+            <select title="In Phase verschieben" data-id="${item.id}">
+              <option value="">→ Phase...</option>
+              ${options}
+            </select>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Bind move dropdowns
+    container.querySelectorAll('.backlog-move select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const itemId = e.target.dataset.id;
+        const phaseId = parseInt(e.target.value);
+        if (!phaseId) return;
+        moveToPhase(itemId, phaseId);
+      });
+    });
+  }
+
+  function moveToPhase(itemId, phaseId) {
+    const idx = window.STATE.backlog.findIndex(b => b.id === itemId);
+    if (idx === -1) return;
+
+    const item = window.STATE.backlog[idx];
+    const phase = window.STATE.phases.find(p => p.id === phaseId);
+    if (!phase) return;
+
+    const newStep = {
+      id: item.id,
+      title: item.title,
+      desc: 'Aus Backlog verschoben',
+      status: 'todo',
+      tags: item.tags || [],
+      notes: '',
+      log: [{ date: new Date().toISOString().split('T')[0], entry: 'Aus Backlog in Phase ' + phaseId + ' verschoben' }]
+    };
+
+    if (phase.steps) {
+      phase.steps.push(newStep);
+    } else if (phase.sections && phase.sections.length > 0) {
+      phase.sections[0].steps.push(newStep);
+    }
+
+    window.STATE.backlog.splice(idx, 1);
+    window.saveState();
+    renderBacklog();
+  }
+
+  function bindEvents() {
+    const form = document.getElementById('new-idea-form');
+    const btnNew = document.getElementById('btn-new-idea');
+    const btnSave = document.getElementById('btn-save-idea');
+    const btnCancel = document.getElementById('btn-cancel-idea');
+
+    btnNew.addEventListener('click', () => {
+      form.classList.toggle('open');
+      if (form.classList.contains('open')) {
+        document.getElementById('idea-title').value = '';
+        document.getElementById('idea-tags').value = '';
+        document.getElementById('idea-priority').value = 'medium';
+        document.getElementById('idea-title').focus();
+      }
+    });
+
+    btnCancel.addEventListener('click', () => form.classList.remove('open'));
+
+    btnSave.addEventListener('click', () => {
+      const title = document.getElementById('idea-title').value.trim();
+      if (!title) {
+        document.getElementById('idea-title').style.borderColor = 'var(--phase4)';
+        return;
+      }
+
+      const tagsRaw = document.getElementById('idea-tags').value;
+      const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      const priority = document.getElementById('idea-priority').value;
+      const id = 'bl-' + Date.now();
+
+      window.STATE.backlog.push({ id, title, tags, priority });
+      window.saveState();
+      form.classList.remove('open');
+      renderBacklog();
+    });
+
+    // Filter buttons
+    document.getElementById('filter-bar').addEventListener('click', e => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderBacklog();
+    });
+  }
+
+  window.addEventListener('state-ready', init);
+})();
+</script>
+</body>
+</html>

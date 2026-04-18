@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Ideen</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* === COMMAND CENTER LAYOUT === */
+    .cmd-wrap {
+      max-width: 1200px;
+      padding-bottom: 40px;
+    }
+    .cmd-layout {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      min-height: calc(100vh - 180px);
+    }
+
+    /* === SIDEBAR === */
+    .cmd-sidebar {
+      width: 220px;
+      min-width: 220px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 20px 14px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .sb-brand {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+    .sb-brand b { color: var(--accent); font-weight: 700; }
+    .sb-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+      margin-top: 4px;
+    }
+    .sb-section {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 14px 0 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+    .sb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background 150ms, color 150ms;
+      width: 100%;
+      text-align: left;
+    }
+    .sb-item:hover { background: var(--bg3); }
+    .sb-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sb-label { flex: 1; }
+    .sb-num {
+      font-size: 10px;
+      opacity: 0.5;
+    }
+    /* Phase dot colors */
+    .sb-item[data-phase="all"] .sb-dot     { background: var(--accent); }
+    .sb-item[data-phase="phase1"] .sb-dot  { background: var(--phase1); }
+    .sb-item[data-phase="phase2"] .sb-dot  { background: var(--phase2); }
+    .sb-item[data-phase="phase3"] .sb-dot  { background: var(--phase3); }
+    .sb-item[data-phase="phase4"] .sb-dot  { background: var(--phase4); }
+    .sb-item[data-phase="open"] .sb-dot    { background: var(--muted); }
+    /* Prio dot colors */
+    .sb-item[data-prio="high"] .sb-dot     { background: var(--phase4); }
+    .sb-item[data-prio="medium"] .sb-dot   { background: var(--phase2); }
+    .sb-item[data-prio="low"] .sb-dot      { background: var(--muted); }
+    /* Active sidebar states */
+    .sb-item.active { color: #fff; font-weight: 600; }
+    .sb-item[data-phase="all"].active    { background: var(--accent); color: var(--bg); }
+    .sb-item[data-phase="phase1"].active { background: var(--phase1); color: var(--bg); }
+    .sb-item[data-phase="phase2"].active { background: var(--phase2); color: var(--bg); }
+    .sb-item[data-phase="phase3"].active { background: var(--phase3); color: var(--bg); }
+    .sb-item[data-phase="phase4"].active { background: var(--phase4); color: var(--bg); }
+    .sb-item[data-phase="open"].active   { background: var(--muted); color: var(--bg); }
+    .sb-item[data-prio="high"].active    { background: var(--phase4); color: var(--bg); }
+    .sb-item[data-prio="medium"].active  { background: var(--phase2); color: var(--bg); }
+    .sb-item[data-prio="low"].active     { background: var(--muted); color: var(--bg); }
+    .sb-item.active .sb-dot { background: currentColor; }
+    .sb-item.active .sb-num { opacity: 0.8; }
+
+    .sb-new {
+      margin-top: auto;
+      padding-top: 16px;
+    }
+    .sb-new-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(79,255,176,0.08);
+      border: 1px solid rgba(79,255,176,0.25);
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .sb-new-btn:hover { background: rgba(79,255,176,0.18); }
+
+    /* === MAIN CONTENT === */
+    .cmd-main {
+      flex: 1;
+      min-width: 0;
+      padding: 20px 0 20px 24px;
+    }
+    .cmd-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cmd-header-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .cmd-header-title b { color: #fff; font-weight: 600; }
+    .cmd-header-stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .cmd-header-stat b { font-weight: 600; }
+
+    /* === CARD GRID === */
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      transition: opacity 150ms ease;
+    }
+
+    /* === CARD === */
+    .cmd-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 150ms, border-color 150ms, box-shadow 150ms;
+    }
+    .cmd-card.prio-high   { border-left: 3px solid var(--phase4); }
+    .cmd-card.prio-medium { border-left: 3px solid var(--phase2); }
+    .cmd-card.prio-low    { border-left: 3px solid var(--muted); }
+    .cmd-card:not(.expanded):hover {
+      transform: scale(1.02);
+      border-color: var(--border2);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .cmd-card.expanded {
+      grid-column: 1 / -1;
+      border-color: var(--border2);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Card summary (always visible) */
+    .card-summary {
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cmd-card.expanded .card-summary { cursor: default; }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      flex: 1;
+    }
+    .card-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--muted);
+    }
+    .card-tag.net { color: var(--phase2); border-color: rgba(77,184,255,0.3); background: rgba(77,184,255,0.06); }
+    .card-tag.sec { color: var(--phase4); border-color: rgba(251,146,60,0.3); background: rgba(251,146,60,0.06); }
+    .card-tag.svc { color: var(--phase3); border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.06); }
+    .card-tag.hw  { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+
+    .card-close {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 24px; height: 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: color 150ms, border-color 150ms;
+    }
+    .card-close:hover { color: var(--text); border-color: var(--border2); }
+    .cmd-card.expanded .card-close { display: flex; }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+    .cmd-card.expanded .card-desc { display: none; }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      margin-top: auto;
+    }
+    .card-prio-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .card-prio-dot.high   { background: var(--phase4); }
+    .card-prio-dot.medium { background: var(--phase2); }
+    .card-prio-dot.low    { background: var(--muted); }
+    .card-phase-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .card-phase-pill.p1 { background: rgba(0,212,170,0.15); color: var(--phase1); }
+    .card-phase-pill.p2 { background: rgba(77,184,255,0.15); color: var(--phase2); }
+    .card-phase-pill.p3 { background: rgba(167,139,250,0.15); color: var(--phase3); }
+    .card-phase-pill.p4 { background: rgba(251,146,60,0.15); color: var(--phase4); }
+    .card-phase-pill.open { background: rgba(90,98,120,0.2); color: var(--muted); }
+    .card-footer-spacer { flex: 1; }
+    .card-comments-badge { opacity: 0.6; }
+
+    /* Card details (accordion) */
+    .card-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 250ms ease;
+    }
+    .cmd-card.expanded .card-details {
+      overflow: visible;
+    }
+    .card-details-inner {
+      padding: 0 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-full-desc {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.6;
+      padding: 10px 12px;
+      background: var(--bg3);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .card-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .card-link a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .card-link a:hover { text-decoration: underline; }
+    .card-comments-section {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .card-comments-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .card-comment {
+      font-size: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+    }
+    .card-comment-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .card-comment-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .card-comment-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .card-comment-actions button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .card-comment-actions button:hover { color: var(--text); background: var(--bg); }
+    .card-comment-text {
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .card-no-comments {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 0;
+    }
+    .card-comment-form {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .card-comment-form input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 150ms;
+    }
+    .card-comment-form input:focus { border-color: var(--accent); }
+    .card-comment-form button {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: opacity 150ms;
+    }
+    .card-comment-form button:hover { opacity: 0.85; }
+    .card-status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .card-status-row label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .card-status-row select {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      cursor: pointer;
+    }
+    .card-status-row select:focus { border-color: var(--accent); }
+
+    /* Empty state */
+    .cmd-empty {
+      grid-column: 1/-1;
+      padding: 48px;
+      text-align: center;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+    }
+
+    /* === SLIDE-IN PANEL === */
+    .slide-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 199;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 250ms ease;
+    }
+    .slide-overlay.open { opacity: 1; pointer-events: auto; }
+    .slide-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 380px;
+      height: 100vh;
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      transform: translateX(100%);
+      transition: transform 250ms ease;
+      z-index: 200;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .slide-panel.open { transform: translateX(0); }
+    .sp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sp-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .sp-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 28px; height: 28px;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 150ms, border-color 150ms;
+    }
+    .sp-close:hover { color: var(--text); border-color: var(--border2); }
+    .sp-form { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+    .sp-group { display: flex; flex-direction: column; gap: 5px; }
+    .sp-group label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .sp-group input,
+    .sp-group textarea,
+    .sp-group select {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 150ms;
+    }
+    .sp-group input:focus,
+    .sp-group textarea:focus,
+    .sp-group select:focus { border-color: var(--accent); }
+    .sp-group textarea { resize: vertical; min-height: 80px; }
+    .sp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .sp-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; }
+    .sp-btn-submit {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: rgba(79,255,176,0.12);
+      color: var(--accent);
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .sp-btn-submit:hover { background: rgba(79,255,176,0.22); }
+    .sp-btn-cancel {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 10px 16px;
+      border-radius: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 150ms;
+    }
+    .sp-btn-cancel:hover { color: var(--text); }
+
+    /* === FAB (mobile only) === */
+    .fab-mobile {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 22px;
+      font-weight: 300;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(79,255,176,0.3);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: transform 150ms;
+    }
+    .fab-mobile:hover { transform: scale(1.08); }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+      .cmd-wrap { padding: 16px 12px 40px; }
+      .cmd-layout { flex-direction: column; }
+      .cmd-sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        position: relative;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 12px;
+        gap: 6px;
+        align-items: center;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .cmd-sidebar::-webkit-scrollbar { display: none; }
+      .sb-brand, .sb-section, .sb-new { display: none; }
+      .sb-item {
+        padding: 6px 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 11px;
+      }
+      .cmd-main { padding: 16px 0 0; }
+      .cmd-grid { grid-template-columns: 1fr; }
+      .slide-panel { width: 100%; }
+      .fab-mobile { display: flex; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap cmd-wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><span>Ideen</span></div>
+
+  <div class="cmd-layout">
+    <!-- Sidebar -->
+    <aside class="cmd-sidebar" id="sidebar"></aside>
+
+    <!-- Main content area -->
+    <main class="cmd-main">
+      <div class="cmd-header" id="cmd-header"></div>
+      <div class="cmd-grid" id="cmd-grid"></div>
+    </main>
+  </div>
+
+  <footer>homelab_roadmap · <span>ideen_board</span></footer>
+</div>
+
+<!-- Slide-in overlay -->
+<div class="slide-overlay" id="slide-overlay"></div>
+
+<!-- Slide-in new idea panel -->
+<div class="slide-panel" id="slide-panel">
+  <div class="sp-header">
+    <span class="sp-title">+ Neue Idee</span>
+    <button class="sp-close" id="sp-close">✕</button>
+  </div>
+  <div class="sp-form" id="sp-form">
+    <div class="sp-group">
+      <label>Titel</label>
+      <input type="text" id="idea-title" placeholder="Ideen-Titel...">
+    </div>
+    <div class="sp-group">
+      <label>Beschreibung</label>
+      <textarea id="idea-desc" placeholder="Kurze Beschreibung..."></textarea>
+    </div>
+    <div class="sp-row">
+      <div class="sp-group">
+        <label>Phase</label>
+        <select id="idea-phase">
+          <option value="">— keine —</option>
+          <option value="phase1">Phase 1 – Fundament</option>
+          <option value="phase2">Phase 2 – Netz</option>
+          <option value="phase3">Phase 3 – Dienste</option>
+          <option value="phase4">Phase 4 – Security</option>
+        </select>
+      </div>
+      <div class="sp-group">
+        <label>Priorität</label>
+        <select id="idea-prio">
+          <option value="high">⚡ High</option>
+          <option value="medium" selected>● Medium</option>
+          <option value="low">· Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="sp-group">
+      <label>Tags (kommagetrennt)</label>
+      <input type="text" id="idea-tags" placeholder="VPN, Security, Netzwerk...">
+    </div>
+    <div class="sp-actions">
+      <button class="sp-btn-submit" id="sp-submit">Hinzufügen</button>
+      <button class="sp-btn-cancel" id="sp-cancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile FAB -->
+<button class="fab-mobile" id="fab-mobile" title="Neue Idee">+</button>
+
+<script src="assets/state.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var activePhase = 'all';
+  var activePrio  = 'all';
+  var expandedId  = null;
+  var IDEAS_KEY   = 'homelab_ideas_data';
+
+  // ---- TAG CLASSIFICATION ----
+  var NET_TAGS = ['vpn','dns','netzwerk','network','vlan','firewall','reverse proxy','ddns','wireguard','ip','subnet','routing','proxy','ingress','nginx','traefik','dhcp','syslog','ntp','wlan','wifi','tailscale','ikev2','ipsec','strongswan','802.1x'];
+  var SEC_TAGS = ['security','2fa','sso','auth','tls','ssl','certificate','ca','ids','ips','pentest','fail2ban','vault','bitwarden','vaultwarden','totp','tacacs','tacacs+','radius','freeradius','aaa','iam','rbac','permissions','hardening','keys','ssh'];
+  var SVC_TAGS = ['docker','container','ansible','git','gitea','wiki','dokuwiki','mail','n8n','chat','matrix','monitoring','grafana','loki','uptime','kuma','terraform','iac','automation','awx','semaphore','oxidized','privatebin','homeassistant','smarthome','web','blog','webserver'];
+  var HW_TAGS  = ['hardware','rack','mini-pc','n100','server','proxmox','pbs'];
+
+  function tagClass(tag) {
+    var t = tag.toLowerCase();
+    if (NET_TAGS.some(function(k) { return t.includes(k); })) return 'net';
+    if (SEC_TAGS.some(function(k) { return t.includes(k); })) return 'sec';
+    if (SVC_TAGS.some(function(k) { return t.includes(k); })) return 'svc';
+    if (HW_TAGS.some(function(k) { return t.includes(k); }))  return 'hw';
+    return '';
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  var PHASE_LABELS = {
+    phase1: 'Phase 1 – Fundament',
+    phase2: 'Phase 2 – Netz',
+    phase3: 'Phase 3 – Dienste',
+    phase4: 'Phase 4 – Security'
+  };
+  var PHASE_SHORT = {
+    phase1: 'P1', phase2: 'P2', phase3: 'P3', phase4: 'P4'
+  };
+
+  function phaseClass(id) {
+    return { phase1:'p1', phase2:'p2', phase3:'p3', phase4:'p4' }[id] || 'open';
+  }
+
+  // ---- IDEAS PERSISTENCE ----
+  function persistIdeas() {
+    try { localStorage.setItem(IDEAS_KEY, JSON.stringify(window.STATE.ideas)); } catch(e) {}
+  }
+  function applyPersistedIdeas() {
+    try {
+      var saved = localStorage.getItem(IDEAS_KEY);
+      if (saved) window.STATE.ideas = JSON.parse(saved);
+    } catch(e) {}
+  }
+
+  // ---- DATA HELPERS ----
+  function getIdeas() { return window.STATE.ideas || []; }
+
+  function getFiltered() {
+    return getIdeas().filter(function(i) {
+      var phaseOk = activePhase === 'all' ||
+        (activePhase === 'open' ? !i.phase_id : i.phase_id === activePhase);
+      var prioOk = activePrio === 'all' || i.prio === activePrio;
+      return phaseOk && prioOk;
+    });
+  }
+
+  function countByPhase(phase) {
+    return getIdeas().filter(function(i) {
+      return phase === 'open' ? !i.phase_id : i.phase_id === phase;
+    }).length;
+  }
+  function countByPrio(prio) {
+    return getIdeas().filter(function(i) { return i.prio === prio; }).length;
+  }
+  function countFilteredByPrio(prio) {
+    return getFiltered().filter(function(i) { return i.prio === prio; }).length;
+  }
+
+  // ---- SIDEBAR ----
+  function renderSidebar() {
+    var total = getIdeas().length;
+    var phases = [
+      { key: 'all',    label: 'Alle' },
+      { key: 'phase1', label: 'Phase 1' },
+      { key: 'phase2', label: 'Phase 2' },
+      { key: 'phase3', label: 'Phase 3' },
+      { key: 'phase4', label: 'Phase 4' },
+      { key: 'open',   label: 'Offen' }
+    ];
+    var prios = [
+      { key: 'high',   label: 'High' },
+      { key: 'medium', label: 'Medium' },
+      { key: 'low',    label: 'Low' }
+    ];
+
+    var html = '';
+    // Brand
+    html += '<div class="sb-brand">// <b>ideen</b>_board<span class="sb-count">' + total + ' Ideen total</span></div>';
+
+    // Phase section
+    html += '<div class="sb-section">Phasen</div>';
+    phases.forEach(function(p) {
+      var count = p.key === 'all' ? total : countByPhase(p.key);
+      var active = activePhase === p.key ? ' active' : '';
+      html += '<button class="sb-item' + active + '" data-phase="' + p.key + '">' +
+        '<span class="sb-dot"></span>' +
+        '<span class="sb-label">' + p.label + '</span>' +
+        '<span class="sb-num">(' + count + ')</span>' +
+      '</button>';
+    });
+
+    // Prio section
+    html += '<div class="sb-section">Priorität</div>';
+    prios.forEach(function(pr) {
+      var count = countByPrio(pr.key);
+      var active = activePrio === pr.key ? ' active' : '';
+      html += '<button class="sb-item' + active + '" data-prio="' + pr.key + '">' +
+        '<span class="sb-dot"></span>' +
+        '<span class="sb-label">' + pr.label + '</span>' +
+        '<span class="sb-num">(' + count + ')</span>' +
+      '</button>';
+    });
+
+    // New idea button
+    html += '<div class="sb-new"><button class="sb-new-btn" id="sb-new-btn">+ Neue Idee</button></div>';
+
+    document.getElementById('sidebar').innerHTML = html;
+  }
+
+  function bindSidebar() {
+    document.getElementById('sidebar').addEventListener('click', function(e) {
+      var btn = e.target.closest('.sb-item');
+      if (btn) {
+        var grid = document.getElementById('cmd-grid');
+        grid.style.opacity = '0';
+        setTimeout(function() {
+          if (btn.dataset.phase !== undefined) {
+            activePhase = btn.dataset.phase;
+          } else if (btn.dataset.prio !== undefined) {
+            // Toggle prio: click same = reset
+            activePrio = activePrio === btn.dataset.prio ? 'all' : btn.dataset.prio;
+          }
+          expandedId = null;
+          renderSidebar();
+          renderHeader();
+          renderGrid();
+          bindSidebar();
+          grid.style.opacity = '1';
+        }, 75);
+        return;
+      }
+      var newBtn = e.target.closest('#sb-new-btn');
+      if (newBtn) openPanel();
+    });
+  }
+
+  // ---- HEADER ----
+  function renderHeader() {
+    var filtered = getFiltered();
+    var highCount = filtered.filter(function(i) { return i.prio === 'high'; }).length;
+    var phaseLabel = activePhase === 'all' ? 'Alle Ideen' : (PHASE_LABELS[activePhase] || 'Offen');
+    var prioLabel = activePrio !== 'all' ? (' · <b style="color:var(--phase4)">' + activePrio + '</b>') : '';
+
+    document.getElementById('cmd-header').innerHTML =
+      '<span class="cmd-header-title">// ideen<b>_board</b></span>' +
+      '<span class="cmd-header-stat"><b>' + esc(phaseLabel) + '</b></span>' +
+      '<span class="cmd-header-stat">' + filtered.length + ' Ideen' + prioLabel + '</span>' +
+      (highCount > 0 ? '<span class="cmd-header-stat" style="color:var(--phase4)"><b>' + highCount + '</b> high</span>' : '');
+  }
+
+  // ---- GRID ----
+  function renderGrid() {
+    var ideas = getFiltered();
+    var grid = document.getElementById('cmd-grid');
+
+    if (ideas.length === 0) {
+      grid.innerHTML = '<div class="cmd-empty">// keine_ideen_gefunden</div>';
+      return;
+    }
+
+    grid.innerHTML = ideas.map(function(idea) {
+      var prio = idea.prio || 'low';
+      var pc = phaseClass(idea.phase_id);
+      var phaseLbl = PHASE_SHORT[idea.phase_id] ? PHASE_SHORT[idea.phase_id] : 'Offen';
+      var isExpanded = expandedId === idea.id;
+      var commentCount = (idea.comments || []).length;
+
+      // Tags
+      var tags = (idea.tags || []).map(function(t) {
+        return '<span class="card-tag ' + tagClass(t) + '">' + esc(t) + '</span>';
+      }).join('');
+
+      // Comments HTML
+      var commentsHtml = (idea.comments || []).map(function(c) {
+        return '<div class="card-comment">' +
+          '<div class="card-comment-head">' +
+            '<span class="card-comment-date">' + esc(c.date) + (c.edited ? ' · bearbeitet' : '') + '</span>' +
+            '<div class="card-comment-actions">' +
+              '<button onclick="window._editComment(\'' + esc(idea.id) + '\',\'' + esc(c.id) + '\',event)">✎</button>' +
+              '<button onclick="window._deleteComment(\'' + esc(idea.id) + '\',\'' + esc(c.id) + '\',event)">✕</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="card-comment-text" id="ct-' + esc(c.id) + '">' + esc(c.text) + '</div>' +
+        '</div>';
+      }).join('');
+
+      // Step link
+      var stepLink = '';
+      if (idea.step_id && idea.phase_id) {
+        var phaseRef = PHASE_LABELS[idea.phase_id] || 'Offen';
+        stepLink = '<div class="card-link">Verknüpft mit: <a href="steps/' + esc(idea.step_id) + '.html">→ ' + esc(phaseRef) + ' / ' + esc(idea.step_id) + '</a></div>';
+      }
+
+      return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + '" data-id="' + esc(idea.id) + '">' +
+
+        // Summary
+        '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
+          '<div class="card-top">' +
+            '<div class="card-tags">' + tags + '</div>' +
+            '<button class="card-close" onclick="window._closeCard(event)">✕</button>' +
+          '</div>' +
+          '<div class="card-title">' + esc(idea.title) + '</div>' +
+          '<div class="card-desc">' + esc(idea.desc || '') + '</div>' +
+          '<div class="card-footer">' +
+            '<span class="card-prio-dot ' + prio + '"></span>' +
+            '<span>' + prio + '</span>' +
+            '<span class="card-phase-pill ' + pc + '">' + phaseLbl + '</span>' +
+            '<span class="card-footer-spacer"></span>' +
+            '<span class="card-comments-badge">💬 ' + commentCount + '</span>' +
+          '</div>' +
+        '</div>' +
+
+        // Details (accordion)
+        '<div class="card-details" id="cd-' + esc(idea.id) + '">' +
+          '<div class="card-details-inner">' +
+            (idea.desc ? '<div class="card-full-desc">' + esc(idea.desc) + '</div>' : '') +
+            stepLink +
+            '<div class="card-comments-section">' +
+              '<div class="card-comments-label">── Kommentare ──</div>' +
+              (commentsHtml || '<div class="card-no-comments">(noch keine)</div>') +
+              '<div class="card-comment-form">' +
+                '<input type="text" id="ci-' + esc(idea.id) + '" placeholder="Schreib einen Kommentar..." onkeydown="if(event.key===\'Enter\')window._saveComment(\'' + esc(idea.id) + '\')">' +
+                '<button onclick="window._saveComment(\'' + esc(idea.id) + '\')">Speichern</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="card-status-row">' +
+              '<label>Status ändern:</label>' +
+              '<select onchange="window._changeStatus(\'' + esc(idea.id) + '\', this.value)">' +
+                '<option value="idea"' + (idea.status === 'idea' ? ' selected' : '') + '>Idee</option>' +
+                '<option value="planned"' + (idea.status === 'planned' ? ' selected' : '') + '>Geplant</option>' +
+                '<option value="wip"' + (idea.status === 'wip' ? ' selected' : '') + '>In Arbeit</option>' +
+                '<option value="done"' + (idea.status === 'done' ? ' selected' : '') + '>Erledigt</option>' +
+              '</select>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+      '</div>';
+    }).join('');
+
+    // Expand card if needed
+    if (expandedId) {
+      var detailsEl = document.getElementById('cd-' + expandedId);
+      if (detailsEl) detailsEl.style.maxHeight = detailsEl.scrollHeight + 'px';
+    }
+  }
+
+  // ---- CARD EXPAND / COLLAPSE ----
+  window._toggleCard = function(ideaId) {
+    if (expandedId === ideaId) {
+      // Collapse
+      var el = document.getElementById('cd-' + ideaId);
+      if (el) { el.style.maxHeight = el.scrollHeight + 'px'; requestAnimationFrame(function() { el.style.maxHeight = '0'; }); }
+      expandedId = null;
+      setTimeout(function() { renderGrid(); }, 260);
+    } else {
+      // Collapse previous
+      if (expandedId) {
+        var prev = document.getElementById('cd-' + expandedId);
+        if (prev) prev.style.maxHeight = '0';
+      }
+      expandedId = ideaId;
+      renderGrid();
+      // Animate open
+      requestAnimationFrame(function() {
+        var el = document.getElementById('cd-' + ideaId);
+        if (el) {
+          el.style.maxHeight = '0';
+          requestAnimationFrame(function() {
+            el.style.maxHeight = el.scrollHeight + 'px';
+            // After transition, allow overflow for dropdowns
+            setTimeout(function() { el.style.maxHeight = 'none'; }, 260);
+          });
+        }
+        // Scroll into view
+        var card = document.querySelector('[data-id="' + ideaId + '"]');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  };
+
+  window._closeCard = function(e) {
+    e.stopPropagation();
+    if (expandedId) {
+      var el = document.getElementById('cd-' + expandedId);
+      if (el) { el.style.maxHeight = el.scrollHeight + 'px'; requestAnimationFrame(function() { el.style.maxHeight = '0'; }); }
+      expandedId = null;
+      setTimeout(function() { renderGrid(); }, 260);
+    }
+  };
+
+  // ---- COMMENTS ----
+  window._saveComment = function(ideaId) {
+    var inp = document.getElementById('ci-' + ideaId);
+    var text = inp ? inp.value.trim() : '';
+    if (!text) return;
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    if (!idea.comments) idea.comments = [];
+    idea.comments.push({ id: 'c-' + Date.now(), date: new Date().toISOString().split('T')[0], text: text, edited: false });
+    persistIdeas();
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+  };
+
+  window._deleteComment = function(ideaId, commentId, e) {
+    if (e) e.stopPropagation();
+    if (!confirm('Kommentar löschen?')) return;
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.comments = (idea.comments || []).filter(function(c) { return c.id !== commentId; });
+    persistIdeas();
+    renderGrid();
+  };
+
+  window._editComment = function(ideaId, commentId, e) {
+    if (e) e.stopPropagation();
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    var comment = (idea.comments || []).find(function(c) { return c.id === commentId; });
+    if (!comment) return;
+    var newText = prompt('Kommentar bearbeiten:', comment.text);
+    if (newText === null) return;
+    comment.text = newText.trim();
+    comment.edited = true;
+    persistIdeas();
+    renderGrid();
+  };
+
+  // ---- STATUS CHANGE ----
+  window._changeStatus = function(ideaId, newStatus) {
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.status = newStatus;
+    persistIdeas();
+  };
+
+  // ---- SLIDE PANEL (NEW IDEA) ----
+  function openPanel() {
+    document.getElementById('slide-panel').classList.add('open');
+    document.getElementById('slide-overlay').classList.add('open');
+    setTimeout(function() { document.getElementById('idea-title').focus(); }, 260);
+  }
+  function closePanel() {
+    document.getElementById('slide-panel').classList.remove('open');
+    document.getElementById('slide-overlay').classList.remove('open');
+    // Reset form
+    ['idea-title','idea-desc','idea-tags'].forEach(function(id) { document.getElementById(id).value = ''; });
+    document.getElementById('idea-phase').value = '';
+    document.getElementById('idea-prio').value = 'medium';
+  }
+
+  function submitIdea() {
+    var title = document.getElementById('idea-title').value.trim();
+    if (!title) { document.getElementById('idea-title').focus(); return; }
+    var desc     = document.getElementById('idea-desc').value.trim();
+    var phase_id = document.getElementById('idea-phase').value || null;
+    var prio     = document.getElementById('idea-prio').value;
+    var tagsRaw  = document.getElementById('idea-tags').value;
+    var tags     = tagsRaw ? tagsRaw.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [];
+
+    if (!window.STATE.ideas) window.STATE.ideas = [];
+    window.STATE.ideas.unshift({
+      id: 'idea-' + Date.now(), title: title, desc: desc,
+      phase_id: phase_id, step_id: null, prio: prio,
+      status: 'idea', tags: tags, comments: []
+    });
+    persistIdeas();
+    closePanel();
+
+    if (phase_id) { activePhase = phase_id; activePrio = 'all'; }
+    expandedId = null;
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+  }
+
+  function bindPanel() {
+    document.getElementById('sp-close').addEventListener('click', closePanel);
+    document.getElementById('sp-cancel').addEventListener('click', closePanel);
+    document.getElementById('slide-overlay').addEventListener('click', closePanel);
+    document.getElementById('sp-submit').addEventListener('click', submitIdea);
+    document.getElementById('fab-mobile').addEventListener('click', openPanel);
+
+    // Enter in title field submits
+    document.getElementById('idea-title').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); submitIdea(); }
+    });
+  }
+
+  // ---- INIT ----
+  function init() {
+    if (!window.STATE) {
+      document.getElementById('cmd-grid').innerHTML = '<div class="cmd-empty">// state_nicht_geladen – bitte über lokalen Server öffnen (npx serve .)</div>';
+      return;
+    }
+
+    // Apply persisted idea changes
+    applyPersistedIdeas();
+
+    // URL filter
+    var params = new URLSearchParams(window.location.search);
+    var f = params.get('filter');
+    if (f && ['phase1','phase2','phase3','phase4','open'].includes(f)) activePhase = f;
+    if (f && ['high','medium','low'].includes(f)) activePrio = f;
+
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+    bindPanel();
+  }
+
+  window.addEventListener('state-ready', init);
+})();
+</script>
+</body>
+</html>

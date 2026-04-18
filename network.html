@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab Netzplan</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<div class="wrap">
+  <div id="nav"></div>
+
+  <header>
+    <div class="header-left">
+      <h1>// netz<span>_plan</span></h1>
+      <p>Subnetz-Übersicht und Netzwerk-Topologie</p>
+    </div>
+  </header>
+
+  <div class="info-box" id="net-info"></div>
+
+  <div class="section-label">Subnetz-Planung</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Subnetz</th>
+        <th>Verwendung</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="subnet-table"></tbody>
+  </table>
+
+  <div class="section-label">Netzwerk-Topologie</div>
+  <div class="network-diagram" id="network-diagram"></div>
+
+  <footer>
+    homelab_roadmap · <span>netz plan</span>
+  </footer>
+</div>
+
+<script src="assets/state.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  function init() {
+    if (!window.STATE) return;
+
+    const net = window.STATE.network || {};
+    const subnets = net.subnets || [];
+
+    // Info box
+    document.getElementById('net-info').textContent = net.note || 'Netzwerk-Informationen werden geladen...';
+
+    // Subnet table
+    const tbody = document.getElementById('subnet-table');
+    tbody.innerHTML = subnets.map(s => `
+      <tr>
+        <td>${s.subnet}</td>
+        <td>${s.usage}</td>
+        <td><span class="status-badge">${s.status}</span></td>
+      </tr>
+    `).join('');
+
+    // SVG diagram
+    renderDiagram(subnets);
+  }
+
+  function renderDiagram(subnets) {
+    const container = document.getElementById('network-diagram');
+    const w = 700;
+    const h = 380;
+
+    const colors = ['#00d4aa', '#4db8ff', '#a78bfa', '#fb923c'];
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px">`;
+
+    // Router box (top center)
+    svg += `
+      <rect x="275" y="20" width="150" height="44" rx="8" fill="#13161e" stroke="#4fffb0" stroke-width="1.5"/>
+      <text x="350" y="47" text-anchor="middle" fill="#4fffb0" font-size="12">Heimrouter / Gateway</text>
+    `;
+
+    // Proxmox box
+    svg += `
+      <rect x="250" y="110" width="200" height="44" rx="8" fill="#13161e" stroke="#3a4055" stroke-width="1"/>
+      <text x="350" y="137" text-anchor="middle" fill="#c8cedd" font-size="12">Proxmox VE (Hyper-V)</text>
+    `;
+
+    // Line from router to proxmox
+    svg += `<line x1="350" y1="64" x2="350" y2="110" stroke="#3a4055" stroke-width="1" stroke-dasharray="4,4"/>`;
+
+    // Subnet boxes
+    const subnetCount = subnets.length;
+    const boxW = 140;
+    const totalW = subnetCount * boxW + (subnetCount - 1) * 20;
+    const startX = (w - totalW) / 2;
+    const subnetY = 220;
+
+    subnets.forEach((s, i) => {
+      const x = startX + i * (boxW + 20);
+      const color = colors[i % colors.length];
+
+      // Line from proxmox to subnet
+      svg += `<line x1="350" y1="154" x2="${x + boxW / 2}" y2="${subnetY}" stroke="${color}" stroke-width="1" opacity="0.5"/>`;
+
+      // Subnet box
+      svg += `
+        <rect x="${x}" y="${subnetY}" width="${boxW}" height="60" rx="6" fill="#13161e" stroke="${color}" stroke-width="1" opacity="0.8"/>
+        <text x="${x + boxW / 2}" y="${subnetY + 22}" text-anchor="middle" fill="${color}" font-size="10">${s.subnet}</text>
+        <text x="${x + boxW / 2}" y="${subnetY + 42}" text-anchor="middle" fill="#5a6278" font-size="9">${s.usage.split('(')[0].split('/')[0].trim()}</text>
+      `;
+    });
+
+    // Legend
+    svg += `
+      <text x="20" y="${h - 20}" fill="#5a6278" font-size="9">● Alle Subnetze geplant – wird in Phase 1 konfiguriert</text>
+    `;
+
+    svg += '</svg>';
+    container.innerHTML = svg;
+  }
+
+  window.addEventListener('state-ready', init);
+})();
+</script>
+</body>
+</html>

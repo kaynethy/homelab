@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Tagebuch</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><span>Tagebuch</span></div>
+
+  <header>
+    <div class="header-left">
+      <h1>// session<span>_log</span></h1>
+      <p>Persönliches Homelab-Tagebuch</p>
+    </div>
+    <button class="btn-accent" id="btn-new-session">+ Neue Session</button>
+  </header>
+
+  <div class="form-inline" id="new-session-form">
+    <div class="section-label">Neue Session</div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
+      <div class="form-group"><label>Datum</label><input type="date" id="session-date"></div>
+      <div class="form-group"><label>Titel</label><input type="text" id="session-title" placeholder="Session-Titel..."></div>
+    </div>
+    <div class="form-group"><label>Einträge (eine Zeile = ein Eintrag)</label><textarea id="session-entries" style="min-height:120px" placeholder="Was wurde heute gemacht?&#10;Jede Zeile wird ein Eintrag..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn-accent" id="save-session">Speichern</button>
+      <button class="btn btn-secondary" id="cancel-session">Abbrechen</button>
+    </div>
+  </div>
+
+  <div id="diary-list"></div>
+
+  <footer>homelab_roadmap · <span>session_log</span></footer>
+</div>
+
+<script src="assets/state.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  function init() {
+    if (!window.STATE) return;
+    document.getElementById('session-date').value = new Date().toISOString().split('T')[0];
+    renderDiary();
+    bindEvents();
+  }
+
+  function renderDiary() {
+    var list = document.getElementById('diary-list');
+    var diary = (window.STATE.diary || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+
+    if (diary.length === 0) {
+      list.innerHTML = '<p style="color:var(--muted);font-family:\'JetBrains Mono\',monospace;font-size:12px">Noch keine Sessions.</p>';
+      return;
+    }
+
+    list.innerHTML = diary.map(function(s, i) {
+      return '<div class="diary-card">' +
+        '<div class="diary-header">' +
+          '<span class="diary-session">Session #' + (s.session || (diary.length - i)) + '</span>' +
+          '<span class="diary-date">' + s.date + '</span>' +
+        '</div>' +
+        '<div class="diary-title">' + s.title + '</div>' +
+        '<hr class="diary-sep">' +
+        '<ul class="diary-entries">' +
+          (s.entries || []).map(function(e) { return '<li class="diary-entry">' + e + '</li>'; }).join('') +
+        '</ul>' +
+      '</div>';
+    }).join('');
+  }
+
+  function bindEvents() {
+    document.getElementById('btn-new-session').addEventListener('click', function() {
+      document.getElementById('new-session-form').classList.toggle('open');
+    });
+    document.getElementById('cancel-session').addEventListener('click', function() {
+      document.getElementById('new-session-form').classList.remove('open');
+    });
+    document.getElementById('save-session').addEventListener('click', function() {
+      var date = document.getElementById('session-date').value;
+      var title = document.getElementById('session-title').value.trim();
+      if (!title) return;
+      var entriesRaw = document.getElementById('session-entries').value;
+      var entries = entriesRaw.split('\n').map(function(e) { return e.trim(); }).filter(Boolean);
+      if (!window.STATE.diary) window.STATE.diary = [];
+      var maxSession = window.STATE.diary.reduce(function(m, s) { return Math.max(m, s.session || 0); }, 0);
+      window.STATE.diary.push({ date: date, session: maxSession + 1, title: title, entries: entries });
+      window.saveState();
+      document.getElementById('session-title').value = '';
+      document.getElementById('session-entries').value = '';
+      document.getElementById('new-session-form').classList.remove('open');
+      renderDiary();
+    });
+  }
+
+  window.addEventListener('state-ready', init);
+})();
+</script>
+</body>
+</html>
