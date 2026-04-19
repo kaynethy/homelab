@@ -8,26 +8,22 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <style>
     /* === COMMAND CENTER LAYOUT === */
-    .cmd-wrap {
-      max-width: 1200px;
-      padding-bottom: 40px;
-    }
     .cmd-layout {
       display: flex;
       align-items: flex-start;
       gap: 0;
-      min-height: calc(100vh - 180px);
+      min-height: calc(100vh - 260px);
     }
 
     /* === SIDEBAR === */
     .cmd-sidebar {
-      width: 220px;
-      min-width: 220px;
+      width: 200px;
+      min-width: 200px;
       position: sticky;
-      top: 0;
-      height: 100vh;
+      top: 20px;
+      max-height: calc(100vh - 40px);
       overflow-y: auto;
-      padding: 20px 14px;
+      padding: 16px 12px;
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
@@ -144,7 +140,7 @@
     }
     .cmd-header {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 12px;
       flex-wrap: wrap;
       margin-bottom: 20px;
@@ -568,6 +564,68 @@
     }
     .card-tag-input:focus { border-color: var(--accent); }
 
+    /* Tag Autocomplete */
+    .tag-ac-wrap { position: relative; display: inline-block; }
+    .tag-ac-drop {
+      position: absolute;
+      left: 0; top: 100%;
+      min-width: 200px;
+      max-height: 180px;
+      overflow-y: auto;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      z-index: 300;
+      display: none;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .tag-ac-drop.open { display: block; }
+    .tag-ac-opt {
+      padding: 6px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 100ms;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tag-ac-opt:hover, .tag-ac-opt.hl { background: rgba(79,255,176,0.1); }
+    .tag-ac-opt.create { color: var(--accent); font-style: italic; }
+
+    /* Panel tag chips */
+    .sp-tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .sp-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--text);
+    }
+    .sp-tag-chip button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 10px;
+      padding: 0 1px;
+      line-height: 1;
+    }
+    .sp-tag-chip button:hover { color: var(--phase4); }
+
     /* Sidebar tag filter chips */
     .sb-tags-wrap {
       display: flex;
@@ -704,6 +762,114 @@
     }
     .sp-btn-cancel:hover { color: var(--text); }
 
+    /* === DONE CARD STYLING === */
+    .cmd-card.is-done {
+      opacity: 0.55;
+      border-color: var(--border) !important;
+      border-left-color: var(--done) !important;
+    }
+    .cmd-card.is-done .card-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .cmd-card.is-done .card-desc { color: var(--border2); }
+    .done-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(34,197,94,0.15);
+      color: var(--done);
+      letter-spacing: 0.04em;
+    }
+
+    /* Card action buttons (delete / done) */
+    .card-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 12px;
+      margin-top: 4px;
+      border-top: 1px solid var(--border);
+    }
+    .card-actions-row .spacer { flex: 1; }
+    .card-btn-done {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(34,197,94,0.4);
+      background: rgba(34,197,94,0.08);
+      color: var(--done);
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .card-btn-done:hover { background: rgba(34,197,94,0.18); }
+    .card-btn-delete {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(239,68,68,0.35);
+      background: rgba(239,68,68,0.06);
+      color: #ef4444;
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .card-btn-delete:hover { background: rgba(239,68,68,0.16); }
+
+    /* Export button in header */
+    .cmd-header-export {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 150ms;
+      white-space: nowrap;
+    }
+    .cmd-header-export:hover { border-color: var(--border2); color: var(--text); }
+
+    /* Hide-done filter chip */
+    .sb-hide-done {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 120ms;
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+    .sb-hide-done:hover { background: var(--bg3); }
+    .sb-hide-done .cb {
+      width: 14px; height: 14px;
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+      transition: all 120ms;
+    }
+    .sb-hide-done.active .cb {
+      background: var(--done);
+      border-color: var(--done);
+      color: var(--bg);
+    }
+
     /* === FAB (mobile only) === */
     .fab-mobile {
       display: none;
@@ -728,13 +894,13 @@
 
     /* === RESPONSIVE === */
     @media (max-width: 768px) {
-      .cmd-wrap { padding: 16px 12px 40px; }
       .cmd-layout { flex-direction: column; }
       .cmd-sidebar {
         width: 100%;
         min-width: 100%;
-        height: auto;
+        max-height: none;
         position: relative;
+        top: auto;
         flex-direction: row;
         overflow-x: auto;
         overflow-y: hidden;
@@ -762,9 +928,11 @@
   </style>
 </head>
 <body>
-<div class="wrap cmd-wrap">
+<div class="wrap">
   <div id="nav"></div>
   <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><span>Ideen</span></div>
+
+  <div class="cmd-header" id="cmd-header"></div>
 
   <div class="cmd-layout">
     <!-- Sidebar -->
@@ -772,7 +940,6 @@
 
     <!-- Main content area -->
     <main class="cmd-main">
-      <div class="cmd-header" id="cmd-header"></div>
       <div class="cmd-grid" id="cmd-grid"></div>
     </main>
   </div>
@@ -819,8 +986,12 @@
       </div>
     </div>
     <div class="sp-group">
-      <label>Tags (kommagetrennt)</label>
-      <input type="text" id="idea-tags" placeholder="VPN, Security, Netzwerk...">
+      <label>Tags</label>
+      <div class="sp-tag-chips" id="sp-tag-chips"></div>
+      <div class="tag-ac-wrap">
+        <input type="text" id="idea-tags" placeholder="Tag eingeben..." autocomplete="off">
+        <div class="tag-ac-drop" id="sp-tag-drop"></div>
+      </div>
     </div>
     <div class="sp-actions">
       <button class="sp-btn-submit" id="sp-submit">Hinzufügen</button>
@@ -841,6 +1012,7 @@
   var activePhase = 'all';
   var activePrio  = 'all';
   var activeTags  = [];
+  var hideDone    = false;
   var expandedId  = null;
   var IDEAS_KEY   = 'homelab_ideas_data';
 
@@ -893,6 +1065,7 @@
 
   function getFiltered() {
     return getIdeas().filter(function(i) {
+      if (hideDone && i.status === 'done') return false;
       var phaseOk = activePhase === 'all' ||
         (activePhase === 'open' ? !i.phase_id : i.phase_id === activePhase);
       var prioOk = activePrio === 'all' || i.prio === activePrio;
@@ -952,7 +1125,8 @@
 
     var html = '';
     // Brand
-    html += '<div class="sb-brand">// <b>ideen</b>_board<span class="sb-count">' + total + ' Ideen total</span></div>';
+    var doneCount = getIdeas().filter(function(i) { return i.status === 'done'; }).length;
+    html += '<div class="sb-brand">// <b>ideen</b>_board<span class="sb-count">' + total + ' Ideen total' + (doneCount ? ' · ' + doneCount + ' umgesetzt' : '') + '</span></div>';
 
     // New idea button (top)
     html += '<div class="sb-new"><button class="sb-new-btn" id="sb-new-btn">+ Neue Idee</button></div>';
@@ -982,6 +1156,13 @@
     });
 
     // Tag filter section
+    // Hide-done toggle
+    html += '<div class="sb-section">Filter</div>';
+    html += '<button class="sb-hide-done' + (hideDone ? ' active' : '') + '" id="sb-hide-done">';
+    html += '<span class="cb">' + (hideDone ? '✓' : '') + '</span>';
+    html += 'Umgesetzt ausblenden';
+    html += '</button>';
+
     var allTags = getAllTags();
     // Aktive Tags bereinigen die nicht mehr in sichtbaren Ideen vorkommen
     var allTagsLower = allTags.map(function(t) { return t.toLowerCase(); });
@@ -1021,6 +1202,7 @@
           renderHeader();
           renderGrid();
           bindSidebar();
+          bindCardTagACs();
           grid.style.opacity = '1';
         }, 75);
         return;
@@ -1039,6 +1221,24 @@
           renderHeader();
           renderGrid();
           bindSidebar();
+          bindCardTagACs();
+          grid.style.opacity = '1';
+        }, 75);
+        return;
+      }
+      // Hide-done toggle
+      var hideBtn = e.target.closest('#sb-hide-done');
+      if (hideBtn) {
+        var grid = document.getElementById('cmd-grid');
+        grid.style.opacity = '0';
+        setTimeout(function() {
+          hideDone = !hideDone;
+          expandedId = null;
+          renderSidebar();
+          renderHeader();
+          renderGrid();
+          bindSidebar();
+          bindCardTagACs();
           grid.style.opacity = '1';
         }, 75);
         return;
@@ -1061,7 +1261,10 @@
       '<span class="cmd-header-title">// ideen<b>_board</b></span>' +
       '<span class="cmd-header-stat"><b>' + esc(phaseLabel) + '</b></span>' +
       '<span class="cmd-header-stat">' + filtered.length + ' Ideen' + prioLabel + tagLabel + '</span>' +
-      (highCount > 0 ? '<span class="cmd-header-stat" style="color:var(--phase4)"><b>' + highCount + '</b> high</span>' : '');
+      (highCount > 0 ? '<span class="cmd-header-stat" style="color:var(--phase4)"><b>' + highCount + '</b> high</span>' : '') +
+      '<button class="cmd-header-export" id="btn-export-ideas" title="Ideas JSON exportieren">↓ Export Ideas JSON</button>';
+
+    document.getElementById('btn-export-ideas').addEventListener('click', exportIdeasJSON);
   }
 
   // ---- HELPERS ----
@@ -1096,6 +1299,7 @@
     var phaseLbl = PHASE_SHORT[idea.phase_id] ? PHASE_SHORT[idea.phase_id] : 'Offen';
     var isExpanded = expandedId === idea.id;
     var commentCount = (idea.comments || []).length;
+    var isDone = idea.status === 'done';
 
     var tags = (idea.tags || []).map(function(t) {
       return '<span class="card-tag ' + tagClass(t) + '">' + esc(t) + '</span>';
@@ -1138,10 +1342,10 @@
         '<button onclick="window._removeTag(\'' + esc(idea.id) + '\',\'' + esc(t).replace(/'/g, "\\'") + '\',event)">✕</button></span>';
     }).join('');
 
-    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + '" data-id="' + esc(idea.id) + '">' +
+    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + (isDone ? ' is-done' : '') + '" data-id="' + esc(idea.id) + '">' +
       '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
         '<div class="card-top">' +
-          '<div class="card-tags">' + tags + '</div>' +
+          '<div class="card-tags">' + tags + (isDone ? '<span class="done-badge">DONE ✓</span>' : '') + '</div>' +
           '<button class="card-close" onclick="window._closeCard(event)">✕</button>' +
         '</div>' +
         '<div class="card-title">' + esc(idea.title) + '</div>' +
@@ -1187,9 +1391,18 @@
             '<span class="card-tags-edit-label">Tags</span>' +
             '<div class="card-tags-chips">' +
               tagChips +
-              '<input class="card-tag-input" type="text" placeholder="+ Tag..." ' +
-                'onkeydown="window._tagInputKey(\'' + esc(idea.id) + '\', this, event)">' +
+              '<div class="tag-ac-wrap">' +
+              '<input class="card-tag-input" type="text" placeholder="+ Tag..." autocomplete="off" ' +
+                'data-idea-id="' + esc(idea.id) + '">' +
+              '<div class="tag-ac-drop"></div></div>' +
             '</div>' +
+          '</div>' +
+          '<div class="card-actions-row">' +
+            (isDone
+              ? '<button class="card-btn-done" onclick="window._markUndone(\'' + esc(idea.id) + '\',event)">↩ Zurücksetzen</button>'
+              : '<button class="card-btn-done" onclick="window._markDone(\'' + esc(idea.id) + '\',event)">Umgesetzt ✓</button>') +
+            '<span class="spacer"></span>' +
+            '<button class="card-btn-delete" onclick="window._deleteIdea(\'' + esc(idea.id) + '\',event)">Löschen</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1220,6 +1433,10 @@
           return g.key ? i.phase_id === g.key : !i.phase_id;
         });
         groupIdeas.sort(function(a, b) {
+          // Done ideas go to the end
+          var da = a.status === 'done' ? 1 : 0;
+          var db = b.status === 'done' ? 1 : 0;
+          if (da !== db) return da - db;
           var pa = PRIO_ORDER[a.prio] !== undefined ? PRIO_ORDER[a.prio] : 2;
           var pb = PRIO_ORDER[b.prio] !== undefined ? PRIO_ORDER[b.prio] : 2;
           return pa - pb;
@@ -1237,6 +1454,9 @@
     } else {
       var PRIO_ORDER_FLAT = { high: 0, medium: 1, low: 2 };
       var sorted = ideas.slice().sort(function(a, b) {
+        var da = a.status === 'done' ? 1 : 0;
+        var db = b.status === 'done' ? 1 : 0;
+        if (da !== db) return da - db;
         var pa = PRIO_ORDER_FLAT[a.prio] !== undefined ? PRIO_ORDER_FLAT[a.prio] : 2;
         var pb = PRIO_ORDER_FLAT[b.prio] !== undefined ? PRIO_ORDER_FLAT[b.prio] : 2;
         return pa - pb;
@@ -1309,6 +1529,7 @@
     renderHeader();
     renderGrid();
     bindSidebar();
+    bindCardTagACs();
   };
 
   window._deleteComment = function(ideaId, commentId, e) {
@@ -1355,6 +1576,7 @@
     renderHeader();
     renderGrid();
     bindSidebar();
+    bindCardTagACs();
   };
 
   window._changeStep = function(ideaId, newStep) {
@@ -1375,7 +1597,73 @@
     renderHeader();
     renderGrid();
     bindSidebar();
+    bindCardTagACs();
   };
+
+  // ---- DELETE IDEA ----
+  window._deleteIdea = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var ideas = getIdeas();
+    var idx = ideas.findIndex(function(i) { return i.id === ideaId; });
+    if (idx < 0) return;
+    if (!confirm('Idee \u201e' + ideas[idx].title + '\u201c wirklich l\u00f6schen?')) return;
+    ideas.splice(idx, 1);
+    persistIdeas();
+    expandedId = null;
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+    bindCardTagACs();
+  };
+
+  // ---- MARK DONE / UNDONE ----
+  window._markDone = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.status = 'done';
+    persistIdeas();
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+    bindCardTagACs();
+  };
+
+  window._markUndone = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.status = 'idea';
+    persistIdeas();
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+    bindCardTagACs();
+  };
+
+  // ---- EXPORT IDEAS JSON ----
+  function exportIdeasJSON() {
+    var ideas = getIdeas();
+    var payload = {
+      meta: {
+        version: '1.0',
+        updated: new Date().toISOString().split('T')[0]
+      },
+      ideas: ideas
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'homelab-ideas.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   // ---- TAG EDITING ----
   window._removeTag = function(ideaId, tag, e) {
@@ -1387,31 +1675,166 @@
     renderSidebar();
     renderGrid();
     bindSidebar();
+    bindCardTagACs();
   };
 
-  window._tagInputKey = function(ideaId, input, e) {
-    if (e.key !== 'Enter' && e.key !== ',') return;
-    e.preventDefault();
-    var val = input.value.replace(/,/g, '').trim();
-    if (!val) return;
+  /* ============================== */
+  /* TAG AUTOCOMPLETE ENGINE         */
+  /* ============================== */
+  function collectAllTagNames() {
+    var map = {};
+    getIdeas().forEach(function(i) {
+      (i.tags || []).forEach(function(t) { map[t.toLowerCase()] = t; });
+    });
+    return Object.keys(map).sort().map(function(k) { return map[k]; });
+  }
+
+  function setupTagAutocomplete(input, dropdown, opts) {
+    // opts: { onAdd: fn(tagValue), getExisting: fn() => [string] }
+    var hlIdx = -1;
+
+    function refresh() {
+      var val = input.value.trim().toLowerCase();
+      var existing = opts.getExisting();
+      var existingLower = existing.map(function(t) { return t.toLowerCase(); });
+      var allTags = collectAllTagNames().filter(function(t) {
+        return existingLower.indexOf(t.toLowerCase()) < 0;
+      });
+      var matches = val ? allTags.filter(function(t) { return t.toLowerCase().indexOf(val) !== -1; }) : allTags;
+      var html = '';
+      matches.forEach(function(t, i) {
+        html += '<div class="tag-ac-opt" data-idx="' + i + '" data-val="' + esc(t) + '">' + esc(t) + '</div>';
+      });
+      // Create option if typed text is new
+      if (val && !allTags.some(function(t) { return t.toLowerCase() === val; }) && existingLower.indexOf(val) < 0) {
+        html += '<div class="tag-ac-opt create" data-idx="' + matches.length + '" data-val="' + esc(input.value.trim()) + '">Tag erstellen: ' + esc(input.value.trim()) + '</div>';
+      }
+      dropdown.innerHTML = html;
+      hlIdx = -1;
+      if (html) dropdown.classList.add('open'); else dropdown.classList.remove('open');
+    }
+
+    function pick(val) {
+      if (!val) return;
+      opts.onAdd(val);
+      input.value = '';
+      dropdown.classList.remove('open');
+      hlIdx = -1;
+    }
+
+    function setHighlight(idx) {
+      var items = dropdown.querySelectorAll('.tag-ac-opt');
+      items.forEach(function(el) { el.classList.remove('hl'); });
+      if (idx >= 0 && idx < items.length) {
+        items[idx].classList.add('hl');
+        items[idx].scrollIntoView({ block: 'nearest' });
+      }
+      hlIdx = idx;
+    }
+
+    input.addEventListener('input', refresh);
+    input.addEventListener('focus', refresh);
+
+    input.addEventListener('keydown', function(e) {
+      var items = dropdown.querySelectorAll('.tag-ac-opt');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlight(Math.min(hlIdx + 1, items.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlight(Math.max(hlIdx - 1, 0));
+      } else if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        if (hlIdx >= 0 && items[hlIdx]) {
+          pick(items[hlIdx].dataset.val);
+        } else {
+          var val = input.value.replace(/,/g, '').trim();
+          if (val) pick(val);
+        }
+      } else if (e.key === 'Escape') {
+        dropdown.classList.remove('open');
+        hlIdx = -1;
+      }
+    });
+
+    dropdown.addEventListener('mousedown', function(e) {
+      e.preventDefault(); // Keep input focus
+      var opt = e.target.closest('.tag-ac-opt');
+      if (opt) pick(opt.dataset.val);
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function(e) {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        hlIdx = -1;
+      }
+    });
+  }
+
+  /* Panel tag autocomplete state */
+  var panelTags = [];
+
+  function renderPanelTagChips() {
+    var container = document.getElementById('sp-tag-chips');
+    container.innerHTML = panelTags.map(function(t) {
+      return '<span class="sp-tag-chip">' + esc(t) +
+        '<button data-tag="' + esc(t) + '">✕</button></span>';
+    }).join('');
+    container.querySelectorAll('button').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        panelTags = panelTags.filter(function(x) { return x !== btn.dataset.tag; });
+        renderPanelTagChips();
+      });
+    });
+  }
+
+  function initPanelTagAC() {
+    var input = document.getElementById('idea-tags');
+    var drop = document.getElementById('sp-tag-drop');
+    setupTagAutocomplete(input, drop, {
+      getExisting: function() { return panelTags; },
+      onAdd: function(val) {
+        var dup = panelTags.some(function(t) { return t.toLowerCase() === val.toLowerCase(); });
+        if (!dup) { panelTags.push(val); renderPanelTagChips(); }
+      }
+    });
+  }
+
+  /* Card-back tag autocomplete */
+  function initCardTagAC(ideaId, input, drop) {
     var idea = getIdeas().find(function(i) { return i.id === ideaId; });
     if (!idea) return;
-    if (!idea.tags) idea.tags = [];
-    // Duplikat-Check (case-insensitive)
-    var exists = idea.tags.some(function(t) { return t.toLowerCase() === val.toLowerCase(); });
-    if (!exists) {
-      idea.tags.push(val);
-      persistIdeas();
-      renderSidebar();
-      renderGrid();
-      bindSidebar();
-    } else {
-      input.value = '';
-    }
-  };
+    setupTagAutocomplete(input, drop, {
+      getExisting: function() { return idea.tags || []; },
+      onAdd: function(val) {
+        if (!idea.tags) idea.tags = [];
+        var dup = idea.tags.some(function(t) { return t.toLowerCase() === val.toLowerCase(); });
+        if (!dup) {
+          idea.tags.push(val);
+          persistIdeas();
+          renderSidebar();
+          renderGrid();
+          bindSidebar();
+          bindCardTagACs();
+        }
+      }
+    });
+  }
+
+  function bindCardTagACs() {
+    document.querySelectorAll('.card-tag-input[data-idea-id]').forEach(function(input) {
+      if (input._acBound) return;
+      input._acBound = true;
+      var drop = input.parentElement.querySelector('.tag-ac-drop');
+      if (drop) initCardTagAC(input.dataset.ideaId, input, drop);
+    });
+  }
 
   // ---- SLIDE PANEL (NEW IDEA) ----
   function openPanel() {
+    panelTags = [];
+    renderPanelTagChips();
     document.getElementById('slide-panel').classList.add('open');
     document.getElementById('slide-overlay').classList.add('open');
     setTimeout(function() { document.getElementById('idea-title').focus(); }, 260);
@@ -1423,6 +1846,8 @@
     ['idea-title','idea-desc','idea-tags'].forEach(function(id) { document.getElementById(id).value = ''; });
     document.getElementById('idea-phase').value = '';
     document.getElementById('idea-prio').value = 'medium';
+    panelTags = [];
+    renderPanelTagChips();
   }
 
   function submitIdea() {
@@ -1431,8 +1856,7 @@
     var desc     = document.getElementById('idea-desc').value.trim();
     var phase_id = document.getElementById('idea-phase').value || null;
     var prio     = document.getElementById('idea-prio').value;
-    var tagsRaw  = document.getElementById('idea-tags').value;
-    var tags     = tagsRaw ? tagsRaw.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [];
+    var tags     = panelTags.slice();
 
     if (!window.STATE.ideas) window.STATE.ideas = [];
     window.STATE.ideas.unshift({
@@ -1449,6 +1873,7 @@
     renderHeader();
     renderGrid();
     bindSidebar();
+    bindCardTagACs();
   }
 
   function bindPanel() {
@@ -1485,6 +1910,8 @@
     renderGrid();
     bindSidebar();
     bindPanel();
+    initPanelTagAC();
+    bindCardTagACs();
   }
 
   window.addEventListener('state-ready', init);

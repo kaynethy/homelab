@@ -6,6 +6,8 @@
   <title>Homelab – Netzwerk-Plan</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/dist/dist/vis-network.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
   <style>
     /* === NETWORK DIAGRAM === */
     .net-diagram-wrap {
@@ -206,6 +208,80 @@
       color: var(--text);
       font-family: 'JetBrains Mono', monospace;
     }
+
+    /* vis.js topology */
+    .topo-container {
+      position: relative;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    .topo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .topo-header-info {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .topo-header-info b { color: var(--text); font-weight: 600; }
+    .topo-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .topo-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 150ms;
+      white-space: nowrap;
+    }
+    .topo-btn:hover { border-color: var(--border2); color: var(--text); }
+    .topo-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,255,176,0.08); }
+    #vis-canvas {
+      width: 100%;
+      height: 560px;
+      background: var(--bg);
+    }
+    .topo-container.fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      border-radius: 0;
+      margin: 0;
+    }
+    .topo-container.fullscreen #vis-canvas { height: calc(100vh - 50px); }
+    .topo-legend {
+      display: flex;
+      gap: 14px;
+      padding: 10px 20px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .topo-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .topo-legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
   </style>
 </head>
 <body>
@@ -218,14 +294,30 @@
       <h1>// netz<span>_plan</span></h1>
       <p id="net-subtitle">Lade...</p>
     </div>
+    <button id="btn-export-network" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all 150ms;white-space:nowrap" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border2)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">↓ Export Network JSON</button>
   </header>
 
   <div id="status-banner" class="status-banner" style="display:none"></div>
 
-  <!-- Teil A: Netzwerk-Diagramm -->
+  <!-- Teil A: Interaktive Netzwerk-Topologie -->
   <div class="section-label">Netzwerk-Topologie</div>
-  <div class="net-diagram-wrap">
-    <div id="network-diagram"></div>
+  <div class="topo-container" id="topo-container">
+    <div class="topo-header">
+      <span class="topo-header-info" id="topo-info">Lade...</span>
+      <div class="topo-controls">
+        <button class="topo-btn" id="btn-migration" title="Migrations-Linien einblenden">⇄ Migration</button>
+        <button class="topo-btn" id="btn-fullscreen" title="Fullscreen umschalten">⛶ Fullscreen</button>
+      </div>
+    </div>
+    <div id="vis-canvas"></div>
+    <div class="topo-legend">
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#22c55e"></span> aktiv</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#5a6278"></span> geplant</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#00d4aa"></span> MGMT</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#4db8ff"></span> SVC</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#a78bfa"></span> LAB</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#fb923c"></span> DMZ</span>
+    </div>
   </div>
 
   <!-- Teil B: Subnetz-Details -->
@@ -267,13 +359,17 @@
   'use strict';
 
   var COLOR_MAP = {
-    teal:   { fill: 'rgba(0,212,170,0.12)', stroke: '#00d4aa', text: '#00d4aa' },
-    blue:   { fill: 'rgba(77,184,255,0.12)', stroke: '#4db8ff', text: '#4db8ff' },
-    purple: { fill: 'rgba(167,139,250,0.12)', stroke: '#a78bfa', text: '#a78bfa' },
-    amber:  { fill: 'rgba(251,146,60,0.12)',  stroke: '#fb923c', text: '#fb923c' }
+    teal:   { fill: 'rgba(0,212,170,0.12)', stroke: '#00d4aa', text: '#00d4aa', bg: '#00d4aa' },
+    blue:   { fill: 'rgba(77,184,255,0.12)', stroke: '#4db8ff', text: '#4db8ff', bg: '#4db8ff' },
+    purple: { fill: 'rgba(167,139,250,0.12)', stroke: '#a78bfa', text: '#a78bfa', bg: '#a78bfa' },
+    amber:  { fill: 'rgba(251,146,60,0.12)',  stroke: '#fb923c', text: '#fb923c', bg: '#fb923c' }
   };
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var visNetwork = null;
+  var migrationEdges = [];
+  var migrationVisible = false;
 
   function init() {
     if (!window.NETWORK) return;
@@ -298,79 +394,336 @@
       banner.textContent = '⚡ ' + N.meta.status;
     }
 
-    renderDiagram(N);
+    // Topo header info
+    var visibleHosts = 0;
+    N.subnets.forEach(function(sn) {
+      (sn.hosts || []).forEach(function(h) {
+        if (h.status !== 'reserved' && !h.ip.includes('–') && h.name.indexOf('Reserve') === -1) visibleHosts++;
+      });
+    });
+    document.getElementById('topo-info').innerHTML =
+      '<b>Netzwerk-Topologie</b> · ' + N.subnets.length + ' Subnetze · ' + visibleHosts + ' Hosts';
+
+    renderVisTopology(N);
     renderSubnetSections(N);
     renderFirewall(N);
     renderMigration(N);
     renderPrinciples(N);
+    bindTopoControls(N);
+    bindExportNetwork();
   }
 
-  /* ====================== */
-  /* Teil A: SVG-Diagramm   */
-  /* ====================== */
-  function renderDiagram(N) {
-    var subnets = N.subnets;
-    var count = subnets.length;
-    if (count === 0) {
-      document.getElementById('network-diagram').innerHTML = '<p style="color:var(--muted);font-size:12px">Keine Subnetze definiert.</p>';
-      return;
-    }
+  function bindExportNetwork() {
+    document.getElementById('btn-export-network').addEventListener('click', function() {
+      if (!window.NETWORK) return;
+      var payload = {
+        meta: Object.assign({}, window.NETWORK.meta || {}, { updated: new Date().toISOString().split('T')[0] }),
+        subnets: window.NETWORK.subnets,
+        firewall_rules: window.NETWORK.firewall_rules,
+        migration: window.NETWORK.migration,
+        principles: window.NETWORK.principles
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'homelab-network.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
 
-    var boxW = 160, boxH = 110, gap = 20;
-    var totalW = count * boxW + (count - 1) * gap;
-    var svgW = Math.max(totalW + 60, 600);
-    var routerW = 180, routerH = 48;
-    var routerX = (svgW - routerW) / 2;
-    var routerY = 20;
-    var subnetY = 140;
-    var startX = (svgW - totalW) / 2;
-    var svgH = subnetY + boxH + 30;
+  /* ============================= */
+  /* vis.js Interactive Topology    */
+  /* ============================= */
+  function renderVisTopology(N) {
+    var nodes = [];
+    var edges = [];
+    var nodeId = 1;
+    var subnetNodeMap = {}; // subnet id -> node id
+    var hostNodeMap = {};   // host unique key -> { nodeId, host, subnet }
 
-    var svg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:' + svgW + 'px">';
+    // Internet node
+    var internetId = nodeId++;
+    nodes.push({
+      id: internetId,
+      label: '☁  Internet',
+      shape: 'ellipse',
+      color: { background: '#1a1e29', border: '#5a6278', highlight: { background: '#1a1e29', border: '#8890a4' } },
+      font: { color: '#5a6278', size: 12, face: "'JetBrains Mono', monospace" },
+      borderWidth: 1.5,
+      level: 0
+    });
 
-    // OPNsense router box
-    svg += '<rect x="' + routerX + '" y="' + routerY + '" width="' + routerW + '" height="' + routerH + '" rx="8" fill="#13161e" stroke="#4fffb0" stroke-width="1.5"/>';
-    svg += '<text x="' + (routerX + routerW/2) + '" y="' + (routerY + 20) + '" text-anchor="middle" fill="#4fffb0" font-size="12" font-weight="700">OPNsense</text>';
-    svg += '<text x="' + (routerX + routerW/2) + '" y="' + (routerY + 36) + '" text-anchor="middle" fill="#5a6278" font-size="9">Gateway / Firewall</text>';
+    // OPNsense node
+    var opnsenseId = nodeId++;
+    nodes.push({
+      id: opnsenseId,
+      label: 'OPNsense\nGateway / Firewall',
+      shape: 'box',
+      color: { background: '#1a1e29', border: '#4fffb0', highlight: { background: '#1a1e29', border: '#4fffb0' } },
+      font: { color: '#4fffb0', size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 2,
+      level: 1
+    });
 
-    var routerCenterX = routerX + routerW / 2;
-    var routerBottomY = routerY + routerH;
+    // TP-Link (transition)
+    var tplinkId = nodeId++;
+    nodes.push({
+      id: tplinkId,
+      label: 'TP-Link Router\n(Übergang)',
+      shape: 'box',
+      color: { background: '#13161e', border: '#3a4055', highlight: { background: '#13161e', border: '#3a4055' } },
+      font: { color: '#5a6278', size: 10, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 1,
+      shapeProperties: { borderDashes: [6, 3] },
+      level: 1
+    });
 
-    subnets.forEach(function(sn, i) {
+    // Internet edges
+    edges.push({
+      from: internetId, to: opnsenseId,
+      color: { color: '#3a4055', highlight: '#5a6278' },
+      dashes: false, width: 1.5, arrows: { to: { enabled: true, scaleFactor: 0.6 }, from: { enabled: true, scaleFactor: 0.6 } }
+    });
+    edges.push({
+      from: internetId, to: tplinkId,
+      color: { color: '#2a2f3f', highlight: '#3a4055' },
+      dashes: [6, 3], width: 1, arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      label: 'aktuell', font: { color: '#5a6278', size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0 }
+    });
+
+    // Subnet + Host nodes
+    N.subnets.forEach(function(sn) {
       var c = COLOR_MAP[sn.color] || COLOR_MAP.teal;
-      var x = startX + i * (boxW + gap);
-      var centerX = x + boxW / 2;
+      var snId = nodeId++;
+      subnetNodeMap[sn.id] = snId;
 
-      // Connection line
-      svg += '<line x1="' + routerCenterX + '" y1="' + routerBottomY + '" x2="' + centerX + '" y2="' + subnetY + '" stroke="' + c.stroke + '" stroke-width="1" opacity="0.4" stroke-dasharray="4,3"/>';
+      nodes.push({
+        id: snId,
+        label: sn.name.toUpperCase() + '\n' + sn.cidr,
+        shape: 'box',
+        color: { background: c.fill, border: c.stroke, highlight: { background: c.fill, border: c.text } },
+        font: { color: c.text, size: 11, face: "'JetBrains Mono', monospace", multi: true, bold: { color: c.text } },
+        borderWidth: 2,
+        level: 2,
+        margin: 10,
+        _subnetId: sn.id
+      });
 
-      // Subnet zone box
-      svg += '<rect x="' + x + '" y="' + subnetY + '" width="' + boxW + '" height="' + boxH + '" rx="8" fill="' + c.fill + '" stroke="' + c.stroke + '" stroke-width="1" style="cursor:pointer" onclick="document.getElementById(\'subnet-' + sn.id + '\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"/>';
+      // OPNsense -> Subnet edge
+      edges.push({
+        from: opnsenseId, to: snId,
+        color: { color: c.stroke, opacity: 0.5, highlight: c.text },
+        width: 1.5,
+        arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+      });
 
-      // Subnet name + CIDR
-      svg += '<text x="' + centerX + '" y="' + (subnetY + 18) + '" text-anchor="middle" fill="' + c.text + '" font-size="11" font-weight="700">' + esc(sn.name) + '</text>';
-      svg += '<text x="' + centerX + '" y="' + (subnetY + 32) + '" text-anchor="middle" fill="#5a6278" font-size="9">' + esc(sn.cidr) + '</text>';
+      // Host nodes (skip reserved + range entries)
+      (sn.hosts || []).forEach(function(h) {
+        if (h.status === 'reserved') return;
+        if (h.ip.includes('–')) return;
+        if (h.name.indexOf('Reserve') !== -1 && h.name.indexOf('—') !== -1) return;
 
-      // Top hosts
-      var coreHosts = (sn.hosts || []).filter(function(h) { return !h.ip.includes('–') && h.name.indexOf('Reserve') === -1; }).slice(0, 4);
-      coreHosts.forEach(function(h, hi) {
-        var hy = subnetY + 48 + hi * 14;
-        var dotColor = h.status === 'active' ? '#22c55e' : (h.status === 'planned' ? '#5a6278' : '#2a2f3f');
-        svg += '<circle cx="' + (x + 14) + '" cy="' + (hy + 1) + '" r="3" fill="' + dotColor + '"/>';
-        svg += '<text x="' + (x + 22) + '" y="' + (hy + 4) + '" fill="#c8cedd" font-size="8.5">' + esc(h.name) + '</text>';
+        var hId = nodeId++;
+        var isActive = h.status === 'active';
+        var isCore = h.core === true;
+        var hostColor = isActive ? '#22c55e' : '#5a6278';
+        var bgColor = isActive ? 'rgba(34,197,94,0.12)' : 'rgba(90,98,120,0.08)';
+        var borderW = isCore ? 3 : 1.5;
+        var fullIp = sn.cidr.replace(/\.\d+\/\d+$/, '') + h.ip.replace(/^\./, '.');
+
+        var tooltip = '<b>' + esc(h.name) + '</b><br>IP: ' + esc(fullIp) +
+          '<br>Rolle: ' + esc(h.role) +
+          '<br>Status: ' + esc(h.status || 'planned');
+        if (h.current_ip) tooltip += '<br>Aktuelle IP: ' + esc(h.current_ip);
+        if (h.core) tooltip += '<br><i>Core-Infrastruktur</i>';
+
+        nodes.push({
+          id: hId,
+          label: h.name + '\n' + fullIp,
+          shape: 'box',
+          color: { background: bgColor, border: hostColor, highlight: { background: bgColor, border: c.text } },
+          font: { color: isActive ? '#c8cedd' : '#5a6278', size: 9, face: "'JetBrains Mono', monospace", multi: true },
+          borderWidth: borderW,
+          level: 3,
+          title: tooltip,
+          _stepId: h.step_id || null,
+          _ideaId: h.idea_id || null,
+          _subnetId: sn.id,
+          _currentIp: h.current_ip || null,
+          _targetIp: fullIp
+        });
+
+        edges.push({
+          from: snId, to: hId,
+          color: { color: c.stroke, opacity: 0.25, highlight: c.text },
+          width: 1
+        });
+
+        hostNodeMap[sn.id + ':' + h.ip] = { nodeId: hId, host: h, subnet: sn };
       });
     });
 
-    // Legend
-    svg += '<circle cx="' + (startX) + '" cy="' + (svgH - 10) + '" r="3" fill="#22c55e"/>';
-    svg += '<text x="' + (startX + 8) + '" y="' + (svgH - 7) + '" fill="#5a6278" font-size="8">aktiv</text>';
-    svg += '<circle cx="' + (startX + 50) + '" cy="' + (svgH - 10) + '" r="3" fill="#5a6278"/>';
-    svg += '<text x="' + (startX + 58) + '" y="' + (svgH - 7) + '" fill="#5a6278" font-size="8">geplant</text>';
-    svg += '<circle cx="' + (startX + 110) + '" cy="' + (svgH - 10) + '" r="3" fill="#2a2f3f"/>';
-    svg += '<text x="' + (startX + 118) + '" y="' + (svgH - 7) + '" fill="#5a6278" font-size="8">reserviert</text>';
+    // Firewall rule edges (between subnet groups)
+    var SUBNET_ALIAS = { MGMT: 'mgmt', SVC: 'svc', LAB: 'lab', DMZ: 'dmz' };
+    (N.firewall_rules || []).forEach(function(r) {
+      var fromKey = SUBNET_ALIAS[r.from.toUpperCase()];
+      var toKey = SUBNET_ALIAS[r.to.toUpperCase()];
+      // Only draw edges between known subnets
+      if (fromKey && subnetNodeMap[fromKey] && toKey && subnetNodeMap[toKey]) {
+        var edgeColor = '#22c55e';
+        var label = 'erlaubt';
+        if (r.rule.indexOf('GEBLOCKT') !== -1) { edgeColor = '#ef4444'; label = 'geblockt'; }
+        else if (r.rule.indexOf('nur') !== -1 || r.rule.indexOf('Port') !== -1) {
+          edgeColor = '#eab308';
+          label = r.rule.replace(/^nur\s*/i, '').substring(0, 18);
+        }
+        edges.push({
+          from: subnetNodeMap[fromKey], to: subnetNodeMap[toKey],
+          color: { color: edgeColor, opacity: 0.6, highlight: edgeColor },
+          dashes: r.rule.indexOf('GEBLOCKT') !== -1 ? [8, 4] : false,
+          width: 1,
+          arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+          label: label,
+          font: { color: edgeColor, size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0, background: 'transparent' },
+          smooth: { type: 'curvedCW', roundness: 0.2 }
+        });
+      }
+    });
 
-    svg += '</svg>';
-    document.getElementById('network-diagram').innerHTML = svg;
+    // Prepare migration edges (hidden initially)
+    (N.migration || []).forEach(function(m) {
+      if (m.status === 'no-change') return;
+      // Find the target host node
+      for (var key in hostNodeMap) {
+        var entry = hostNodeMap[key];
+        if (entry.host.current_ip === m.current) {
+          migrationEdges.push({
+            from: tplinkId, to: entry.nodeId,
+            color: { color: '#eab308', opacity: 0.6 },
+            dashes: [4, 4],
+            width: 1.5,
+            label: m.current + ' → ' + m.target,
+            font: { color: '#eab308', size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+            arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+            hidden: true,
+            _migration: true
+          });
+          break;
+        }
+      }
+    });
+
+    var allEdges = edges.concat(migrationEdges);
+
+    var container = document.getElementById('vis-canvas');
+    var data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(allEdges) };
+
+    var options = {
+      layout: {
+        hierarchical: {
+          direction: 'UD',
+          sortMethod: 'directed',
+          levelSeparation: 120,
+          nodeSpacing: 100,
+          treeSpacing: 80
+        }
+      },
+      nodes: {
+        margin: { top: 8, bottom: 8, left: 10, right: 10 },
+        shadow: false
+      },
+      edges: {
+        smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 },
+        font: { align: 'middle' }
+      },
+      physics: false,
+      interaction: {
+        hover: true,
+        tooltipDelay: 150,
+        zoomView: true,
+        dragView: true,
+        navigationButtons: false,
+        keyboard: false
+      }
+    };
+
+    visNetwork = new vis.Network(container, data, options);
+
+    // Click handler
+    visNetwork.on('click', function(params) {
+      if (params.nodes.length === 0) return;
+      var clickedId = params.nodes[0];
+      var node = data.nodes.get(clickedId);
+      if (!node) return;
+
+      // Subnet click -> scroll to detail
+      if (node._subnetId && node.level === 2) {
+        var el = document.getElementById('subnet-' + node._subnetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('open');
+          var toggle = el.querySelector('.subnet-toggle');
+          if (toggle) toggle.textContent = '▴';
+        }
+        return;
+      }
+
+      // Host click -> link to step or idea
+      if (node._stepId) {
+        window.location.href = 'steps/step.html?id=' + encodeURIComponent(node._stepId);
+      } else if (node._ideaId) {
+        window.location.href = 'ideas.html?highlight=' + encodeURIComponent(node._ideaId);
+      }
+    });
+
+    // Store edges dataset for migration toggle
+    visNetwork._edgesDataset = data.edges;
+  }
+
+  /* =================== */
+  /* Topo controls         */
+  /* =================== */
+  function bindTopoControls(N) {
+    // Fullscreen toggle
+    document.getElementById('btn-fullscreen').addEventListener('click', function() {
+      var c = document.getElementById('topo-container');
+      c.classList.toggle('fullscreen');
+      this.classList.toggle('active');
+      this.textContent = c.classList.contains('fullscreen') ? '⛶ Exit' : '⛶ Fullscreen';
+      if (visNetwork) setTimeout(function() { visNetwork.fit(); }, 100);
+    });
+
+    // Escape to exit fullscreen
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var c = document.getElementById('topo-container');
+        if (c.classList.contains('fullscreen')) {
+          c.classList.remove('fullscreen');
+          document.getElementById('btn-fullscreen').classList.remove('active');
+          document.getElementById('btn-fullscreen').textContent = '⛶ Fullscreen';
+          if (visNetwork) setTimeout(function() { visNetwork.fit(); }, 100);
+        }
+      }
+    });
+
+    // Migration toggle
+    document.getElementById('btn-migration').addEventListener('click', function() {
+      migrationVisible = !migrationVisible;
+      this.classList.toggle('active', migrationVisible);
+      if (visNetwork && visNetwork._edgesDataset) {
+        var edgeIds = visNetwork._edgesDataset.getIds();
+        edgeIds.forEach(function(eid) {
+          var edge = visNetwork._edgesDataset.get(eid);
+          if (edge._migration) {
+            visNetwork._edgesDataset.update({ id: eid, hidden: !migrationVisible });
+          }
+        });
+      }
+    });
   }
 
   /* ============================== */

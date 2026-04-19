@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "0.5",
+    "version": "0.7",
     "updated": "2026-04-19",
     "description": "Homelab Ideas – getrennt vom Haupt-State",
     "main_state": "homelab-state.json"
@@ -9,7 +9,7 @@
     {
       "id": "idea-001",
       "title": "Eigene Domain kaufen",
-      "desc": "",
+      "desc": "Eine eigene Domain registrieren (z.B. bei Cloudflare oder Namecheap) als Basis für DDNS, Let's Encrypt Wildcard-Zertifikate und öffentlich erreichbare Dienste. Voraussetzung für alles was nach außen zeigt.",
       "phase_id": "phase2",
       "step_id": "p2-ddns",
       "prio": "high",
@@ -23,7 +23,7 @@
     {
       "id": "idea-002",
       "title": "Let's Encrypt Wildcard Zertifikate",
-      "desc": "",
+      "desc": "Let's Encrypt Wildcard-Zertifikate via DNS-Challenge (Cloudflare API). Ein Zertifikat für *.homelab.domain deckt alle Subdomains ab – kein separates Cert pro Dienst nötig. Automatische Erneuerung via certbot oder acme.sh.",
       "phase_id": "phase2",
       "step_id": "p2-reverseproxy",
       "prio": "high",
@@ -37,7 +37,7 @@
     {
       "id": "idea-003",
       "title": "Homelab-Blog öffentlich hosten",
-      "desc": "",
+      "desc": "Eigenen Blog oder technische Dokumentation öffentlich von zuhause hosten. Static Site Generator (Hugo, Jekyll) oder einfaches Nginx. Zeigt nach außen was im Homelab läuft – gut für Portfolio und Lernnachweis.",
       "phase_id": "phase3",
       "step_id": "p3-webserver",
       "prio": "medium",
@@ -51,7 +51,7 @@
     {
       "id": "idea-004",
       "title": "Matrix Homeserver",
-      "desc": "",
+      "desc": "Matrix/Element als selbst gehosteter, dezentraler Chat-Server. Ersetzt proprietäre Messenger für interne Kommunikation. Kann später als Notifications-Hub für Alerting und Automatisierungen dienen.",
       "phase_id": "phase3",
       "step_id": "p3-chat",
       "prio": "low",
@@ -65,7 +65,7 @@
     {
       "id": "idea-005",
       "title": "Backup-Strategie (3-2-1 Regel)",
-      "desc": "",
+      "desc": "3-2-1 Backup-Strategie: 3 Kopien der Daten, auf 2 verschiedenen Medien, davon 1 offsite. Restic als Backup-Tool (verschlüsselt, dedupliziert, effizient). Grundlage für echte Disaster Recovery – ohne das ist alles nur ein Single Point of Failure.",
       "phase_id": null,
       "step_id": null,
       "prio": "high",
@@ -79,7 +79,7 @@
     {
       "id": "idea-006",
       "title": "Mini-Rack anschaffen",
-      "desc": "",
+      "desc": "Kleines physisches Rack (6U-12U) für strukturiertes Verkabeln von Raspberry Pi, Switches, Patch-Panel. Macht das Homelab übersichtlicher und ist Voraussetzung für skalierbare physische Hardware.",
       "phase_id": null,
       "step_id": null,
       "prio": "low",
@@ -92,7 +92,7 @@
     {
       "id": "idea-007",
       "title": "Tailscale als WireGuard-Alternative testen",
-      "desc": "",
+      "desc": "Tailscale als Zero-Config WireGuard-Alternative testen. Kein Port-Forwarding nötig, funktioniert hinter NAT, einfache Client-Installation. Gut zum Vergleich mit nativem WireGuard – zeigt den Trade-off zwischen Komfort und Kontrolle.",
       "phase_id": "phase2",
       "step_id": "p2-wireguard",
       "prio": "medium",
@@ -106,7 +106,7 @@
     {
       "id": "idea-008",
       "title": "Terraform für Proxmox-Provisioning",
-      "desc": "",
+      "desc": "Terraform für deklaratives VM-Provisioning auf Proxmox. Infrastruktur als Code – VMs werden aus einer .tf-Datei heraus erstellt, modifiziert und gelöscht. Zusammen mit Ansible (Provisioning) ergibt das eine vollständige IaC-Pipeline.",
       "phase_id": "phase3",
       "step_id": "p3-ansible",
       "prio": "medium",
@@ -120,7 +120,7 @@
     {
       "id": "idea-009",
       "title": "Dedizierter Mini-Server (z.B. Mini-PC / N100)",
-      "desc": "",
+      "desc": "Dedizierter Mini-PC (Intel N100 oder ähnlich) als Always-on-Server. Läuft 24/7 mit ~10-15W, unabhängig vom Gaming-PC. Ideal für DNS, VPN-Endpunkt und Monitoring – löst das Single-Point-of-Failure-Problem des Hyper-V-Setups.",
       "phase_id": null,
       "step_id": null,
       "prio": "low",
@@ -359,36 +359,6 @@
         }
       ]
     },
-    
-    {
-      "id": "idea-024",
-      "title": "SSH Key-basierte Authentifizierung",
-      "desc": "SSH-Keys statt Passwort für alle VMs/Container. ssh-keygen auf Windows, public key auf Server deployen. Sicherer als Passwort, kein Eintippen mehr nötig. Passwort-Auth danach deaktivieren.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
-      "prio": "high",
-      "status": "in-progress",
-      "tags": [
-        "SSH",
-        "Security",
-        "Keys",
-        "Hardening"
-      ],
-      "comments": [
-        {
-          "id": "c-004",
-          "date": "2026-04-17",
-          "text": "Gehört ins Berechtigungskonzept (idea-019) – SSH-Keys sind Grundlage für sicheren Zugang ohne Passwort-Risiko.",
-          "edited": false
-        },
-        {
-          "id": "c-024-1",
-          "date": "2026-04-19",
-          "text": "Key generiert und auf Proxmox deployed – funktioniert. sshd_config Hardening (PasswordAuthentication=no) auf später verschoben (p1-ssh-remaining). AdGuard Key-Auth hat Access Denied trotz deployed Key.",
-          "edited": false
-        }
-      ]
-    },
     {
       "id": "idea-025",
       "title": "Home Assistant – Smarthome Integration",
@@ -541,6 +511,30 @@
       "comments": []
     },
     {
+      "id": "idea-033",
+      "title": "Raspberry Pi Zero 2 W als Secondary DNS (HA)",
+      "desc": "Pi Zero 2 W (~15-18€) als permanenter Secondary DNS unabhängig von Proxmox und Hyper-V. Läuft 24/7 mit ~1-2W Stromverbrauch, WLAN onboard, kein Kabel nötig. AdGuard oder Pi-hole drauf. Wenn der Gaming-PC oder Proxmox down ist springt der Pi automatisch ein – kein DNS-Ausfall mehr im gesamten Heimnetz.",
+      "phase_id": "phase2",
+      "step_id": "p2-dns",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "DNS",
+        "Raspberry Pi",
+        "HA",
+        "Redundanz",
+        "Hardware"
+      ],
+      "comments": [
+        {
+          "id": "c-033-1",
+          "date": "2026-04-19",
+          "text": "Entstand nach AdGuard-Ausfall-Session: Single Point of Failure wenn Proxmox down. Architektur: Router Primary DNS → 192.168.0.201 (Proxmox/AdGuard), Secondary → Pi-IP. Beide laufen dieselben Blocklisten. Erster physischer Server im Homelab.",
+          "edited": false
+        }
+      ]
+    },
+    {
       "id": "idea-034",
       "title": "Auto-Sync: JSON-Bearbeitung → GitHub Repo",
       "desc": "Workflow der sicherstellt dass homelab-state.json und homelab-ideas.json nach jeder Bearbeitung automatisch ins GitHub-Repo gepusht werden. Ziel: JSON im Repo ist immer der aktuelle Stand, kein manuelles git add/commit/push nötig. Mögliche Ansätze: (1) GitHub Actions die auf Dateiänderungen triggern, (2) lokales Git-Hook (post-commit) der automatisch pusht, (3) Watchman/inotifywait Script das Dateiänderungen erkennt und git push auslöst, (4) n8n Workflow der periodisch prüft ob lokale JSON neuer ist als Remote und ggf. pusht.",
@@ -586,6 +580,31 @@
           "id": "c-012",
           "date": "2026-04-19",
           "text": "Voraussetzung: OPNsense/pfSense muss zuerst laufen (p2-firewall). DMZ ist Zielbild für alle Dienste aus Phase 3 die von außen erreichbar sein sollen: Webserver (p3-webserver), Mailserver (p3-mail), DDNS (p2-ddns). Regeln: DMZ → Internet = erlaubt, DMZ → LAN = geblockt (außer definierte Rückkanäle), LAN → DMZ = erlaubt. So sind kompromittierte DMZ-Dienste nicht sofort Zugang zum internen Netz.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-036",
+      "title": "Monitoring Stack – Grafana + Prometheus + Node Exporter",
+      "desc": "Vollständiger Observability-Stack: Prometheus scrapt Metriken aller VMs via Node Exporter (CPU, RAM, Disk, Netzwerk), Grafana visualisiert in Dashboards, Alertmanager schickt Notifications per Mail oder Ntfy. Proxmox hat einen eigenen Prometheus-Endpoint (/api2/json) der direkt integriert werden kann. Deployment via Docker Compose auf dedizierter Monitoring-VM.",
+      "phase_id": "phase4",
+      "step_id": "p4-grafana",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Monitoring",
+        "Grafana",
+        "Prometheus",
+        "Node Exporter",
+        "Alerting",
+        "Observability"
+      ],
+      "comments": [
+        {
+          "id": "c-036-1",
+          "date": "2026-04-19",
+          "text": "Sinnvoll sobald 3+ VMs laufen. Stack: Prometheus + Node Exporter pro VM + Grafana + Alertmanager. Ressourcen: 1-2 Cores, 2 GB RAM, 20 GB Disk für Prometheus-TSDB.",
           "edited": false
         }
       ]

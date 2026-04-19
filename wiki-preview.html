@@ -9,12 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
-    /* Wiki-Seite: breiteres Layout, zentriert, responsive */
-    .wrap {
-      max-width: 1200px;
-      width: 100%;
-      box-sizing: border-box;
-    }
+    /* Wiki-Seite: standard .wrap width, no override */
 
     /* === WIKI LAYOUT === */
     .wiki-layout {
@@ -306,6 +301,7 @@
       <p id="wiki-subtitle">Lade...</p>
     </div>
     <span class="wiki-phase-banner">DokuWiki geplant – Phase 3</span>
+    <button class="wiki-phase-banner" id="btn-export-wiki" style="cursor:pointer;color:var(--muted);background:var(--bg3);border-color:var(--border);transition:all 150ms" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border2)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">↓ Export Wiki JSON</button>
   </header>
 
   <!-- Type filter -->
@@ -356,6 +352,25 @@
     renderSidebar();
     renderArticles();
     bindTypeFilter();
+    document.getElementById('btn-export-wiki').addEventListener('click', exportWikiJSON);
+  }
+
+  function exportWikiJSON() {
+    if (!window.WIKI) return;
+    var payload = {
+      meta: Object.assign({}, window.WIKI.meta || {}, { updated: new Date().toISOString().split('T')[0] }),
+      namespaces: window.WIKI.namespaces,
+      articles: window.WIKI.articles
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'homelab-wiki.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function bindTypeFilter() {
