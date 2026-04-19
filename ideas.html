@@ -20,17 +20,32 @@
       width: 200px;
       min-width: 200px;
       position: sticky;
-      top: 20px;
-      max-height: calc(100vh - 40px);
-      overflow-y: auto;
+      top: 80px;
+      height: calc(100vh - 100px);
       padding: 16px 12px;
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 2px;
+      overflow: hidden;
+    }
+    /* Sidebar fixed sections (everything above tags) */
+    .sb-brand, .sb-new, .sb-section, .sb-item, .sb-hide-done {
+      flex-shrink: 0;
+    }
+
+    /* Sidebar scrollable tags container */
+    .sb-tags-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
+    .sb-tags-scroll::-webkit-scrollbar { width: 4px; }
+    .sb-tags-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sb-tags-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
     .sb-brand {
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
@@ -480,6 +495,39 @@
       white-space: nowrap;
     }
 
+    /* Drag & Drop */
+    .cmd-card[draggable="true"] { cursor: grab; }
+    .cmd-card[draggable="true"]:active { cursor: grabbing; }
+    .cmd-card.dragging {
+      opacity: 0.5;
+      transform: scale(1.02);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      z-index: 10;
+      cursor: grabbing;
+    }
+    .phase-group-divider[data-phase] {
+      transition: background 150ms, padding 150ms;
+      border-radius: 6px;
+    }
+    .phase-group-divider.drag-over {
+      background: rgba(79,255,176,0.06);
+      padding-top: 22px !important;
+      padding-bottom: 10px;
+    }
+    .phase-group-divider.drag-over .phase-group-line {
+      opacity: 1 !important;
+      height: 2px;
+      box-shadow: 0 0 10px 1px;
+      transition: all 150ms;
+    }
+    .cmd-card.drop-flash {
+      animation: dropFlash 400ms ease;
+    }
+    @keyframes dropFlash {
+      0%   { box-shadow: 0 0 0 3px rgba(34,197,94,0.7), 0 0 16px rgba(34,197,94,0.3); }
+      100% { box-shadow: none; }
+    }
+
     /* Assign row (phase/step dropdowns on card back) */
     .card-assign-row {
       display: flex;
@@ -819,6 +867,85 @@
     }
     .card-btn-delete:hover { background: rgba(239,68,68,0.16); }
 
+    /* Realize button */
+    .card-btn-realize {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(79,255,176,0.4);
+      background: rgba(79,255,176,0.08);
+      color: var(--accent);
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .card-btn-realize:hover { background: rgba(79,255,176,0.18); }
+
+    /* Realize inline form */
+    .realize-form {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      margin-top: 8px;
+      border: 1px solid rgba(79,255,176,0.3);
+      border-radius: 6px;
+      background: rgba(79,255,176,0.04);
+    }
+    .realize-form.open { display: flex; }
+    .realize-form label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .realize-form input,
+    .realize-form select {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .realize-form input:focus,
+    .realize-form select:focus { border-color: var(--accent); }
+    .realize-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+    .realize-row .realize-field { display: flex; flex-direction: column; gap: 3px; }
+    .realize-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .realize-confirm {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: 1px solid var(--accent);
+      background: rgba(79,255,176,0.12);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .realize-confirm:hover { background: rgba(79,255,176,0.22); }
+    .realize-cancel {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .realize-feedback {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--done);
+      display: none;
+      padding: 6px 0;
+    }
+
     /* Export button in header */
     .cmd-header-export {
       margin-left: auto;
@@ -898,6 +1025,7 @@
       .cmd-sidebar {
         width: 100%;
         min-width: 100%;
+        height: auto;
         max-height: none;
         position: relative;
         top: auto;
@@ -1168,12 +1296,14 @@
     var allTagsLower = allTags.map(function(t) { return t.toLowerCase(); });
     activeTags = activeTags.filter(function(t) { return allTagsLower.indexOf(t) >= 0; });
     if (allTags.length > 0) {
+      html += '<div class="sb-tags-scroll">';
       html += '<div class="sb-section">Tags</div>';
       html += '<div class="sb-tags-wrap">';
       allTags.forEach(function(tag) {
         var isActive = activeTags.some(function(t) { return t.toLowerCase() === tag.toLowerCase(); });
         html += '<span class="sb-tag-chip' + (isActive ? ' active' : '') + '" data-tag="' + esc(tag) + '">' + esc(tag) + '</span>';
       });
+      html += '</div>';
       html += '</div>';
     }
 
@@ -1292,6 +1422,13 @@
     return html;
   }
 
+  function generateStepId(idea) {
+    var phase = idea.phase_id ? idea.phase_id.replace('phase', 'p') : 'p0';
+    var slug = (idea.title || 'step').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 30);
+    return phase + '-' + slug;
+  }
+
   // ---- CARD HTML ----
   function renderCardHtml(idea) {
     var prio = idea.prio || 'low';
@@ -1342,7 +1479,7 @@
         '<button onclick="window._removeTag(\'' + esc(idea.id) + '\',\'' + esc(t).replace(/'/g, "\\'") + '\',event)">✕</button></span>';
     }).join('');
 
-    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + (isDone ? ' is-done' : '') + '" data-id="' + esc(idea.id) + '">' +
+    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + (isDone ? ' is-done' : '') + '" data-id="' + esc(idea.id) + '" draggable="true">' +
       '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
         '<div class="card-top">' +
           '<div class="card-tags">' + tags + (isDone ? '<span class="done-badge">DONE ✓</span>' : '') + '</div>' +
@@ -1401,8 +1538,42 @@
             (isDone
               ? '<button class="card-btn-done" onclick="window._markUndone(\'' + esc(idea.id) + '\',event)">↩ Zurücksetzen</button>'
               : '<button class="card-btn-done" onclick="window._markDone(\'' + esc(idea.id) + '\',event)">Umgesetzt ✓</button>') +
+            (!isDone ? '<button class="card-btn-realize" onclick="window._showRealize(\'' + esc(idea.id) + '\',event)">🚀 Realisieren</button>' : '') +
             '<span class="spacer"></span>' +
             '<button class="card-btn-delete" onclick="window._deleteIdea(\'' + esc(idea.id) + '\',event)">Löschen</button>' +
+          '</div>' +
+          '<div class="realize-form" id="rf-' + esc(idea.id) + '">' +
+            '<div class="realize-row">' +
+              '<div class="realize-field">' +
+                '<label>Ziel-Phase</label>' +
+                '<select class="rf-phase" data-idea-id="' + esc(idea.id) + '">' +
+                  '<option value="phase1"' + (idea.phase_id === 'phase1' ? ' selected' : '') + '>Phase 1 – Fundament</option>' +
+                  '<option value="phase2"' + (idea.phase_id === 'phase2' ? ' selected' : '') + '>Phase 2 – Netz</option>' +
+                  '<option value="phase3"' + (idea.phase_id === 'phase3' ? ' selected' : '') + '>Phase 3 – Dienste</option>' +
+                  '<option value="phase4"' + (idea.phase_id === 'phase4' ? ' selected' : '') + '>Phase 4 – Security</option>' +
+                '</select>' +
+              '</div>' +
+              '<div class="realize-field">' +
+                '<label>Step-ID</label>' +
+                '<input type="text" class="rf-stepid" data-idea-id="' + esc(idea.id) + '" value="' + esc(generateStepId(idea)) + '">' +
+              '</div>' +
+              '<div class="realize-field">' +
+                '<label>Status</label>' +
+                '<select class="rf-status">' +
+                  '<option value="todo">todo</option>' +
+                  '<option value="wip">wip</option>' +
+                '</select>' +
+              '</div>' +
+              '<div class="realize-field rf-section-wrap" data-idea-id="' + esc(idea.id) + '" style="display:none">' +
+                '<label>Section</label>' +
+                '<select class="rf-section"></select>' +
+              '</div>' +
+            '</div>' +
+            '<div class="realize-actions">' +
+              '<button class="realize-confirm" onclick="window._confirmRealize(\'' + esc(idea.id) + '\',event)">Step erstellen</button>' +
+              '<button class="realize-cancel" onclick="window._cancelRealize(\'' + esc(idea.id) + '\',event)">Abbrechen</button>' +
+            '</div>' +
+            '<div class="realize-feedback" id="rf-fb-' + esc(idea.id) + '"></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1442,7 +1613,7 @@
           return pa - pb;
         });
         if (groupIdeas.length === 0) return;
-        html += '<div class="phase-group-divider">' +
+        html += '<div class="phase-group-divider" data-phase="' + (g.key || '') + '">' +
           '<span class="phase-group-line" style="background:' + g.color + ';opacity:0.4"></span>' +
           '<span class="phase-group-label" style="color:' + g.color + '">' + esc(g.label) + '</span>' +
           '<span class="phase-group-line" style="background:' + g.color + ';opacity:0.4"></span>' +
@@ -1642,6 +1813,119 @@
     renderGrid();
     bindSidebar();
     bindCardTagACs();
+  };
+
+  // ---- REALIZE: Convert idea → roadmap step ----
+  window._showRealize = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var form = document.getElementById('rf-' + ideaId);
+    if (!form) return;
+    form.classList.toggle('open');
+    if (!form.classList.contains('open')) return;
+
+    // Show/hide section dropdown for phase3/4
+    var phaseSelect = form.querySelector('.rf-phase');
+    var sectionWrap = form.querySelector('.rf-section-wrap');
+    updateSectionDropdown(phaseSelect.value, form);
+
+    phaseSelect.addEventListener('change', function() {
+      // Regenerate step ID with new phase
+      var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+      if (idea) {
+        var tmpIdea = { phase_id: phaseSelect.value, title: idea.title };
+        form.querySelector('.rf-stepid').value = generateStepId(tmpIdea);
+      }
+      updateSectionDropdown(phaseSelect.value, form);
+    });
+  };
+
+  function updateSectionDropdown(phaseId, form) {
+    var sectionWrap = form.querySelector('.rf-section-wrap');
+    var sectionSelect = form.querySelector('.rf-section');
+    if (!window.STATE) { sectionWrap.style.display = 'none'; return; }
+    var phase = window.STATE.phases.find(function(p) { return p.id === phaseId; });
+    if (!phase || !phase.sections || phase.sections.length === 0) {
+      sectionWrap.style.display = 'none';
+      return;
+    }
+    sectionWrap.style.display = '';
+    var html = '';
+    phase.sections.forEach(function(sec, idx) {
+      html += '<option value="' + idx + '">' + esc(sec.label) + '</option>';
+    });
+    sectionSelect.innerHTML = html;
+  }
+
+  window._cancelRealize = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var form = document.getElementById('rf-' + ideaId);
+    if (form) form.classList.remove('open');
+  };
+
+  window._confirmRealize = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    var form = document.getElementById('rf-' + ideaId);
+    if (!form) return;
+
+    var phaseId = form.querySelector('.rf-phase').value;
+    var stepId = form.querySelector('.rf-stepid').value.trim();
+    var status = form.querySelector('.rf-status').value;
+    var sectionSelect = form.querySelector('.rf-section');
+    var sectionIdx = null;
+
+    if (!stepId) { alert('Step-ID darf nicht leer sein.'); return; }
+
+    // Check if step ID already exists
+    if (window.findStep && window.findStep(stepId)) {
+      alert('Step-ID "' + stepId + '" existiert bereits.');
+      return;
+    }
+
+    // Determine section index for phase3/4
+    var phase = window.STATE.phases.find(function(p) { return p.id === phaseId; });
+    if (phase && phase.sections && phase.sections.length > 0) {
+      sectionIdx = sectionSelect ? parseInt(sectionSelect.value, 10) : 0;
+    }
+
+    var today = new Date().toISOString().split('T')[0];
+    var step = {
+      id: stepId,
+      title: idea.title,
+      status: status,
+      tags: (idea.tags || []).slice(),
+      desc: idea.desc || idea.title,
+      notes: '',
+      log: [{ date: today, entry: 'Aus Idee [' + idea.id + '] erstellt' }]
+    };
+
+    // Persist via state.js helper
+    if (window.addCustomStep) {
+      window.addCustomStep(phaseId, sectionIdx, step);
+    }
+
+    // Mark idea as done + link to step
+    idea.status = 'done';
+    idea.step_id = stepId;
+    persistIdeas();
+
+    // Feedback
+    var fb = document.getElementById('rf-fb-' + ideaId);
+    if (fb) {
+      fb.textContent = '✓ Step "' + stepId + '" erstellt in ' + (PHASE_LABELS[phaseId] || phaseId);
+      fb.style.display = 'block';
+    }
+
+    // Re-render after short delay
+    setTimeout(function() {
+      expandedId = null;
+      renderSidebar();
+      renderHeader();
+      renderGrid();
+      bindSidebar();
+      bindCardTagACs();
+    }, 800);
   };
 
   // ---- EXPORT IDEAS JSON ----
@@ -1889,6 +2173,88 @@
     });
   }
 
+  // ---- DRAG & DROP (phase reassign in "Alle" view) ----
+  function bindDragDrop() {
+    var grid = document.getElementById('cmd-grid');
+
+    grid.addEventListener('dragstart', function(e) {
+      if (activePhase !== 'all') { e.preventDefault(); return; }
+      var card = e.target.closest('.cmd-card');
+      if (!card) return;
+      // Don't drag expanded cards
+      if (card.classList.contains('expanded')) { e.preventDefault(); return; }
+      card.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    grid.addEventListener('dragend', function(e) {
+      var card = e.target.closest('.cmd-card');
+      if (card) card.classList.remove('dragging');
+      grid.querySelectorAll('.phase-group-divider.drag-over').forEach(function(d) {
+        d.classList.remove('drag-over');
+      });
+    });
+
+    grid.addEventListener('dragover', function(e) {
+      if (activePhase !== 'all') return;
+      var divider = e.target.closest('.phase-group-divider[data-phase]');
+      if (!divider) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      // Highlight only this divider
+      grid.querySelectorAll('.phase-group-divider.drag-over').forEach(function(d) {
+        if (d !== divider) d.classList.remove('drag-over');
+      });
+      divider.classList.add('drag-over');
+    });
+
+    grid.addEventListener('dragleave', function(e) {
+      var divider = e.target.closest('.phase-group-divider[data-phase]');
+      if (!divider) return;
+      // Only remove if truly leaving the divider
+      if (!divider.contains(e.relatedTarget)) {
+        divider.classList.remove('drag-over');
+      }
+    });
+
+    grid.addEventListener('drop', function(e) {
+      e.preventDefault();
+      if (activePhase !== 'all') return;
+      var divider = e.target.closest('.phase-group-divider[data-phase]');
+      if (!divider) return;
+      divider.classList.remove('drag-over');
+
+      var ideaId = e.dataTransfer.getData('text/plain');
+      if (!ideaId) return;
+      var targetPhase = divider.dataset.phase || null;
+
+      var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+      if (!idea) return;
+      // Same phase — no change
+      if ((idea.phase_id || null) === targetPhase) return;
+
+      idea.phase_id = targetPhase;
+      idea.step_id = null;
+      persistIdeas();
+      expandedId = null;
+      renderSidebar();
+      renderHeader();
+      renderGrid();
+      bindSidebar();
+      bindCardTagACs();
+
+      // Green flash on the moved card
+      setTimeout(function() {
+        var card = document.querySelector('.cmd-card[data-id="' + ideaId + '"]');
+        if (card) {
+          card.classList.add('drop-flash');
+          card.addEventListener('animationend', function() { card.classList.remove('drop-flash'); }, { once: true });
+        }
+      }, 50);
+    });
+  }
+
   // ---- INIT ----
   function init() {
     if (!window.STATE) {
@@ -1912,6 +2278,7 @@
     bindPanel();
     initPanelTagAC();
     bindCardTagACs();
+    bindDragDrop();
   }
 
   window.addEventListener('state-ready', init);

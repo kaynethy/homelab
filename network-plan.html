@@ -252,7 +252,7 @@
     .topo-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,255,176,0.08); }
     #vis-canvas {
       width: 100%;
-      height: 560px;
+      height: 640px;
       background: var(--bg);
     }
     .topo-container.fullscreen {
@@ -282,6 +282,52 @@
       width: 8px; height: 8px;
       border-radius: 50%;
     }
+    .topo-legend-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 200ms;
+      user-select: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.03);
+    }
+    .topo-legend-toggle:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: var(--text);
+    }
+    .topo-legend-toggle.active { opacity: 1; }
+    .topo-legend-toggle:not(.active) {
+      opacity: 0.3;
+      text-decoration: line-through;
+      color: var(--muted);
+      border-color: var(--border);
+      background: transparent;
+    }
+    .topo-legend-toggle:not(.active):hover {
+      opacity: 0.5;
+      border-color: var(--border2);
+    }
+    .topo-legend-toggle:not(.active) .topo-legend-dot {
+      background: var(--muted) !important;
+    }
+    .topo-legend-toggle[data-toggle-status="active"].active  { border-color: #22c55e; background: rgba(34,197,94,0.08); }
+    .topo-legend-toggle[data-toggle-status="planned"].active { border-color: #5a6278; background: rgba(90,98,120,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="mgmt"].active    { border-color: #00d4aa; background: rgba(0,212,170,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="svc"].active     { border-color: #4db8ff; background: rgba(77,184,255,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="lab"].active     { border-color: #a78bfa; background: rgba(167,139,250,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="dmz"].active     { border-color: #fb923c; background: rgba(251,146,60,0.08); }
+    .topo-legend-sep {
+      width: 1px;
+      height: 14px;
+      background: var(--border);
+      align-self: center;
+    }
   </style>
 </head>
 <body>
@@ -306,17 +352,36 @@
       <span class="topo-header-info" id="topo-info">Lade...</span>
       <div class="topo-controls">
         <button class="topo-btn" id="btn-migration" title="Migrations-Linien einblenden">⇄ Migration</button>
+        <button class="topo-btn" id="btn-firewall" title="Firewall-Regeln ein/ausblenden">🛡 Firewall</button>
+        <button class="topo-btn" id="btn-save-layout" title="Positionen speichern">💾 Speichern</button>
+        <button class="topo-btn" id="btn-set-default" title="Aktuelles Layout als neuen Default setzen">⬆ Als Default</button>
+        <button class="topo-btn" id="btn-export-positions" title="Positionen als JSON in Zwischenablage">📋 Positionen</button>
+        <button class="topo-btn" id="btn-reset-layout" title="Layout zurücksetzen">↻ Layout</button>
         <button class="topo-btn" id="btn-fullscreen" title="Fullscreen umschalten">⛶ Fullscreen</button>
       </div>
     </div>
     <div id="vis-canvas"></div>
     <div class="topo-legend">
-      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#22c55e"></span> aktiv</span>
-      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#5a6278"></span> geplant</span>
-      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#00d4aa"></span> MGMT</span>
-      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#4db8ff"></span> SVC</span>
-      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#a78bfa"></span> LAB</span>
-      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#fb923c"></span> DMZ</span>
+      <span class="topo-legend-toggle active" data-toggle-status="active"><span class="topo-legend-dot" style="background:#22c55e"></span> aktiv</span>
+      <span class="topo-legend-toggle active" data-toggle-status="planned"><span class="topo-legend-dot" style="background:#5a6278"></span> geplant</span>
+      <span class="topo-legend-sep"></span>
+      <span class="topo-legend-toggle active" data-toggle-subnet="mgmt"><span class="topo-legend-dot" style="background:#00d4aa"></span> MGMT</span>
+      <span class="topo-legend-toggle active" data-toggle-subnet="svc"><span class="topo-legend-dot" style="background:#4db8ff"></span> SVC</span>
+      <span class="topo-legend-toggle active" data-toggle-subnet="lab"><span class="topo-legend-dot" style="background:#a78bfa"></span> LAB</span>
+      <span class="topo-legend-toggle active" data-toggle-subnet="dmz"><span class="topo-legend-dot" style="background:#fb923c"></span> DMZ</span>
+      <span class="topo-legend-sep"></span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#22c55e"></span> erlaubt</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#ef4444"></span> geblockt</span>
+      <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#eab308"></span> eingeschränkt</span>
+      <span class="topo-legend-item" style="margin-left:auto;font-style:italic;opacity:0.6">Drag = verschieben · Scroll = Zoom</span>
+    </div>
+    <div class="topo-legend" id="layout-presets-bar" style="gap:8px;padding-top:4px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">Layout:</span>
+      <span class="topo-legend-toggle" data-preset="star">Stern</span>
+      <span class="topo-legend-toggle active" data-preset="hierarchy">Hierarchie</span>
+      <span class="topo-legend-toggle" data-preset="ring">Ring</span>
+      <span class="topo-legend-toggle" data-preset="frei1" id="preset-frei1">Frei 1</span>
+      <span class="topo-legend-toggle" data-preset="frei2" id="preset-frei2">Frei 2</span>
     </div>
   </div>
 
@@ -370,6 +435,135 @@
   var visNetwork = null;
   var migrationEdges = [];
   var migrationVisible = false;
+  var firewallVisible = false;
+  var firewallEdgeIds = [];
+  var subnetVisible = { mgmt: true, svc: true, lab: true, dmz: true };
+  var statusVisible = { active: true, planned: true };
+  var POSITIONS_KEY = 'homelab_network_positions';
+  var CUSTOM_DEFAULT_KEY = 'homelab_network_custom_default';
+  var FREI1_KEY = 'homelab_network_frei1';
+  var FREI2_KEY = 'homelab_network_frei2';
+  var activeProfile = 'hierarchy';
+
+  // Layout Presets — hardcoded default + profile slots
+  var LAYOUT_PRESETS = {
+    "default": {
+      "1": {"x": -89, "y": -17},
+      "2": {"x": -80, "y": 150},
+      "3": {"x": 66, "y": -75},
+      "4": {"x": -421, "y": 84},
+      "5": {"x": -345, "y": 395},
+      "6": {"x": 95, "y": 393},
+      "7": {"x": 214, "y": 149},
+      "8": {"x": -421, "y": -25},
+      "9": {"x": -274, "y": 2},
+      "10": {"x": -306, "y": 181},
+      "11": {"x": -544, "y": 191},
+      "12": {"x": -580, "y": 29},
+      "13": {"x": -291, "y": 284},
+      "14": {"x": -183, "y": 345},
+      "15": {"x": -189, "y": 432},
+      "16": {"x": -235, "y": 498},
+      "17": {"x": -338, "y": 512},
+      "18": {"x": -436, "y": 500},
+      "19": {"x": -500, "y": 461},
+      "20": {"x": -528, "y": 394},
+      "21": {"x": -496, "y": 332},
+      "22": {"x": -401, "y": 280},
+      "23": {"x": 143, "y": 315},
+      "24": {"x": 254, "y": 357},
+      "25": {"x": 270, "y": 418},
+      "26": {"x": 218, "y": 482},
+      "27": {"x": 127, "y": 535},
+      "28": {"x": -11, "y": 501},
+      "29": {"x": -46, "y": 393},
+      "30": {"x": -17, "y": 317},
+      "31": {"x": 223, "y": 64},
+      "32": {"x": 363, "y": 99},
+      "33": {"x": 387, "y": 193},
+      "34": {"x": 291, "y": 260}
+    },
+    "profil1": null,
+    "profil2": null
+  };
+
+  // Dynamic layout generators
+  function generateStarLayout(ds) {
+    var positions = {};
+    var centerX = 0, centerY = 200;
+    var subnetNodes = [], hostsBySubnet = {}, otherNodes = [];
+    ds.forEach(function(n) {
+      if (n._subnetId && !n._isHost) subnetNodes.push(n);
+      else if (n._isHost) {
+        if (!hostsBySubnet[n._subnetId]) hostsBySubnet[n._subnetId] = [];
+        hostsBySubnet[n._subnetId].push(n);
+      } else otherNodes.push(n);
+    });
+    // OPNsense (id 2) in center
+    positions[2] = { x: centerX, y: centerY };
+    // Internet above
+    positions[1] = { x: centerX, y: centerY - 200 };
+    // TP-Link off to the side
+    positions[3] = { x: centerX + 250, y: centerY - 100 };
+    // Subnets in circle around center
+    var subR = 300;
+    subnetNodes.forEach(function(sn, i) {
+      var angle = -Math.PI / 2 + (2 * Math.PI * i / subnetNodes.length);
+      var sx = centerX + subR * Math.cos(angle);
+      var sy = centerY + subR * Math.sin(angle);
+      positions[sn.id] = { x: Math.round(sx), y: Math.round(sy) };
+      // Hosts in small circle around their subnet
+      var hosts = hostsBySubnet[sn._subnetId] || [];
+      var hR = 120 + hosts.length * 8;
+      hosts.forEach(function(h, j) {
+        var hAngle = -Math.PI / 2 + (2 * Math.PI * j / hosts.length);
+        positions[h.id] = {
+          x: Math.round(sx + hR * Math.cos(hAngle)),
+          y: Math.round(sy + hR * Math.sin(hAngle))
+        };
+      });
+    });
+    return positions;
+  }
+
+  function generateRingLayout(ds) {
+    var positions = {};
+    var centerX = 0, centerY = 250;
+    var subnetNodes = [], hostsBySubnet = {}, otherNodes = [];
+    ds.forEach(function(n) {
+      if (n._subnetId && !n._isHost) subnetNodes.push(n);
+      else if (n._isHost) {
+        if (!hostsBySubnet[n._subnetId]) hostsBySubnet[n._subnetId] = [];
+        hostsBySubnet[n._subnetId].push(n);
+      } else otherNodes.push(n);
+    });
+    // OPNsense center
+    positions[2] = { x: centerX, y: centerY };
+    // Internet above ring
+    positions[1] = { x: centerX, y: centerY - 350 };
+    // TP-Link outside
+    positions[3] = { x: centerX + 350, y: centerY - 200 };
+    // Subnets on large ring
+    var ringR = 350;
+    subnetNodes.forEach(function(sn, i) {
+      var angle = -Math.PI / 2 + (2 * Math.PI * i / subnetNodes.length);
+      var sx = centerX + ringR * Math.cos(angle);
+      var sy = centerY + ringR * Math.sin(angle);
+      positions[sn.id] = { x: Math.round(sx), y: Math.round(sy) };
+      // Hosts between center and subnet
+      var hosts = hostsBySubnet[sn._subnetId] || [];
+      hosts.forEach(function(h, j) {
+        var t = 0.4 + 0.5 * (j / Math.max(hosts.length - 1, 1));
+        var spread = (j - (hosts.length - 1) / 2) * 40;
+        var perpAngle = angle + Math.PI / 2;
+        positions[h.id] = {
+          x: Math.round(centerX + (sx - centerX) * t + spread * Math.cos(perpAngle)),
+          y: Math.round(centerY + (sy - centerY) * t + spread * Math.sin(perpAngle))
+        };
+      });
+    });
+    return positions;
+  }
 
   function init() {
     if (!window.NETWORK) return;
@@ -438,230 +632,353 @@
   /* ============================= */
   /* vis.js Interactive Topology    */
   /* ============================= */
+
+  // Original positions for layout reset
+  var origPositions = {};
+  // Map host current_ip → node id for migration
+  var migrationHostMap = {};
+
   function renderVisTopology(N) {
     var nodes = [];
     var edges = [];
     var nodeId = 1;
-    var subnetNodeMap = {}; // subnet id -> node id
-    var hostNodeMap = {};   // host unique key -> { nodeId, host, subnet }
+    migrationHostMap = {};
 
-    // Internet node
+    // ——— Ebene 0: Internet ———
     var internetId = nodeId++;
     nodes.push({
       id: internetId,
-      label: '☁  Internet',
+      label: 'Internet',
       shape: 'ellipse',
+      x: 0, y: 0,
       color: { background: '#1a1e29', border: '#5a6278', highlight: { background: '#1a1e29', border: '#8890a4' } },
-      font: { color: '#5a6278', size: 12, face: "'JetBrains Mono', monospace" },
+      font: { color: '#c8cedd', size: 13, face: "'JetBrains Mono', monospace" },
       borderWidth: 1.5,
-      level: 0
+      title: 'Internet-Uplink'
     });
 
-    // OPNsense node
+    // ——— Ebene 1: OPNsense + TP-Link ———
     var opnsenseId = nodeId++;
     nodes.push({
       id: opnsenseId,
       label: 'OPNsense\nGateway / Firewall',
       shape: 'box',
+      x: -80, y: 150,
       color: { background: '#1a1e29', border: '#4fffb0', highlight: { background: '#1a1e29', border: '#4fffb0' } },
-      font: { color: '#4fffb0', size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      font: { color: '#4fffb0', size: 13, face: "'JetBrains Mono', monospace", multi: true },
       borderWidth: 2,
-      level: 1
+      margin: 10,
+      title: 'OPNsense\nGateway / Firewall\nStatus: planned'
     });
 
-    // TP-Link (transition)
     var tplinkId = nodeId++;
     nodes.push({
       id: tplinkId,
       label: 'TP-Link Router\n(Übergang)',
       shape: 'box',
+      x: 200, y: 150,
       color: { background: '#13161e', border: '#3a4055', highlight: { background: '#13161e', border: '#3a4055' } },
-      font: { color: '#5a6278', size: 10, face: "'JetBrains Mono', monospace", multi: true },
-      borderWidth: 1,
+      font: { color: '#5a6278', size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 1.5,
       shapeProperties: { borderDashes: [6, 3] },
-      level: 1
+      margin: 10,
+      title: 'TP-Link Router\nAktuelles Netzwerk (192.168.0.0/24)\nWird durch OPNsense ersetzt'
     });
 
-    // Internet edges
+    // ——— Ebene 1 Edges ———
     edges.push({
       from: internetId, to: opnsenseId,
-      color: { color: '#3a4055', highlight: '#5a6278' },
-      dashes: false, width: 1.5, arrows: { to: { enabled: true, scaleFactor: 0.6 }, from: { enabled: true, scaleFactor: 0.6 } }
+      color: { color: '#5a6278', highlight: '#8890a4' },
+      width: 1.5,
+      arrows: { to: { enabled: true, scaleFactor: 0.6 }, from: { enabled: true, scaleFactor: 0.6 } },
+      _edgeType: 'infra'
     });
     edges.push({
       from: internetId, to: tplinkId,
-      color: { color: '#2a2f3f', highlight: '#3a4055' },
-      dashes: [6, 3], width: 1, arrows: { to: { enabled: true, scaleFactor: 0.5 } },
-      label: 'aktuell', font: { color: '#5a6278', size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0 }
+      color: { color: '#3a4055', highlight: '#5a6278' },
+      dashes: [6, 3], width: 1,
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      label: 'aktuell',
+      font: { color: '#5a6278', size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      _edgeType: 'infra'
     });
 
-    // Subnet + Host nodes
+    // ——— Ebene 2: Subnetz-Nodes + Edges OPNsense→Subnet ———
+    var SUBNET_X = { mgmt: -450, svc: -150, lab: 150, dmz: 450 };
+    var subnetNodeMap = {};  // subnet.id -> vis node id
+
     N.subnets.forEach(function(sn) {
       var c = COLOR_MAP[sn.color] || COLOR_MAP.teal;
       var snId = nodeId++;
       subnetNodeMap[sn.id] = snId;
 
+      // Count visible hosts
+      var visibleHosts = filterVisibleHosts(sn);
+      var activeCount = visibleHosts.filter(function(h) { return h.status === 'active'; }).length;
+
+      var snTooltip = sn.name.toUpperCase() + ' — ' + sn.cidr +
+        '\nGateway: ' + sn.gateway +
+        '\nZweck: ' + sn.purpose +
+        '\n' + visibleHosts.length + ' Hosts · ' + activeCount + ' aktiv';
+      if (sn.dhcp_range) snTooltip += '\nDHCP: ' + sn.dhcp_range;
+      snTooltip += '\n———';
+      visibleHosts.forEach(function(h) {
+        var fullIp = resolveFullIp(sn, h);
+        snTooltip += '\n' + h.name + ' (' + fullIp + ')';
+      });
+
       nodes.push({
         id: snId,
-        label: sn.name.toUpperCase() + '\n' + sn.cidr,
+        label: sn.name.toUpperCase() + '\n' + sn.cidr + '\n' + visibleHosts.length + ' Hosts · ' + activeCount + ' aktiv',
         shape: 'box',
+        x: SUBNET_X[sn.id] || 0, y: 350,
         color: { background: c.fill, border: c.stroke, highlight: { background: c.fill, border: c.text } },
-        font: { color: c.text, size: 11, face: "'JetBrains Mono', monospace", multi: true, bold: { color: c.text } },
+        font: { color: c.text, size: 12, face: "'JetBrains Mono', monospace", multi: true },
         borderWidth: 2,
-        level: 2,
-        margin: 10,
+        margin: { top: 10, bottom: 10, left: 14, right: 14 },
+        title: snTooltip,
         _subnetId: sn.id
       });
 
-      // OPNsense -> Subnet edge
+      // OPNsense -> Subnet
       edges.push({
         from: opnsenseId, to: snId,
         color: { color: c.stroke, opacity: 0.5, highlight: c.text },
         width: 1.5,
-        arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+        arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+        _edgeType: 'infra'
       });
+    });
 
-      // Host nodes (skip reserved + range entries)
-      (sn.hosts || []).forEach(function(h) {
-        if (h.status === 'reserved') return;
-        if (h.ip.includes('–')) return;
-        if (h.name.indexOf('Reserve') !== -1 && h.name.indexOf('—') !== -1) return;
+    // ——— Ebene 3: Host-Nodes unter ihrem Subnetz ———
+    N.subnets.forEach(function(sn) {
+      var c = COLOR_MAP[sn.color] || COLOR_MAP.teal;
+      var snVisId = subnetNodeMap[sn.id];
+      var visibleHosts = filterVisibleHosts(sn);
+      var baseX = SUBNET_X[sn.id] || 0;
+      var totalW = (visibleHosts.length - 1) * 130;
+      var startX = baseX - totalW / 2;
 
+      visibleHosts.forEach(function(h, idx) {
         var hId = nodeId++;
         var isActive = h.status === 'active';
         var isCore = h.core === true;
-        var hostColor = isActive ? '#22c55e' : '#5a6278';
-        var bgColor = isActive ? 'rgba(34,197,94,0.12)' : 'rgba(90,98,120,0.08)';
-        var borderW = isCore ? 3 : 1.5;
-        var fullIp = sn.cidr.replace(/\.\d+\/\d+$/, '') + h.ip.replace(/^\./, '.');
+        var fullIp = resolveFullIp(sn, h);
 
-        var tooltip = '<b>' + esc(h.name) + '</b><br>IP: ' + esc(fullIp) +
-          '<br>Rolle: ' + esc(h.role) +
-          '<br>Status: ' + esc(h.status || 'planned');
-        if (h.current_ip) tooltip += '<br>Aktuelle IP: ' + esc(h.current_ip);
-        if (h.core) tooltip += '<br><i>Core-Infrastruktur</i>';
+        var hostColor = isActive ? c.stroke : '#5a6278';
+        var bgColor = isActive ? c.fill : 'rgba(90,98,120,0.08)';
+        var fontColor = isActive ? '#c8cedd' : '#5a6278';
+        var borderW = isCore ? 3 : 1.5;
+
+        var tooltip = h.name +
+          '\nIP: ' + fullIp +
+          '\nRolle: ' + h.role +
+          '\nStatus: ' + (h.status || 'planned');
+        if (h.current_ip) tooltip += '\nAktuelle IP: ' + h.current_ip;
+        if (h.core) tooltip += '\nCore-Infrastruktur';
+
+        // Store base label for migration toggle
+        var baseLabel = h.name + '\n' + fullIp;
 
         nodes.push({
           id: hId,
-          label: h.name + '\n' + fullIp,
+          label: baseLabel,
           shape: 'box',
+          x: startX + idx * 130, y: 550,
           color: { background: bgColor, border: hostColor, highlight: { background: bgColor, border: c.text } },
-          font: { color: isActive ? '#c8cedd' : '#5a6278', size: 9, face: "'JetBrains Mono', monospace", multi: true },
+          font: { color: fontColor, size: 10, face: "'JetBrains Mono', monospace", multi: true },
           borderWidth: borderW,
-          level: 3,
+          margin: 6,
           title: tooltip,
           _stepId: h.step_id || null,
           _ideaId: h.idea_id || null,
           _subnetId: sn.id,
+          _baseLabel: baseLabel,
           _currentIp: h.current_ip || null,
-          _targetIp: fullIp
+          _hostStatus: h.status || 'planned',
+          _isHost: true
         });
 
+        // Track hosts with current_ip for migration overlay
+        if (h.current_ip) {
+          migrationHostMap[h.current_ip] = hId;
+        }
+
+        // Subnet → Host edge (thin, transparent, no arrows)
         edges.push({
-          from: snId, to: hId,
-          color: { color: c.stroke, opacity: 0.25, highlight: c.text },
-          width: 1
+          from: snVisId, to: hId,
+          color: { color: c.stroke, opacity: 0.3 },
+          width: 1,
+          arrows: { to: { enabled: false }, from: { enabled: false } },
+          smooth: false,
+          _edgeType: 'subnet-link'
         });
-
-        hostNodeMap[sn.id + ':' + h.ip] = { nodeId: hId, host: h, subnet: sn };
       });
     });
 
-    // Firewall rule edges (between subnet groups)
-    var SUBNET_ALIAS = { MGMT: 'mgmt', SVC: 'svc', LAB: 'lab', DMZ: 'dmz' };
+    // ——— Firewall rule edges between subnets ———
+    function resolveSubnetTargets(name) {
+      var upper = name.toUpperCase();
+      if (upper === 'MGMT') return ['mgmt'];
+      if (upper === 'SVC') return ['svc'];
+      if (upper === 'LAB') return ['lab'];
+      if (upper === 'DMZ') return ['dmz'];
+      if (upper === 'ALLE SUBNETZE') return ['svc', 'lab', 'dmz'];  // MGMT→alle = MGMT→others
+      if (upper === 'SVC / MGMT') return ['svc', 'mgmt'];
+      if (upper === 'LAN (ALLE)') return ['mgmt', 'svc', 'lab'];
+      return [];
+    }
+
     (N.firewall_rules || []).forEach(function(r) {
-      var fromKey = SUBNET_ALIAS[r.from.toUpperCase()];
-      var toKey = SUBNET_ALIAS[r.to.toUpperCase()];
-      // Only draw edges between known subnets
-      if (fromKey && subnetNodeMap[fromKey] && toKey && subnetNodeMap[toKey]) {
-        var edgeColor = '#22c55e';
-        var label = 'erlaubt';
-        if (r.rule.indexOf('GEBLOCKT') !== -1) { edgeColor = '#ef4444'; label = 'geblockt'; }
-        else if (r.rule.indexOf('nur') !== -1 || r.rule.indexOf('Port') !== -1) {
-          edgeColor = '#eab308';
-          label = r.rule.replace(/^nur\s*/i, '').substring(0, 18);
-        }
-        edges.push({
-          from: subnetNodeMap[fromKey], to: subnetNodeMap[toKey],
-          color: { color: edgeColor, opacity: 0.6, highlight: edgeColor },
-          dashes: r.rule.indexOf('GEBLOCKT') !== -1 ? [8, 4] : false,
-          width: 1,
-          arrows: { to: { enabled: true, scaleFactor: 0.5 } },
-          label: label,
-          font: { color: edgeColor, size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0, background: 'transparent' },
-          smooth: { type: 'curvedCW', roundness: 0.2 }
-        });
+      var fromKeys = resolveSubnetTargets(r.from);
+      var toKeys = resolveSubnetTargets(r.to);
+      if (fromKeys.length === 0 || toKeys.length === 0) return;
+
+      var edgeColor, label, dashes;
+      if (r.rule.indexOf('GEBLOCKT') !== -1) {
+        edgeColor = '#ef4444'; label = 'geblockt'; dashes = [8, 4];
+      } else if (r.rule.indexOf('ERLAUBT') !== -1) {
+        edgeColor = '#22c55e'; label = 'erlaubt'; dashes = false;
+      } else {
+        edgeColor = '#eab308';
+        // Extract port info for label
+        var portMatch = r.rule.match(/Port\s+([\d,\s]+)/i);
+        label = portMatch ? portMatch[1].trim() : r.rule.replace(/^nur\s*/i, '').substring(0, 20);
+        dashes = [4, 4];
       }
+
+      var tooltip = r.from + ' → ' + r.to +
+        '\nRegel: ' + r.rule;
+      if (r.note) tooltip += '\n' + r.note;
+
+      fromKeys.forEach(function(fk) {
+        toKeys.forEach(function(tk) {
+          if (fk === tk) return;
+          if (!subnetNodeMap[fk] || !subnetNodeMap[tk]) return;
+          edges.push({
+            from: subnetNodeMap[fk], to: subnetNodeMap[tk],
+            color: { color: edgeColor, opacity: 0.7, highlight: edgeColor },
+            dashes: dashes,
+            width: 1.5,
+            arrows: { to: { enabled: true, scaleFactor: 0.6 } },
+            label: label,
+            title: tooltip,
+            font: { color: edgeColor, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0, background: 'transparent' },
+            smooth: { type: 'curvedCW', roundness: 0.25 },
+            _firewall: true
+          });
+        });
+      });
     });
 
-    // Prepare migration edges (hidden initially)
+    // ——— Migration edges (hidden initially) ———
+    // Draw dashed lines from TP-Link to each host that has a current_ip
     (N.migration || []).forEach(function(m) {
       if (m.status === 'no-change') return;
-      // Find the target host node
-      for (var key in hostNodeMap) {
-        var entry = hostNodeMap[key];
-        if (entry.host.current_ip === m.current) {
-          migrationEdges.push({
-            from: tplinkId, to: entry.nodeId,
-            color: { color: '#eab308', opacity: 0.6 },
-            dashes: [4, 4],
-            width: 1.5,
-            label: m.current + ' → ' + m.target,
-            font: { color: '#eab308', size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
-            arrows: { to: { enabled: true, scaleFactor: 0.5 } },
-            hidden: true,
-            _migration: true
-          });
-          break;
-        }
-      }
+      var targetId = migrationHostMap[m.current];
+      if (!targetId) return;
+      migrationEdges.push({
+        from: tplinkId, to: targetId,
+        color: { color: '#eab308', opacity: 0.5 },
+        dashes: [4, 4],
+        width: 1,
+        arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+        hidden: true,
+        _migration: true
+      });
     });
 
     var allEdges = edges.concat(migrationEdges);
 
+    // ——— Create network ———
     var container = document.getElementById('vis-canvas');
-    var data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(allEdges) };
+    var nodesDataset = new vis.DataSet(nodes);
+    var edgesDataset = new vis.DataSet(allEdges);
 
     var options = {
-      layout: {
-        hierarchical: {
-          direction: 'UD',
-          sortMethod: 'directed',
-          levelSeparation: 120,
-          nodeSpacing: 100,
-          treeSpacing: 80
-        }
-      },
-      nodes: {
-        margin: { top: 8, bottom: 8, left: 10, right: 10 },
-        shadow: false
-      },
-      edges: {
-        smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 },
-        font: { align: 'middle' }
-      },
-      physics: false,
+      physics: { enabled: false },
       interaction: {
         hover: true,
-        tooltipDelay: 150,
+        tooltipDelay: 200,
+        dragNodes: true,
         zoomView: true,
-        dragView: true,
-        navigationButtons: false,
-        keyboard: false
+        dragView: true
+      },
+      layout: { randomSeed: 1 },
+      edges: {
+        smooth: { type: 'cubicBezier', roundness: 0.4 },
+        font: { size: 9, color: '#5a6278', strokeWidth: 0, face: "'JetBrains Mono', monospace", align: 'middle' }
+      },
+      nodes: {
+        font: { color: '#c8cedd', size: 13, face: "'JetBrains Mono', monospace" },
+        borderWidth: 2
       }
     };
 
-    visNetwork = new vis.Network(container, data, options);
+    // Store original code-level positions for reference
+    origPositions = {};
+    nodes.forEach(function(n) {
+      origPositions[n.id] = { x: n.x, y: n.y };
+    });
 
-    // Click handler
+    // Load custom default from localStorage if set
+    var effectiveDefault = LAYOUT_PRESETS["default"];
+    try {
+      var cd = localStorage.getItem(CUSTOM_DEFAULT_KEY);
+      if (cd) effectiveDefault = JSON.parse(cd);
+    } catch(e) {}
+
+    // Apply hardcoded default positions to nodes first
+    nodes.forEach(function(n) {
+      if (effectiveDefault && effectiveDefault[n.id]) {
+        n.x = effectiveDefault[n.id].x;
+        n.y = effectiveDefault[n.id].y;
+      }
+    });
+
+    // Load order: 1) localStorage saved  2) default (already applied above)
+    var appliedPositions = null;
+    try {
+      var saved = localStorage.getItem(POSITIONS_KEY);
+      if (saved) appliedPositions = JSON.parse(saved);
+    } catch(e) {}
+    if (appliedPositions) {
+      nodes.forEach(function(n) {
+        if (appliedPositions[n.id]) {
+          n.x = appliedPositions[n.id].x;
+          n.y = appliedPositions[n.id].y;
+        }
+      });
+    }
+    nodesDataset.clear();
+    nodesDataset.add(nodes);
+
+    visNetwork = new vis.Network(container, { nodes: nodesDataset, edges: edgesDataset }, options);
+
+    // Store dataset refs for toggles
+    visNetwork._edgesDataset = edgesDataset;
+    visNetwork._nodesDataset = nodesDataset;
+
+    // Collect firewall edge IDs for robust toggle (never remove, only hidden)
+    firewallEdgeIds = [];
+    edgesDataset.forEach(function(edge) {
+      if (edge._firewall) firewallEdgeIds.push(edge.id);
+    });
+
+    // Fit after render
+    setTimeout(function() {
+      visNetwork.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+    }, 50);
+
+    // ——— Click handlers ———
     visNetwork.on('click', function(params) {
       if (params.nodes.length === 0) return;
       var clickedId = params.nodes[0];
-      var node = data.nodes.get(clickedId);
+      var node = nodesDataset.get(clickedId);
       if (!node) return;
 
-      // Subnet click -> scroll to detail
-      if (node._subnetId && node.level === 2) {
+      // Subnet click → scroll to detail section
+      if (node._subnetId && !node._stepId && !node._ideaId) {
         var el = document.getElementById('subnet-' + node._subnetId);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -672,16 +989,27 @@
         return;
       }
 
-      // Host click -> link to step or idea
+      // Host click → link to step or idea
       if (node._stepId) {
-        window.location.href = 'steps/step.html?id=' + encodeURIComponent(node._stepId);
+        window.location.href = 'steps/' + encodeURIComponent(node._stepId) + '.html';
       } else if (node._ideaId) {
         window.location.href = 'ideas.html?highlight=' + encodeURIComponent(node._ideaId);
       }
     });
+  }
 
-    // Store edges dataset for migration toggle
-    visNetwork._edgesDataset = data.edges;
+  // ——— Helpers ———
+  function filterVisibleHosts(sn) {
+    return (sn.hosts || []).filter(function(h) {
+      if (h.status === 'reserved') return false;
+      if (h.ip.includes('–')) return false;
+      if (h.name.indexOf('Reserve') !== -1) return false;
+      return true;
+    });
+  }
+
+  function resolveFullIp(sn, h) {
+    return sn.cidr.replace(/\.\d+\/\d+$/, '') + h.ip.replace(/^\./, '.');
   }
 
   /* =================== */
@@ -710,20 +1038,260 @@
       }
     });
 
-    // Migration toggle
+    // Migration toggle — update host labels + show/hide edges
     document.getElementById('btn-migration').addEventListener('click', function() {
       migrationVisible = !migrationVisible;
       this.classList.toggle('active', migrationVisible);
-      if (visNetwork && visNetwork._edgesDataset) {
-        var edgeIds = visNetwork._edgesDataset.getIds();
-        edgeIds.forEach(function(eid) {
-          var edge = visNetwork._edgesDataset.get(eid);
-          if (edge._migration) {
-            visNetwork._edgesDataset.update({ id: eid, hidden: !migrationVisible });
+      if (!visNetwork) return;
+      var ds = visNetwork._nodesDataset;
+      var eds = visNetwork._edgesDataset;
+
+      // Toggle migration edges
+      if (eds) {
+        eds.getIds().forEach(function(eid) {
+          var edge = eds.get(eid);
+          if (edge && edge._migration) {
+            eds.update({ id: eid, hidden: !migrationVisible });
+          }
+        });
+      }
+
+      // Toggle migration info in host labels
+      if (ds) {
+        ds.forEach(function(node) {
+          if (!node._currentIp || !node._baseLabel) return;
+          if (migrationVisible) {
+            ds.update({ id: node.id, label: node._baseLabel + '\n(aktuell: ' + node._currentIp + ')' });
+          } else {
+            ds.update({ id: node.id, label: node._baseLabel });
           }
         });
       }
     });
+
+    // Firewall toggle (default: OFF) — delegates to applyLegendToggles for consistency
+    document.getElementById('btn-firewall').addEventListener('click', function() {
+      firewallVisible = !firewallVisible;
+      this.classList.toggle('active', firewallVisible);
+      applyLegendToggles();
+    });
+
+    // Legend toggles — subnet & status visibility
+    function applyLegendToggles() {
+      if (!visNetwork) return;
+      var ds = visNetwork._nodesDataset;
+      var eds = visNetwork._edgesDataset;
+      if (!ds || !eds) return;
+
+      // Determine which nodes to hide
+      var hiddenNodeIds = {};
+      ds.forEach(function(node) {
+        if (!node._subnetId) return;
+        if (node._isHost) {
+          // Host: hidden if its subnet is off OR its status is off
+          var hide = !subnetVisible[node._subnetId] || !statusVisible[node._hostStatus || 'planned'];
+          ds.update({ id: node.id, hidden: hide });
+          if (hide) hiddenNodeIds[node.id] = true;
+        } else {
+          // Subnet-level node: hidden only if subnet toggle is off
+          var hide = !subnetVisible[node._subnetId];
+          ds.update({ id: node.id, hidden: hide });
+          if (hide) hiddenNodeIds[node.id] = true;
+        }
+      });
+
+      // Update edges based on type (excluding firewall — handled separately)
+      eds.forEach(function(edge) {
+        if (edge._migration || edge._firewall) return;
+        if (edge._edgeType === 'infra') {
+          // Infra edges (Internet→OPNsense, OPNsense→Subnet): always visible
+          // unless their target subnet node is hidden
+          var hide = hiddenNodeIds[edge.from] || hiddenNodeIds[edge.to];
+          eds.update({ id: edge.id, hidden: !!hide });
+        } else if (edge._edgeType === 'subnet-link') {
+          // Subnet→Host links: visible as long as both endpoints are visible
+          var hide = hiddenNodeIds[edge.from] || hiddenNodeIds[edge.to];
+          eds.update({ id: edge.id, hidden: !!hide });
+        }
+      });
+
+      // Firewall edges — toggle via stored IDs, never remove from DataSet
+      firewallEdgeIds.forEach(function(eid) {
+        var edge = eds.get(eid);
+        if (!edge) return;
+        var hide = !firewallVisible || !!hiddenNodeIds[edge.from] || !!hiddenNodeIds[edge.to];
+        eds.update({ id: eid, hidden: hide });
+      });
+    }
+
+    document.querySelector('.topo-legend').addEventListener('click', function(e) {
+      var toggle = e.target.closest('.topo-legend-toggle');
+      if (!toggle) return;
+      var subnetKey = toggle.dataset.toggleSubnet;
+      var statusKey = toggle.dataset.toggleStatus;
+      if (subnetKey) {
+        subnetVisible[subnetKey] = !subnetVisible[subnetKey];
+        toggle.classList.toggle('active', subnetVisible[subnetKey]);
+      } else if (statusKey) {
+        statusVisible[statusKey] = !statusVisible[statusKey];
+        toggle.classList.toggle('active', statusVisible[statusKey]);
+      }
+      applyLegendToggles();
+    });
+
+    // Save positions to localStorage (only for Frei profiles)
+    document.getElementById('btn-save-layout').addEventListener('click', function() {
+      if (!visNetwork) return;
+      var positions = visNetwork.getPositions();
+      var rounded = {};
+      Object.keys(positions).forEach(function(id) {
+        rounded[id] = { x: Math.round(positions[id].x), y: Math.round(positions[id].y) };
+      });
+      if (activeProfile === 'frei1') {
+        try { localStorage.setItem(FREI1_KEY, JSON.stringify(rounded)); } catch(e) {}
+      } else if (activeProfile === 'frei2') {
+        try { localStorage.setItem(FREI2_KEY, JSON.stringify(rounded)); } catch(e) {}
+      } else {
+        try { localStorage.setItem(POSITIONS_KEY, JSON.stringify(rounded)); } catch(e) {}
+      }
+      var btn = this;
+      var label = (activeProfile === 'frei1' || activeProfile === 'frei2')
+        ? '✓ In ' + (activeProfile === 'frei1' ? 'Frei 1' : 'Frei 2') + ' gespeichert'
+        : '✓ Gespeichert';
+      btn.textContent = label;
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
+      setTimeout(function() {
+        btn.textContent = '💾 Speichern';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 1500);
+      updatePresetBar();
+    });
+
+    // Set current layout as custom default
+    document.getElementById('btn-set-default').addEventListener('click', function() {
+      if (!visNetwork) return;
+      if (!confirm('Aktuelles Layout als neuen Default setzen? Der Layout-Reset-Button wird ab jetzt hierauf zur\u00fccksetzen.')) return;
+      var positions = visNetwork.getPositions();
+      var rounded = {};
+      Object.keys(positions).forEach(function(id) {
+        rounded[id] = { x: Math.round(positions[id].x), y: Math.round(positions[id].y) };
+      });
+      try { localStorage.setItem(CUSTOM_DEFAULT_KEY, JSON.stringify(rounded)); } catch(e) {}
+      var btn = this;
+      btn.textContent = '✓ Neuer Default';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
+      setTimeout(function() {
+        btn.textContent = '⬆ Als Default';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 1500);
+    });
+
+    // Export positions to clipboard
+    document.getElementById('btn-export-positions').addEventListener('click', function() {
+      if (!visNetwork) return;
+      var positions = visNetwork.getPositions();
+      var rounded = {};
+      Object.keys(positions).forEach(function(id) {
+        rounded[id] = { x: Math.round(positions[id].x), y: Math.round(positions[id].y) };
+      });
+      var json = JSON.stringify(rounded, null, 2);
+      var btn = this;
+      navigator.clipboard.writeText(json).then(function() {
+        btn.textContent = '✓ Kopiert';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        setTimeout(function() {
+          btn.textContent = '📋 Positionen';
+          btn.style.borderColor = '';
+          btn.style.color = '';
+        }, 2000);
+      });
+    });
+
+    // Layout reset — reset to active profile or custom default
+    document.getElementById('btn-reset-layout').addEventListener('click', function() {
+      if (!visNetwork || !visNetwork._nodesDataset) return;
+      var target = getActiveProfilePositions();
+      if (!target) return;
+      applyPreset(target);
+      try { localStorage.removeItem(POSITIONS_KEY); } catch(e) {}
+    });
+
+    function getActiveProfilePositions() {
+      if (activeProfile === 'star') return generateStarLayout(visNetwork._nodesDataset);
+      if (activeProfile === 'ring') return generateRingLayout(visNetwork._nodesDataset);
+      if (activeProfile === 'frei1') {
+        try { var d = localStorage.getItem(FREI1_KEY); if (d) return JSON.parse(d); } catch(e) {}
+        return null;
+      }
+      if (activeProfile === 'frei2') {
+        try { var d = localStorage.getItem(FREI2_KEY); if (d) return JSON.parse(d); } catch(e) {}
+        return null;
+      }
+      // hierarchy = custom default or hardcoded default
+      try {
+        var cd = localStorage.getItem(CUSTOM_DEFAULT_KEY);
+        if (cd) return JSON.parse(cd);
+      } catch(e) {}
+      return LAYOUT_PRESETS["default"];
+    }
+
+    // Preset selector
+    function applyPreset(positions) {
+      if (!visNetwork || !visNetwork._nodesDataset || !positions) return;
+      var updates = [];
+      Object.keys(positions).forEach(function(id) {
+        updates.push({ id: parseInt(id), x: positions[id].x, y: positions[id].y });
+      });
+      visNetwork._nodesDataset.update(updates);
+      setTimeout(function() {
+        visNetwork.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+      }, 50);
+    }
+
+    function updatePresetBar() {
+      var f1 = document.getElementById('preset-frei1');
+      var f2 = document.getElementById('preset-frei2');
+      var hasF1 = false, hasF2 = false;
+      try { hasF1 = !!localStorage.getItem(FREI1_KEY); } catch(e) {}
+      try { hasF2 = !!localStorage.getItem(FREI2_KEY); } catch(e) {}
+      f1.style.opacity = hasF1 ? '1' : '0.4';
+      f2.style.opacity = hasF2 ? '1' : '0.4';
+      // Highlight active
+      var pills = document.getElementById('layout-presets-bar').querySelectorAll('[data-preset]');
+      pills.forEach(function(p) { p.classList.toggle('active', p.dataset.preset === activeProfile); });
+    }
+
+    document.getElementById('layout-presets-bar').addEventListener('click', function(e) {
+      var toggle = e.target.closest('[data-preset]');
+      if (!toggle) return;
+      var key = toggle.dataset.preset;
+      activeProfile = key;
+      var positions = null;
+      if (key === 'hierarchy') {
+        try { var cd = localStorage.getItem(CUSTOM_DEFAULT_KEY); if (cd) positions = JSON.parse(cd); } catch(e) {}
+        if (!positions) positions = LAYOUT_PRESETS["default"];
+      } else if (key === 'star') {
+        positions = generateStarLayout(visNetwork._nodesDataset);
+      } else if (key === 'ring') {
+        positions = generateRingLayout(visNetwork._nodesDataset);
+      } else if (key === 'frei1') {
+        try { var d = localStorage.getItem(FREI1_KEY); if (d) positions = JSON.parse(d); } catch(e) {}
+      } else if (key === 'frei2') {
+        try { var d = localStorage.getItem(FREI2_KEY); if (d) positions = JSON.parse(d); } catch(e) {}
+      }
+      if (positions) applyPreset(positions);
+      updatePresetBar();
+    });
+
+    updatePresetBar();
+
+    // Apply initial toggle states (firewall OFF by default)
+    applyLegendToggles();
   }
 
   /* ============================== */

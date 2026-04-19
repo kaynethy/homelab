@@ -46,6 +46,25 @@
         <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">192.168.0.200:8006</span>
       </div>
 
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button onclick="copySnapshotCmd()" class="qa-btn" id="btn-snapshot">📸 Snapshot</button>
+        <code id="snapshot-preview" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap"></code>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <button onclick="copyRestoreCmd()" class="qa-btn" id="btn-restore">↩ Restore</button>
+          <select id="restore-dropdown" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 6px;outline:none;max-width:210px"></select>
+          <span onclick="deleteSnapshotEntry()" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#ef4444;cursor:pointer;white-space:nowrap" title="Ausgewählten Eintrag löschen">✕ Löschen</span>
+        </div>
+        <code id="restore-preview" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap"></code>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button onclick="copyCmd('listsnaps')" class="qa-btn">📝 Snapshots</button>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">Get-VMCheckpoint</span>
+      </div>
+
     </div>
   </div>
 
@@ -176,7 +195,8 @@
   // Quick Actions
   var QA_CMDS = {
     start: 'powershell.exe -ExecutionPolicy Bypass -File "Y:\\HomeLab\\start-proxmox.ps1"',
-    stop:  'powershell.exe -ExecutionPolicy Bypass -File "Y:\\HomeLab\\stop-proxmox.ps1"'
+    stop:  'powershell.exe -ExecutionPolicy Bypass -File "Y:\\HomeLab\\stop-proxmox.ps1"',
+    listsnaps: 'Get-VMCheckpoint -VMName "Proxmox"'
   };
 
   window.copyCmd = function(key) {
@@ -192,7 +212,113 @@
       }
     });
   };
+  // Snapshot smart copy + history
+  var SNAP_HISTORY_KEY = 'homelab_snapshot_history';
+  var SNAP_HISTORY_MAX = 20;
 
+  function getSnapshotName() {
+    var now = new Date();
+    var date = now.toISOString().slice(0, 10);
+    var hh = String(now.getHours()).padStart(2, '0');
+    var mm = String(now.getMinutes()).padStart(2, '0');
+    return 'pre-' + date + '-' + hh + mm;
+  }
+
+  function loadSnapHistory() {
+    try { return JSON.parse(localStorage.getItem(SNAP_HISTORY_KEY)) || []; }
+    catch(e) { return []; }
+  }
+
+  function saveSnapHistory(history) {
+    try { localStorage.setItem(SNAP_HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+  }
+
+  function addToSnapHistory(name) {
+    var history = loadSnapHistory();
+    // Don't duplicate if same name already at top
+    if (history.length > 0 && history[0].name === name) return;
+    history.unshift({ name: name, created: new Date().toISOString() });
+    if (history.length > SNAP_HISTORY_MAX) history = history.slice(0, SNAP_HISTORY_MAX);
+    saveSnapHistory(history);
+  }
+
+  function renderRestoreDropdown() {
+    var dd = document.getElementById('restore-dropdown');
+    if (!dd) return;
+    var history = loadSnapHistory();
+    var html = '';
+    if (history.length === 0) {
+      html = '<option value="">(noch keine Snapshots)</option>';
+    } else {
+      history.forEach(function(entry) {
+        var ts = entry.created ? ' · ' + entry.created.replace('T', ' ').slice(0, 16) : '';
+        html += '<option value="' + entry.name + '">' + entry.name + ts + '</option>';
+      });
+    }
+    dd.innerHTML = html;
+    updateRestorePreview();
+  }
+
+  function updateRestorePreview() {
+    var dd = document.getElementById('restore-dropdown');
+    var preview = document.getElementById('restore-preview');
+    if (!dd || !preview) return;
+    var name = dd.value || 'SNAPSHOT-NAME';
+    preview.textContent = 'Restore-VMCheckpoint -VMName "Proxmox" -Name "' + name + '"';
+  }
+
+  function updateSnapshotPreview() {
+    var name = getSnapshotName();
+    var el = document.getElementById('snapshot-preview');
+    if (el) el.textContent = 'SnapshotName "' + name + '"';
+  }
+
+  window.copySnapshotCmd = function() {
+    var name = getSnapshotName();
+    var cmd = 'Checkpoint-VM -Name "Proxmox" -SnapshotName "' + name + '"';
+    var btn = document.getElementById('btn-snapshot');
+    addToSnapHistory(name);
+    renderRestoreDropdown();
+    navigator.clipboard.writeText(cmd).then(function() {
+      if (btn) {
+        btn.textContent = 'Kopiert ✓';
+        btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = '📸 Snapshot'; btn.classList.remove('copied'); }, 1500);
+      }
+    });
+  };
+
+  window.copyRestoreCmd = function() {
+    var dd = document.getElementById('restore-dropdown');
+    var name = dd ? dd.value : '';
+    if (!name) { name = getSnapshotName(); }
+    var cmd = 'Restore-VMCheckpoint -VMName "Proxmox" -Name "' + name + '" -Confirm:$false';
+    var btn = document.getElementById('btn-restore');
+    navigator.clipboard.writeText(cmd).then(function() {
+      if (btn) {
+        btn.textContent = 'Kopiert ✓';
+        btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = '↩ Restore'; btn.classList.remove('copied'); }, 1500);
+      }
+    });
+  };
+
+  window.deleteSnapshotEntry = function() {
+    var dd = document.getElementById('restore-dropdown');
+    if (!dd || !dd.value) return;
+    var name = dd.value;
+    if (!confirm('Snapshot \'' + name + '\' aus History entfernen?')) return;
+    var history = loadSnapHistory().filter(function(e) { return e.name !== name; });
+    saveSnapHistory(history);
+    renderRestoreDropdown();
+  };
+
+  // Dropdown change updates preview
+  document.getElementById('restore-dropdown').addEventListener('change', updateRestorePreview);
+
+  updateSnapshotPreview();
+  renderRestoreDropdown();
+  setInterval(updateSnapshotPreview, 60000);
   // GitHub Last Commit
   function timeAgo(dateStr) {
     var diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);

@@ -1,9 +1,7 @@
 {
   "meta": {
-    "version": "0.7",
-    "updated": "2026-04-19",
-    "description": "Homelab Ideas – getrennt vom Haupt-State",
-    "main_state": "homelab-state.json"
+    "version": "1.2",
+    "updated": "2026-04-19"
   },
   "ideas": [
     {
@@ -308,7 +306,7 @@
       "title": "DHCP Server (interner Adressvergabe)",
       "desc": "Eigener DHCP-Server statt Router-DHCP. Feste IP-Reservierungen per MAC-Adresse, DHCP-Scopes pro VLAN/Subnetz. Kea DHCP oder direkt in AdGuard/OPNsense integriert.",
       "phase_id": "phase2",
-      "step_id": "p2-dns",
+      "step_id": null,
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -438,7 +436,7 @@
       "title": "Recovery-Runbook als dokumentiertes Verfahren",
       "desc": "Eigener Wiki-Bereich 'recovery/' mit Schritt-für-Schritt-Anleitungen für typische Notfälle: GRUB Passwort-Reset (done: doc-006), Netzwerk nicht erreichbar (done: doc-007), Proxmox VM korrupt, Container corrupted. Jeweils mit 'wenn X passiert, dann Y machen'.",
       "phase_id": "phase3",
-      "step_id": "p3-dokuwiki",
+      "step_id": null,
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -454,9 +452,9 @@
       "title": "Snapshot vor Netzwerk-Änderungen",
       "desc": "Proxmox-VM-Snapshot in Hyper-V anlegen bevor kritische Config-Änderungen (interfaces, DNS, Firewall) gemacht werden. Checkpoint-VM -VMName 'Proxmox' -SnapshotName 'pre-<aktion>-<datum>'. Rollback in Sekunden wenn was schiefgeht.",
       "phase_id": "phase1",
-      "step_id": "p1-autostart",
+      "step_id": null,
       "prio": "high",
-      "status": "idea",
+      "status": "done",
       "tags": [
         "Backup",
         "Snapshot",
@@ -605,6 +603,49 @@
           "id": "c-036-1",
           "date": "2026-04-19",
           "text": "Sinnvoll sobald 3+ VMs laufen. Stack: Prometheus + Node Exporter pro VM + Grafana + Alertmanager. Ressourcen: 1-2 Cores, 2 GB RAM, 20 GB Disk für Prometheus-TSDB.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-038",
+      "title": "NAS – Network Attached Storage anschaffen",
+      "desc": "Dediziertes NAS als zentraler Speicher für Backups, VM-Snapshots, Medien und Dokumentation. Ziel: 15-20 TB nutzbar, zukunftssicher erweiterbar. Integration mit Proxmox Backup Server (PBS) als Backup-Target via NFS oder iSCSI. Löst das Single-Disk-Problem des aktuellen Setups und ist Grundlage für die 3-2-1 Backup-Strategie (idea-005).",
+      "phase_id": "phase1",
+      "step_id": "p1-proxmox-vm",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "NAS",
+        "Storage",
+        "Backup",
+        "Hardware",
+        "Synology",
+        "RAID"
+      ],
+      "comments": [
+        {
+          "id": "c-038-1",
+          "date": "2026-04-19",
+          "text": "Budget: ~500€ +/- 150€ für Gerät, Festplatten separat. Empfehlung Gerät: Synology DS423+ (4-Bay, ~380€) – DSM ausgereift, gut dokumentiert, NFS/iSCSI für Proxmox, erweiterbar. Alternative: QNAP TS-464 ähnlich gut, etwas mehr Features, etwas komplexer.",
+          "edited": false
+        },
+        {
+          "id": "c-038-2",
+          "date": "2026-04-19",
+          "text": "Festplatten: IMMER CMR (Conventional Magnetic Recording), NIEMALS SMR (Shingled) für RAID. SMR ist billiger aber langsam beim Schreiben und problematisch in RAID-Verbänden. Empfehlung: WD Red Plus CMR oder Seagate IronWolf CMR. Immer vor Kauf prüfen ob CMR oder SMR.",
+          "edited": false
+        },
+        {
+          "id": "c-038-3",
+          "date": "2026-04-19",
+          "text": "Einstiegsstrategie: Start mit 2x 8TB WD Red Plus CMR in RAID1 (8TB nutzbar, gespiegelt) + 2 Bays leer lassen. Später 2x 8TB dazu + Migration auf RAID5 = 24TB nutzbar. Gesamtkosten gestreckt: DS423+ ~380€ + 2x 8TB ~360€ = ~740€ initial, Rest später. RAID5 bietet Schutz gegen 1 Festplattenausfall bei 75% Effizienz.",
+          "edited": false
+        },
+        {
+          "id": "c-038-4",
+          "date": "2026-04-19",
+          "text": "Proxmox-Integration: NAS als NFS-Share in Proxmox einbinden → als Storage für VM-Backups nutzen → PBS (idea-010) kann direkt auf NAS-Share sichern. Synology hat eigene Backup-App (Hyper Backup) für offsite-Backup nach B2/S3 – erfüllt damit das Offsite-Kriterium der 3-2-1 Regel (idea-005).",
           "edited": false
         }
       ]

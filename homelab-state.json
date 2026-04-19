@@ -2,7 +2,7 @@
   "meta": {
     "version": "1.0",
     "updated": "2026-04-19",
-    "progress_pct": 24,
+    "progress_pct": 29,
     "description": "Homelab Roadmap – Skalierender Infrastruktur- & Lernplan",
     "backlog_migrated": true,
     "network": {
@@ -24,7 +24,10 @@
       "step_id": "p3-dokuwiki",
       "preview_page": "wiki-preview.html"
     },
-    "ideas_file": "homelab-ideas.json"
+    "ideas_file": "homelab-ideas.json",
+    "progress_done": 8,
+    "progress_wip": 1,
+    "progress_total": 35
   },
   "hardware": {
     "cpu": "AMD Ryzen 7 5800X (8C/16T)",
@@ -60,7 +63,8 @@
               "date": "2026-04-16",
               "entry": "SVM Mode im BIOS aktiviert. Kein Problem."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-hyperv",
@@ -77,7 +81,8 @@
               "date": "2026-04-16",
               "entry": "Hyper-V aktiviert via PowerShell. Neustart durchgeführt."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-proxmox-vm",
@@ -154,12 +159,13 @@
               "date": "2026-04-16",
               "entry": "Installation abgeschlossen. Netzwerkproblem behoben: ExternalSwitch in Hyper-V erstellt, VM umgestellt. Web-UI unter https://192.168.0.200:8006 erreichbar."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-ipplan",
           "title": "IP-Plan & Subnetting",
-          "status": "todo",
+          "status": "done",
           "tags": [
             "Netzwerk",
             "IP",
@@ -167,26 +173,48 @@
             "RFC1918"
           ],
           "desc": "Netzwerkbereiche festlegen: Management, Services, Lab, DMZ. RFC1918 Ranges planen.",
-          "notes": "",
+          "notes": "IP-Plan finalisiert. 4 Subnetze: MGMT 10.0.1.0/24, SVC 10.0.2.0/24, LAB 10.0.3.0/24, DMZ 10.0.4.0/24. OPNsense als .1 Gateway in jedem Subnetz. Kern-Infra .2-.10, Services ab .10 mit Lücken, DHCP .100-.200. Übergangsphase: alles bleibt in 192.168.0.0/24 bis OPNsense steht. Netzwerkplan als ip-plan.txt dokumentiert.",
           "ideas": [
             "10.0.1.0/24 – Management (Proxmox, Router, DNS)",
             "10.0.2.0/24 – Services (Webserver, Mail, Wiki)",
             "10.0.3.0/24 – Lab (VMs zum Experimentieren)",
             "10.0.4.0/24 – DMZ (öffentlich erreichbare Dienste)"
           ],
-          "log": []
+          "log": [
+            {
+              "date": "2026-04-19",
+              "entry": "Subnetz-Aufteilung finalisiert: MGMT (10.0.1.0/24), SVC (10.0.2.0/24), LAB (10.0.3.0/24), DMZ (10.0.4.0/24)."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Design-Prinzipien: Kern-Infra eng (.1-.10), Services ab .10 mit Lücken, DHCP .100-.200, OPNsense .1 in jedem Subnetz."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Firewall-Regeln definiert: MGMT → alle erlaubt, LAB/DMZ isoliert, SVC → MGMT nur DNS/NTP (Port 53, 123)."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Migrations-Mapping: Proxmox 192.168.0.200 → 10.0.1.2, AdGuard 192.168.0.201 → 10.0.1.3, Gateway → 10.0.1.1."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Netzwerkplan als ip-plan.txt exportiert. network.html Topologie-Visualisierung implementiert."
+            }
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-vm-plan",
           "title": "VM-Plan & Abhängigkeiten",
-          "status": "wip",
+          "status": "done",
           "tags": [
             "Planung",
             "VMs",
             "Architektur"
           ],
           "desc": "Welche VMs werden gebraucht, in welcher Reihenfolge, in welchem Subnetz. Abhängigkeiten klären bevor Deployment beginnt.",
-          "notes": "",
+          "notes": "VM-Plan und Abhängigkeitskette finalisiert. Boot-Reihenfolge: OPNsense → DNS → Reverse Proxy → Vaultwarden → Gitea → Ansible → Monitoring → TACACS+/RADIUS. Subnetz-Zuordnung pro VM in homelab-network.json hinterlegt.",
           "details": {
             "boot_order": [
               "1. OPNsense / pfSense  – Firewall & Router zwischen Subnetzen",
@@ -210,8 +238,13 @@
             {
               "date": "2026-04-17",
               "entry": "Abhängigkeitskette definiert: DNS und Firewall müssen zuerst laufen. Subnetz-Plan steht, VLAN-Fähigkeit des Routers muss geprüft werden."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "VM-Plan finalisiert: Abhängigkeitskette, Subnetz-Zuordnung und Boot-Reihenfolge stehen. IP-Adressen pro VM im Netzwerkplan (homelab-network.json) dokumentiert."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-linux-vm",
@@ -223,7 +256,9 @@
             "SSH"
           ],
           "desc": "Ubuntu Server 24.04 LTS in Proxmox. SSH einrichten, Grundkonfiguration, Updates.",
-          "log": []
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         },
         {
           "id": "p1-ssh-hardening",
@@ -386,7 +421,8 @@
               "date": "2026-04-19",
               "entry": "Hauptaufgaben erledigt, Restaufgaben ausgelagert in p1-ssh-remaining."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-ssh-remaining",
@@ -440,7 +476,8 @@
               "date": "2026-04-17",
               "entry": "System auf 9.1.7 aktualisiert. Kernel-Update + Reboot. No-Subscription Popup deaktiviert."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-recovery",
@@ -522,7 +559,8 @@
               "date": "2026-04-18",
               "entry": "vim-Grundlagen gelernt: Modi, Search&Replace, Speichern. Präferenz ab jetzt: vim statt nano."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p1-autostart",
@@ -564,7 +602,8 @@
               "date": "2026-04-19",
               "entry": "Reboot-Test erfolgreich: Proxmox VM + AdGuard Container (CT100) starten automatisch nach Windows-Neustart. onboot/startup waren initial nicht gesetzt – nachgeholt via pct set 100 --onboot 1 --startup order=1,up=30,down=60. Boot-Kette dauert ~90-120s, DNS in dieser Zeit nicht verfügbar. Langfristlösung: Raspberry Pi als Secondary DNS."
             }
-          ]
+          ],
+          "deferred_reason": ""
         }
       ]
     },
@@ -586,7 +625,9 @@
             "Security"
           ],
           "desc": "Homelab von außen erreichbar machen. Eigener VPN-Endpunkt, sichere Verbindung von unterwegs.",
-          "log": []
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         },
         {
           "id": "p2-reverseproxy",
@@ -598,7 +639,9 @@
             "TLS"
           ],
           "desc": "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
-          "log": []
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         },
         {
           "id": "p2-dns",
@@ -671,32 +714,9 @@
             {
               "date": "2026-04-18",
               "entry": "Erkenntnis: Cloudflare DoH über IP (1.1.1.1) statt Hostname nötig weil DNS noch nicht vollständig aufgelöst."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "AdGuard Passwort nicht mehr bekannt (KeePass-DB verloren). Reset-Versuche via bcrypt gescheitert – auth_attempts-Sperre und $2y/$2a Kompatibilitätsproblem."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "Neuinstallation: systemctl stop/disable AdGuardHome, rm -rf /opt/AdGuardHome, Service-File entfernt, daemon-reload."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "curl Install-Script erneut: AdGuard v0.107.74 installiert. Setup-Wizard auf Port 3000 durchlaufen."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "Neuer Login gesetzt, sofort in KeePass eingetragen. DoH Upstream: 1.1.1.1 + 1.0.0.1."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "Blocklisten aktiviert: AdGuard DNS filter, OISD Small, Phishing URL, HaGeZi DNS Rebind, Malicious URL (URLHaus)."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "Autostart gesetzt: pct set 100 --onboot 1 --startup order=1,up=30,down=60. TP-Link DNS wieder auf 192.168.0.201."
             }
-          ]
+          ],
+          "deferred_reason": ""
         },
         {
           "id": "p2-ipam",
@@ -731,7 +751,8 @@
               "idea-020"
             ]
           },
-          "log": []
+          "log": [],
+          "deferred_reason": ""
         },
         {
           "id": "p2-vlans",
@@ -743,7 +764,9 @@
             "Segmentierung"
           ],
           "desc": "Netzwerksegmentierung: Management VLAN, Service VLAN, Lab VLAN. Isolation zwischen Bereichen.",
-          "log": []
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         },
         {
           "id": "p2-firewall",
@@ -756,7 +779,9 @@
             "NAT"
           ],
           "desc": "Virtuelle Firewall-VM in Proxmox. Routing zwischen VLANs, Firewall-Regeln, NAT.",
-          "log": []
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         },
         {
           "id": "p2-ddns",
@@ -768,7 +793,9 @@
             "DNS"
           ],
           "desc": "Externe Erreichbarkeit trotz wechselnder Heim-IP. Cloudflare DDNS oder DuckDNS.",
-          "log": []
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         }
       ]
     },
@@ -805,7 +832,8 @@
                 ],
                 "vm_resources": "1 Core, 512 MB RAM, 10 GB Disk – sehr leichtgewichtig"
               },
-              "log": []
+              "log": [],
+              "deferred_reason": ""
             },
             {
               "id": "p3-webserver",
@@ -817,7 +845,9 @@
                 "Web"
               ],
               "desc": "Nginx oder Caddy. Eigene Website direkt von zuhause hosten, öffentlich erreichbar.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p3-wiki",
@@ -829,7 +859,9 @@
                 "Outline"
               ],
               "desc": "Wikijs oder Outline. Dokumentation aller Homelab-Konfigurationen, Passwörter, Netzpläne.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p3-vaultwarden",
@@ -841,7 +873,9 @@
                 "Security"
               ],
               "desc": "Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager für alle Accounts.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p3-git",
@@ -854,7 +888,9 @@
                 "DevOps"
               ],
               "desc": "Gitea oder Forgejo. Eigener privater Git-Host für Konfig-Repos, Skripte, Projekte.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             }
           ]
         },
@@ -872,7 +908,9 @@
                 "DKIM"
               ],
               "desc": "Mailcow oder Maddy. Eigene Domain, SMTP/IMAP, SPF/DKIM/DMARC konfigurieren.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p3-chat",
@@ -884,7 +922,9 @@
                 "Chat"
               ],
               "desc": "Matrix/Element oder Ntfy für interne Benachrichtigungen aus Automatisierungen.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             }
           ]
         },
@@ -901,7 +941,9 @@
                 "Webhooks"
               ],
               "desc": "No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p3-ansible",
@@ -913,7 +955,9 @@
                 "DevOps"
               ],
               "desc": "Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p3-containers",
@@ -925,7 +969,9 @@
                 "Kubernetes"
               ],
               "desc": "Docker Compose für einfache Stacks. Optional später: K3s (leichtes Kubernetes) für Cluster-Erfahrung.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             }
           ]
         }
@@ -953,7 +999,9 @@
                 "OIDC"
               ],
               "desc": "Authentik oder Keycloak. Zentrales Login für alle Dienste. OIDC, SAML, LDAP testen.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p4-2fa",
@@ -966,7 +1014,9 @@
                 "Passkeys"
               ],
               "desc": "TOTP, Hardware-Keys (YubiKey), Passkeys. Verschiedene Auth-Methoden im echten System testen.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p4-ca",
@@ -979,7 +1029,9 @@
                 "CFSSL"
               ],
               "desc": "Eigene interne CA mit Step-CA oder CFSSL. Interne TLS-Zertifikate für alle Dienste.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             }
           ]
         },
@@ -997,7 +1049,9 @@
                 "Alerting"
               ],
               "desc": "Metriken aller VMs und Dienste. Dashboards für CPU, RAM, Netz, Disk. Alerting.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p4-loki",
@@ -1009,7 +1063,9 @@
                 "SIEM"
               ],
               "desc": "Zentrales Log-Management. Alle Dienste loggen nach Loki, Suche in Grafana.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p4-uptime",
@@ -1021,7 +1077,9 @@
                 "Alerts"
               ],
               "desc": "Status-Seite für alle eigenen Dienste. Alerting via Mail/Ntfy wenn ein Dienst down ist.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             }
           ]
         },
@@ -1039,7 +1097,9 @@
                 "Metasploitable"
               ],
               "desc": "Separates VLAN/Netz für Security-Experimente. Kali Linux VM, Metasploitable, DVWA.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             },
             {
               "id": "p4-ids",
@@ -1052,7 +1112,9 @@
                 "Security"
               ],
               "desc": "Suricata oder Zeek. Netzwerkverkehr analysieren, Angriffsmuster erkennen.",
-              "log": []
+              "log": [],
+              "notes": "",
+              "deferred_reason": ""
             }
           ]
         }
@@ -1157,6 +1219,623 @@
         "Autostart via pct set 100 --onboot 1 --startup order=1,up=30,down=60 gesetzt",
         "TP-Link Archer C80 DNS wieder auf 192.168.0.201 gesetzt",
         "Idee: Raspberry Pi Zero 2 W als Secondary DNS für HA – unabhängig von Proxmox/Hyper-V"
+      ]
+    }
+  ],
+  "ideas": [
+    {
+      "id": "idea-001",
+      "title": "Eigene Domain kaufen",
+      "desc": "Eine eigene Domain registrieren (z.B. bei Cloudflare oder Namecheap) als Basis für DDNS, Let's Encrypt Wildcard-Zertifikate und öffentlich erreichbare Dienste. Voraussetzung für alles was nach außen zeigt.",
+      "phase_id": "phase2",
+      "step_id": "p2-ddns",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "DNS",
+        "Web"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-002",
+      "title": "Let's Encrypt Wildcard Zertifikate",
+      "desc": "Let's Encrypt Wildcard-Zertifikate via DNS-Challenge (Cloudflare API). Ein Zertifikat für *.homelab.domain deckt alle Subdomains ab – kein separates Cert pro Dienst nötig. Automatische Erneuerung via certbot oder acme.sh.",
+      "phase_id": "phase2",
+      "step_id": "p2-reverseproxy",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "TLS",
+        "Security"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-003",
+      "title": "Homelab-Blog öffentlich hosten",
+      "desc": "Eigenen Blog oder technische Dokumentation öffentlich von zuhause hosten. Static Site Generator (Hugo, Jekyll) oder einfaches Nginx. Zeigt nach außen was im Homelab läuft – gut für Portfolio und Lernnachweis.",
+      "phase_id": "phase3",
+      "step_id": "p3-webserver",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "Web",
+        "Docs"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-004",
+      "title": "Matrix Homeserver",
+      "desc": "Matrix/Element als selbst gehosteter, dezentraler Chat-Server. Ersetzt proprietäre Messenger für interne Kommunikation. Kann später als Notifications-Hub für Alerting und Automatisierungen dienen.",
+      "phase_id": "phase3",
+      "step_id": "p3-chat",
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Chat",
+        "Matrix"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-005",
+      "title": "Backup-Strategie (3-2-1 Regel)",
+      "desc": "3-2-1 Backup-Strategie: 3 Kopien der Daten, auf 2 verschiedenen Medien, davon 1 offsite. Restic als Backup-Tool (verschlüsselt, dedupliziert, effizient). Grundlage für echte Disaster Recovery – ohne das ist alles nur ein Single Point of Failure.",
+      "phase_id": null,
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Backup",
+        "Restic"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-006",
+      "title": "Mini-Rack anschaffen",
+      "desc": "Kleines physisches Rack (6U-12U) für strukturiertes Verkabeln von Raspberry Pi, Switches, Patch-Panel. Macht das Homelab übersichtlicher und ist Voraussetzung für skalierbare physische Hardware.",
+      "phase_id": null,
+      "step_id": null,
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Hardware"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-007",
+      "title": "Tailscale als WireGuard-Alternative testen",
+      "desc": "Tailscale als Zero-Config WireGuard-Alternative testen. Kein Port-Forwarding nötig, funktioniert hinter NAT, einfache Client-Installation. Gut zum Vergleich mit nativem WireGuard – zeigt den Trade-off zwischen Komfort und Kontrolle.",
+      "phase_id": "phase2",
+      "step_id": "p2-wireguard",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "VPN",
+        "Tailscale"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-008",
+      "title": "Terraform für Proxmox-Provisioning",
+      "desc": "Terraform für deklaratives VM-Provisioning auf Proxmox. Infrastruktur als Code – VMs werden aus einer .tf-Datei heraus erstellt, modifiziert und gelöscht. Zusammen mit Ansible (Provisioning) ergibt das eine vollständige IaC-Pipeline.",
+      "phase_id": "phase3",
+      "step_id": "p3-ansible",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "IaC",
+        "Terraform"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-009",
+      "title": "Dedizierter Mini-Server (z.B. Mini-PC / N100)",
+      "desc": "Dedizierter Mini-PC (Intel N100 oder ähnlich) als Always-on-Server. Läuft 24/7 mit ~10-15W, unabhängig vom Gaming-PC. Ideal für DNS, VPN-Endpunkt und Monitoring – löst das Single-Point-of-Failure-Problem des Hyper-V-Setups.",
+      "phase_id": null,
+      "step_id": null,
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Hardware"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-010",
+      "title": "Proxmox Backup-VM mit PBS einrichten",
+      "desc": "Proxmox Backup Server als eigene VM – automatische Backups aller VMs",
+      "phase_id": "phase1",
+      "step_id": "p1-proxmox-vm",
+      "prio": "high",
+      "status": "deferred",
+      "tags": [
+        "Backup",
+        "Proxmox",
+        "PBS"
+      ],
+      "comments": [
+        {
+          "id": "c-001",
+          "date": "2026-04-16",
+          "text": "Direkt nach der ersten Proxmox-Installation einplanen – bevor irgendwas kaputt gehen kann",
+          "edited": false
+        },
+        {
+          "id": "c-010-2",
+          "date": "2026-04-19",
+          "text": "Zurückgestellt: PBS braucht zweites Speichermedium. Auf einer einzelnen 1TB SSD kein echtes Backup. Bis dahin: Hyper-V Snapshots + vzdump.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-011",
+      "title": "IKEv2 / IPsec VPN aufsetzen",
+      "desc": "Enterprise-VPN-Protokoll als Ergänzung zu WireGuard. StrongSwan als IKEv2/IPsec-Daemon. Direkter Vergleich beider Protokolle – jobrelevant im Network Engineering.",
+      "phase_id": "phase2",
+      "step_id": "p2-wireguard",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "VPN",
+        "IKEv2",
+        "IPsec",
+        "StrongSwan"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-012",
+      "title": "Syslog-Server + interner NTP",
+      "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog oder Graylog). Interner NTP-Server via Chrony – Pflicht für Zertifikate, Kerberos und konsistente Log-Timestamps.",
+      "phase_id": "phase2",
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Syslog",
+        "NTP",
+        "Logging",
+        "Chrony"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-013",
+      "title": "TACACS+ Server einrichten",
+      "desc": "AAA für Netzwerkgeräte. tac_plus oder Cisco ISE-Alternative. Privilege Levels, Command Authorization.",
+      "phase_id": "phase4",
+      "step_id": "p4-sso",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "TACACS+",
+        "AAA",
+        "NetOps",
+        "Security"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-014",
+      "title": "RADIUS Server (FreeRADIUS)",
+      "desc": "FreeRADIUS für 802.1X Auth, WiFi-Authentifizierung und VPN-Auth.",
+      "phase_id": "phase4",
+      "step_id": "p4-sso",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "RADIUS",
+        "FreeRADIUS",
+        "AAA",
+        "802.1X"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-015",
+      "title": "Access Server für TACACS+ Device Login",
+      "desc": "VM als simuliertes Netzwerkgerät. Login-Flow via TACACS+ üben: Privilege Levels, Command Authorization, Accounting.",
+      "phase_id": "phase4",
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "TACACS+",
+        "AAA",
+        "Lab",
+        "Netzwerk"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-016",
+      "title": "Oxidized – Network Config Backup",
+      "desc": "Moderner Rancid-Nachfolger. Holt Configs von Netzwerkgeräten automatisch per SSH und versioniert sie in Git.",
+      "phase_id": "phase3",
+      "step_id": "p3-git",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "Oxidized",
+        "Rancid",
+        "NetOps",
+        "Git"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-017",
+      "title": "AWX / Semaphore als Ansible UI",
+      "desc": "Web-Frontend für Ansible Playbooks. Job-Scheduling ähnlich Autosys.",
+      "phase_id": "phase3",
+      "step_id": "p3-ansible",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "Ansible",
+        "AWX",
+        "Semaphore",
+        "Automation"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-018",
+      "title": "PrivateBin – verschlüsselter Paste-Service",
+      "desc": "Self-hosted Paste-Service mit clientseitiger Verschlüsselung. Ergänzung zu Vaultwarden.",
+      "phase_id": "phase3",
+      "step_id": "p3-vaultwarden",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "PrivateBin",
+        "Security",
+        "Self-hosted"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-019",
+      "title": "Berechtigungskonzept & IAM",
+      "desc": "Zentrales Konzept wer was wie ausführen darf. Proxmox-User-Rollen, sudo-Policies auf VMs, Service-Accounts, Principle of Least Privilege. Dokumentiert als Policy-Dokument.",
+      "phase_id": "phase4",
+      "step_id": "p4-sso",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "IAM",
+        "Security",
+        "Permissions",
+        "RBAC",
+        "sudo"
+      ],
+      "comments": [
+        {
+          "id": "c-002",
+          "date": "2026-04-17",
+          "text": "Gilt für: Proxmox-UI (Rollen/Gruppen), Linux-VMs (sudo, PAM), Dienste (API-Keys, Service-Accounts), Netzwerkgeräte (TACACS+ Privilege Levels). Alles zusammen = vollständiges IAM-Konzept.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-020",
+      "title": "DHCP Server (interner Adressvergabe)",
+      "desc": "Eigener DHCP-Server statt Router-DHCP. Feste IP-Reservierungen per MAC-Adresse, DHCP-Scopes pro VLAN/Subnetz. Kea DHCP oder direkt in AdGuard/OPNsense integriert.",
+      "phase_id": "phase1",
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "DHCP",
+        "Netzwerk",
+        "Kea",
+        "IP-Management"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-021",
+      "title": "WLAN Controller (Wireless Management)",
+      "desc": "Zentrales Management für WLAN-Geräte. OpenWRT Access Points via Controller verwalten, SSIDs pro VLAN, WPA Enterprise mit RADIUS. Mögliche Lösungen: OpenWRT + LuCI, hostapd, oder Unifi Controller selbst gehosted.",
+      "phase_id": "phase2",
+      "step_id": "p2-vlans",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "WLAN",
+        "WiFi",
+        "Controller",
+        "OpenWRT",
+        "Unifi"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-022",
+      "title": "Ansible Base-Playbook für neue VMs/Container",
+      "desc": "Standardisiertes Playbook das jede neue VM/CT sofort produktionsbereit macht: apt update, curl/vim/git/ufw installieren, SSH hardening, Zeitzone setzen, Monitoring-Agent deployen. Einmal schreiben, immer wiederverwenden.",
+      "phase_id": "phase3",
+      "step_id": "p3-ansible",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Ansible",
+        "Automation",
+        "IaC",
+        "Hardening"
+      ],
+      "comments": [
+        {
+          "id": "c-003",
+          "date": "2026-04-17",
+          "text": "Trigger: Beim manuellen curl-Install auf adguard Container aufgefallen. Jede neue VM braucht dieselben Basis-Pakete. Ansible-Playbook schreiben sobald Grundinfra steht.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-025",
+      "title": "Home Assistant – Smarthome Integration",
+      "desc": "Home Assistant als VM/Container in Proxmox. Philips Hue Bridge ersetzen oder integrieren, Automationen, lokale Steuerung ohne Cloud. Später erweiterbar auf weitere Smarthome-Geräte.",
+      "phase_id": "phase3",
+      "step_id": null,
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "HomeAssistant",
+        "Smarthome",
+        "Philips Hue",
+        "Automation"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-026",
+      "title": "AdGuard Autostart & Fallback DNS",
+      "desc": "Proxmox VM auf Autostart setzen (Hyper-V), AdGuard Container auf Autostart in Proxmox. Router-DNS als Fallback (8.8.8.8) damit bei Ausfall kein kompletter DNS-Ausfall entsteht.",
+      "phase_id": "phase2",
+      "step_id": "p2-dns",
+      "prio": "high",
+      "status": "done",
+      "tags": [
+        "AdGuard",
+        "Autostart",
+        "Redundanz",
+        "DNS"
+      ],
+      "comments": [
+        {
+          "id": "c-005",
+          "date": "2026-04-17",
+          "text": "Single Point of Failure wenn Proxmox VM down ist. Fallback-DNS am Router als Absicherung eintragen.",
+          "edited": false
+        },
+        {
+          "id": "c-006",
+          "date": "2026-04-18",
+          "text": "Autostart-Versuch führte zu Proxmox-Ausfall – nicht durch Set-VM selbst, sondern weil vorher existierende nic0/eth0 Inkonsistenz in /etc/network/interfaces nach Neustart sichtbar wurde. Nach Fix (p1-recovery): Hyper-V-Seite via Set-VM gesetzt, Container-Seite via pct set 100 --onboot 1 --startup order=1,up=10,down=60. Reboot-Test steht aus.",
+          "edited": false
+        },
+        {
+          "id": "c-026-3",
+          "date": "2026-04-19",
+          "text": "Erledigt: pct set 100 --onboot 1 --startup order=1,up=30,down=60. Reboot-Test bestanden – Proxmox VM und AdGuard Container starten automatisch nach Windows-Neustart. Boot-Kette dauert ~90-120s.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-027",
+      "title": "Passwort-Manager VOR kritischen Änderungen",
+      "desc": "Vor jeder großen Infrastruktur-Änderung: alle relevanten Zugangsdaten in Bitwarden/Vaultwarden dokumentieren. Root-Passwörter von VMs, BIOS-Passwörter, GRUB-Passwörter, SSH-Keys. Lessons Learned: Proxmox-Root-Passwort vergessen → GRUB-Recovery nötig.",
+      "phase_id": "phase3",
+      "step_id": "p3-vaultwarden",
+      "prio": "high",
+      "status": "done",
+      "tags": [
+        "Security",
+        "Passwörter",
+        "Dokumentation",
+        "Vaultwarden"
+      ],
+      "comments": [
+        {
+          "id": "c-007",
+          "date": "2026-04-18",
+          "text": "Übergangslösung bis Vaultwarden läuft: Windows Passwort-Manager oder KeePass-Datei auf Y:/HomeLab/.secrets/ mit .gitignore (NICHT in Repo!).",
+          "edited": false
+        },
+        {
+          "id": "c-027-2",
+          "date": "2026-04-19",
+          "text": "Erledigt: KeePassXC eingerichtet, alle aktuellen Credentials (Proxmox root, AdGuard, SSH-Keys) eingetragen. cmd:// URLs für PuTTY-SSH-Zugang konfiguriert. Vaultwarden bleibt Ziel für Phase 3.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-028",
+      "title": "Recovery-Runbook als dokumentiertes Verfahren",
+      "desc": "Eigener Wiki-Bereich 'recovery/' mit Schritt-für-Schritt-Anleitungen für typische Notfälle: GRUB Passwort-Reset (done: doc-006), Netzwerk nicht erreichbar (done: doc-007), Proxmox VM korrupt, Container corrupted. Jeweils mit 'wenn X passiert, dann Y machen'.",
+      "phase_id": "phase3",
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Recovery",
+        "Doku",
+        "Runbook",
+        "Disaster Recovery"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-029",
+      "title": "Snapshot vor Netzwerk-Änderungen",
+      "desc": "Proxmox-VM-Snapshot in Hyper-V anlegen bevor kritische Config-Änderungen (interfaces, DNS, Firewall) gemacht werden. Checkpoint-VM -VMName 'Proxmox' -SnapshotName 'pre-<aktion>-<datum>'. Rollback in Sekunden wenn was schiefgeht.",
+      "phase_id": "phase1",
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Backup",
+        "Snapshot",
+        "Hyper-V",
+        "Safety"
+      ],
+      "comments": [
+        {
+          "id": "c-008",
+          "date": "2026-04-18",
+          "text": "Hätte heutigen Recovery-Marathon auf 30s reduziert: Snapshot → nic0/eth0 Fix versuchen → wenn broken: Restore. Snapshots NICHT als Backup-Ersatz nutzen, aber für operative Änderungen Gold wert.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-030",
+      "title": "vim-Konfiguration .vimrc für Admin-Komfort",
+      "desc": "Minimale .vimrc auf Proxmox und allen Admin-VMs: syntax on, set number, set hlsearch, set incsearch, set expandtab, set tabstop=4. Macht vim nutzbar ohne vim-Guru zu sein.",
+      "phase_id": "phase3",
+      "step_id": "p3-ansible",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "vim",
+        "Ansible",
+        "Konfiguration",
+        "DX"
+      ],
+      "comments": [
+        {
+          "id": "c-009",
+          "date": "2026-04-18",
+          "text": "Gehört ins Ansible Base-Playbook (idea-022) – jede neue VM bekommt standardisierte vim-Config.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-031",
+      "title": "Startup-Monitoring – wer startet wann nach Reboot?",
+      "desc": "Uptime Kuma oder eigenes Script das nach Windows-Reboot protokolliert: wann kommen Proxmox, vmbr0, Container, DNS, Web-UI hoch? Timeline-Log zum Optimieren von AutomaticStartDelay und pct startup-Werten.",
+      "phase_id": "phase4",
+      "step_id": "p4-uptime",
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Monitoring",
+        "Uptime",
+        "Boot-Performance"
+      ],
+      "comments": []
+    },
+    {
+      "id": "idea-033",
+      "title": "Raspberry Pi Zero 2 W als Secondary DNS (HA)",
+      "desc": "Pi Zero 2 W (~15-18€) als permanenter Secondary DNS unabhängig von Proxmox und Hyper-V. Läuft 24/7 mit ~1-2W Stromverbrauch, WLAN onboard, kein Kabel nötig. AdGuard oder Pi-hole drauf. Wenn der Gaming-PC oder Proxmox down ist springt der Pi automatisch ein – kein DNS-Ausfall mehr im gesamten Heimnetz.",
+      "phase_id": "phase2",
+      "step_id": "p2-dns",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "DNS",
+        "Raspberry Pi",
+        "HA",
+        "Redundanz",
+        "Hardware"
+      ],
+      "comments": [
+        {
+          "id": "c-033-1",
+          "date": "2026-04-19",
+          "text": "Entstand nach AdGuard-Ausfall-Session: Single Point of Failure wenn Proxmox down. Architektur: Router Primary DNS → 192.168.0.201 (Proxmox/AdGuard), Secondary → Pi-IP. Beide laufen dieselben Blocklisten. Erster physischer Server im Homelab.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-034",
+      "title": "Auto-Sync: JSON-Bearbeitung → GitHub Repo",
+      "desc": "Workflow der sicherstellt dass homelab-state.json und homelab-ideas.json nach jeder Bearbeitung automatisch ins GitHub-Repo gepusht werden. Ziel: JSON im Repo ist immer der aktuelle Stand, kein manuelles git add/commit/push nötig. Mögliche Ansätze: (1) GitHub Actions die auf Dateiänderungen triggern, (2) lokales Git-Hook (post-commit) der automatisch pusht, (3) Watchman/inotifywait Script das Dateiänderungen erkennt und git push auslöst, (4) n8n Workflow der periodisch prüft ob lokale JSON neuer ist als Remote und ggf. pusht.",
+      "phase_id": "phase3",
+      "step_id": "p3-git",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "Git",
+        "Automation",
+        "GitHub",
+        "Dokumentation",
+        "CI/CD",
+        "n8n"
+      ],
+      "comments": [
+        {
+          "id": "c-011",
+          "date": "2026-04-19",
+          "text": "Hintergrund: JSON wird lokal bearbeitet (via AI oder manuell), aber Repo-Stand hinkt immer hinterher. Einfachster Ansatz für jetzt: post-commit Hook in Y:/HomeLab/Dokumentation/.git/hooks/post-commit der automatisch git push origin main ausführt. Sobald Gitea läuft (p3-git) kann das auch intern gehostet werden.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-035",
+      "title": "DMZ – Demilitarized Zone für öffentliche Dienste",
+      "desc": "Eigenes Subnetz 10.0.4.0/24 für öffentlich erreichbare Dienste (Webserver, Reverse Proxy, DDNS-Endpunkt, später Mailserver). Isoliert vom Management- und Lab-Netz durch Firewall-Regeln auf OPNsense/pfSense. Klassisches Enterprise-Pattern: Internet → Firewall → DMZ → interne Firewall → LAN. Direkter Lernwert für Network Engineering: Firewall-Zonen, Port-Forwarding, Stateful Inspection, asymmetrisches Routing vermeiden.",
+      "phase_id": "phase2",
+      "step_id": "p2-firewall",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "DMZ",
+        "Netzwerk",
+        "Firewall",
+        "Security",
+        "Segmentierung",
+        "OPNsense"
+      ],
+      "comments": [
+        {
+          "id": "c-012",
+          "date": "2026-04-19",
+          "text": "Voraussetzung: OPNsense/pfSense muss zuerst laufen (p2-firewall). DMZ ist Zielbild für alle Dienste aus Phase 3 die von außen erreichbar sein sollen: Webserver (p3-webserver), Mailserver (p3-mail), DDNS (p2-ddns). Regeln: DMZ → Internet = erlaubt, DMZ → LAN = geblockt (außer definierte Rückkanäle), LAN → DMZ = erlaubt. So sind kompromittierte DMZ-Dienste nicht sofort Zugang zum internen Netz.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-036",
+      "title": "Monitoring Stack – Grafana + Prometheus + Node Exporter",
+      "desc": "Vollständiger Observability-Stack: Prometheus scrapt Metriken aller VMs via Node Exporter (CPU, RAM, Disk, Netzwerk), Grafana visualisiert in Dashboards, Alertmanager schickt Notifications per Mail oder Ntfy. Proxmox hat einen eigenen Prometheus-Endpoint (/api2/json) der direkt integriert werden kann. Deployment via Docker Compose auf dedizierter Monitoring-VM.",
+      "phase_id": "phase4",
+      "step_id": "p4-grafana",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Monitoring",
+        "Grafana",
+        "Prometheus",
+        "Node Exporter",
+        "Alerting",
+        "Observability"
+      ],
+      "comments": [
+        {
+          "id": "c-036-1",
+          "date": "2026-04-19",
+          "text": "Sinnvoll sobald 3+ VMs laufen. Stack: Prometheus + Node Exporter pro VM + Grafana + Alertmanager. Ressourcen: 1-2 Cores, 2 GB RAM, 20 GB Disk für Prometheus-TSDB.",
+          "edited": false
+        }
       ]
     }
   ]

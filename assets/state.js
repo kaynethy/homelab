@@ -4,12 +4,17 @@
 
   const USER_CHANGES_KEY = 'homelab_user_changes';
 
-  // user_changes Struktur: { steps: { [stepId]: { status, notes, log } }, phases: { [phaseId]: { notes } } }
+  // user_changes Struktur: { steps: {}, phases: {}, custom_steps: [], removed_steps: [] }
   function loadUserChanges() {
     try {
-      return JSON.parse(localStorage.getItem(USER_CHANGES_KEY)) || { steps: {}, phases: {} };
+      var c = JSON.parse(localStorage.getItem(USER_CHANGES_KEY)) || {};
+      if (!c.steps) c.steps = {};
+      if (!c.phases) c.phases = {};
+      if (!c.custom_steps) c.custom_steps = [];
+      if (!c.removed_steps) c.removed_steps = [];
+      return c;
     } catch (e) {
-      return { steps: {}, phases: {} };
+      return { steps: {}, phases: {}, custom_steps: [], removed_steps: [] };
     }
   }
 
@@ -42,6 +47,36 @@
         }
       }
     }
+
+    // Remove user-deleted steps
+    if (changes.removed_steps && changes.removed_steps.length > 0) {
+      for (const phase of state.phases) {
+        if (phase.steps) phase.steps = phase.steps.filter(s => !changes.removed_steps.includes(s.id));
+        if (phase.sections) phase.sections.forEach(sec => {
+          sec.steps = (sec.steps || []).filter(s => !changes.removed_steps.includes(s.id));
+        });
+      }
+    }
+
+    // Inject user-created custom steps
+    if (changes.custom_steps && changes.custom_steps.length > 0) {
+      for (const cs of changes.custom_steps) {
+        const phase = state.phases.find(p => p.id === cs.phase_id);
+        if (!phase) continue;
+        const allSteps = [...(phase.steps||[]), ...(phase.sections||[]).flatMap(s => s.steps||[])];
+        if (allSteps.some(s => s.id === cs.step.id)) continue;
+        if (cs.section_idx != null && phase.sections && phase.sections[cs.section_idx]) {
+          phase.sections[cs.section_idx].steps = phase.sections[cs.section_idx].steps || [];
+          phase.sections[cs.section_idx].steps.push(cs.step);
+        } else if (phase.steps) {
+          phase.steps.push(cs.step);
+        } else if (phase.sections && phase.sections[0]) {
+          phase.sections[0].steps = phase.sections[0].steps || [];
+          phase.sections[0].steps.push(cs.step);
+        }
+      }
+    }
+
     return state;
   }
 
@@ -116,7 +151,7 @@
     window.dispatchEvent(new Event('state-ready'));
   }
 
-  // Speichert NUR User-Changes (status/notes/log) – nie Basis-Daten
+  // Speichert User-Changes (status/notes/log + custom/removed steps)
   window.saveState = function () {
     if (!window.STATE) return;
     const changes = loadUserChanges();
@@ -141,6 +176,49 @@
     }
 
     localStorage.setItem(USER_CHANGES_KEY, JSON.stringify(changes));
+  };
+
+  // Add a user-created step to a phase
+  window.addCustomStep = function (phaseId, sectionIdx, step) {
+    const changes = loadUserChanges();
+    changes.custom_steps.push({ phase_id: phaseId, section_idx: sectionIdx, step: step });
+    changes.removed_steps = changes.removed_steps.filter(id => id !== step.id);
+    localStorage.setItem(USER_CHANGES_KEY, JSON.stringify(changes));
+    // Add to STATE in memory
+    const phase = window.STATE.phases.find(p => p.id === phaseId);
+    if (!phase) return;
+    if (sectionIdx != null && phase.sections && phase.sections[sectionIdx]) {
+      phase.sections[sectionIdx].steps = phase.sections[sectionIdx].steps || [];
+      phase.sections[sectionIdx].steps.push(step);
+    } else if (phase.steps) {
+      phase.steps.push(step);
+    } else if (phase.sections && phase.sections[0]) {
+      phase.sections[0].steps = phase.sections[0].steps || [];
+      phase.sections[0].steps.push(step);
+    }
+    window.saveState();
+  };
+
+  // Remove a step (custom or base) from the roadmap
+  window.removeCustomStep = function (stepId) {
+    const changes = loadUserChanges();
+    const wasCustom = changes.custom_steps.some(cs => cs.step.id === stepId);
+    if (wasCustom) {
+      changes.custom_steps = changes.custom_steps.filter(cs => cs.step.id !== stepId);
+    } else {
+      if (!changes.removed_steps.includes(stepId)) changes.removed_steps.push(stepId);
+    }
+    delete changes.steps[stepId];
+    localStorage.setItem(USER_CHANGES_KEY, JSON.stringify(changes));
+    // Remove from STATE in memory
+    if (window.STATE) {
+      for (const phase of window.STATE.phases) {
+        if (phase.steps) phase.steps = phase.steps.filter(s => s.id !== stepId);
+        if (phase.sections) phase.sections.forEach(sec => {
+          sec.steps = (sec.steps || []).filter(s => s.id !== stepId);
+        });
+      }
+    }
   };
 
   window.exportJSON = function () {
