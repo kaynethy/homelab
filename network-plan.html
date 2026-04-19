@@ -341,6 +341,7 @@
       <p id="net-subtitle">Lade...</p>
     </div>
     <button id="btn-export-network" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all 150ms;white-space:nowrap" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border2)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">↓ Export Network JSON</button>
+    <button id="btn-clear-cache" style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all 150ms;white-space:nowrap;opacity:0.5;margin-left:6px" onmouseover="this.style.opacity='0.8';this.style.borderColor='var(--border2)'" onmouseout="this.style.opacity='0.5';this.style.borderColor='var(--border)'">↻ Cache leeren</button>
   </header>
 
   <div id="status-banner" class="status-banner" style="display:none"></div>
@@ -637,6 +638,18 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    });
+    document.getElementById('btn-clear-cache').addEventListener('click', function() {
+      if (!confirm('LocalStorage-Cache leeren und Seite neu laden?\n\nAlle nicht-exportierten Änderungen (Ideen, Steps, Netzwerk-Positionen) gehen verloren.\n\nDanach werden alle Daten frisch aus den JSON-Dateien geladen.')) return;
+      this.textContent = 'Wird geleert...';
+      var keysToRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && key.startsWith('homelab_')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+      console.info('[cache] ' + keysToRemove.length + ' Einträge gelöscht:', keysToRemove);
+      location.reload(true);
     });
   }
 

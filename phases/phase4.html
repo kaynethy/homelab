@@ -82,7 +82,8 @@
     var notes = phase.notes || '';
 
     document.getElementById('phase-content').innerHTML =
-      '<div class="page-header">' +
+      '<div class="page-header' + (isComplete ? ' phase-complete' : '') + '" style="position:relative">' +
+        (isComplete ? '<div class="phase-complete-particles"><span></span><span></span><span></span><span></span></div>' : '') +
         '<span class="phase-num p' + pNum + '" style="display:inline-block;margin-bottom:10px">PHASE ' + pNum + '</span>' +
         statusBadge +
         '<h1 style="font-family:\'JetBrains Mono\',monospace;font-size:22px;font-weight:700;color:#fff;margin-bottom:4px">' + escHtml(phase.title) + '</h1>' +
