@@ -1,0 +1,374 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "category": "Netzwerk",
+    "description": "Netzwerk-Grundbegriffe und -Konzepte — von Subnetting bis Proxy, von MAC-Adressen bis QoS"
+  },
+  "entries": [
+    {
+      "id": "reverse-proxy",
+      "term": "Reverse Proxy",
+      "tags": ["Netzwerk", "Security", "Web"],
+      "summary": "Ein Server der VOR deinen Backend-Diensten steht. Clients sprechen nur mit dem Proxy — nie direkt mit dem Backend.",
+      "explanation": "Stell dir vor du hast 5 Dienste (Proxmox, AdGuard, Gitea, Wiki, n8n) die alle auf verschiedenen Ports laufen. Ohne Reverse Proxy muss der User wissen: Proxmox ist auf :8006, AdGuard auf :80, Gitea auf :3000. Mit Reverse Proxy läuft alles über Port 443 (HTTPS) und der Proxy entscheidet anhand des Hostnamens (Host-Header) wohin der Traffic geht: proxmox.homelab.local → localhost:8006, git.homelab.local → localhost:3000.",
+      "howItWorks": "1. Client sendet HTTPS-Request an proxmox.homelab.local\n2. DNS löst den Namen auf die IP des Reverse Proxy auf\n3. Reverse Proxy terminiert TLS (entschlüsselt)\n4. Proxy liest den Host-Header → routet zum richtigen Backend\n5. Backend antwortet → Proxy leitet Antwort zurück an Client\n\nDer Client sieht nur den Proxy. Die Backend-Server und deren Ports sind komplett versteckt.",
+      "homelab": "Geplant: Nginx Proxy Manager oder Traefik (p2-reverseproxy). Alle Dienste über Subdomains: proxmox.homelab.local, adguard.homelab.local, git.homelab.local. Zentrale TLS-Terminierung mit Let's Encrypt Wildcard-Zertifikat.",
+      "security": "Versteckt Backend-Server und deren Ports. Zentrale TLS-Terminierung (ein Cert für alles). WAF-Funktionalität möglich (ModSecurity). Rate Limiting. Header-Manipulation (X-Real-IP, X-Forwarded-For). Clients sehen nur den Proxy — Backend-IPs sind nicht exponiert.",
+      "relatedTerms": ["forward-proxy", "load-balancer", "nat", "tls-terminierung"],
+      "links": [
+        { "title": "Nginx Proxy Manager", "url": "https://nginxproxymanager.com/" },
+        { "title": "Traefik Docs", "url": "https://doc.traefik.io/traefik/" }
+      ]
+    },
+    {
+      "id": "forward-proxy",
+      "term": "Forward Proxy",
+      "tags": ["Netzwerk", "Security"],
+      "summary": "Ein Proxy der VOR den Clients steht. Clients senden Requests an den Proxy, der leitet sie ans Internet weiter. Der Zielserver sieht nur den Proxy.",
+      "explanation": "Forward Proxy = du sitzt hinter dem Proxy. Dein Browser sendet den Request an den Proxy, der Proxy sendet ihn an den Zielserver. Der Zielserver sieht die IP des Proxy, nicht deine. Typischer Einsatz: Firmen-Proxy der allen Internet-Traffic filtert und logged.\n\nUnterschied zum Reverse Proxy: Forward Proxy schützt den CLIENT (versteckt Client-IP). Reverse Proxy schützt den SERVER (versteckt Server-IP). Merkhilfe: Forward = Richtung Internet. Reverse = Richtung Backend.",
+      "howItWorks": "1. Client konfiguriert Proxy-Adresse im Browser/System\n2. Client sendet HTTP CONNECT an den Proxy\n3. Proxy stellt Verbindung zum Zielserver her\n4. Proxy leitet Daten bidirektional weiter\n5. Zielserver sieht nur die Proxy-IP",
+      "homelab": "Squid oder mitmproxy als Forward Proxy für Netzwerk-Analyse und Content-Filtering. Kann mit AdGuard kombiniert werden für zusätzliche Kontrolle.",
+      "security": "Content-Filtering (Malware-Schutz), Logging (wer surft wohin), Anonymisierung (Tor ist ein spezieller Forward Proxy). Nachteil: HTTPS-Inspection braucht eigenes CA-Cert auf allen Clients (MITM by Design).",
+      "relatedTerms": ["reverse-proxy", "nat", "socks"],
+      "links": [
+        { "title": "Squid Proxy", "url": "http://www.squid-cache.org/" }
+      ]
+    },
+    {
+      "id": "nat",
+      "term": "NAT (Network Address Translation)",
+      "tags": ["Netzwerk", "Routing", "Firewall"],
+      "summary": "Übersetzt private IP-Adressen in öffentliche und zurück. Ermöglicht vielen Geräten mit einer einzigen öffentlichen IP ins Internet zu gehen.",
+      "explanation": "Dein Heimnetz hat private IPs (192.168.0.x) die im Internet nicht routbar sind. Dein Router hat EINE öffentliche IP vom ISP. NAT übersetzt: wenn dein PC (192.168.0.155) eine Anfrage ans Internet sendet, ersetzt der Router die Source-IP durch seine öffentliche IP und merkt sich die Zuordnung in einer NAT-Tabelle. Die Antwort kommt an die öffentliche IP, der Router schaut in der Tabelle nach und leitet an 192.168.0.155 weiter.\n\nVarianten:\n• SNAT (Source NAT): ändert Source-IP (Standardfall, dein Router)\n• DNAT (Destination NAT): ändert Destination-IP (Port-Forwarding)\n• PAT/Masquerading: viele interne IPs → eine externe IP mit verschiedenen Ports\n• 1:1 NAT: eine interne IP = eine externe IP (für Server)",
+      "howItWorks": "Ausgehend (PAT):\nPC 192.168.0.155:54321 → Router ersetzt mit 84.123.x.x:40001 → Internet\nAntwort: Internet → 84.123.x.x:40001 → Router schaut NAT-Tabelle → 192.168.0.155:54321\n\nPort-Forwarding (DNAT):\nInternet → 84.123.x.x:8006 → Router Regel: Port 8006 → 192.168.0.200:8006 (Proxmox)",
+      "homelab": "TP-Link Archer C80 macht PAT/Masquerading für alle Geräte. OPNsense wird NAT zwischen den Subnetzen übernehmen. Port-Forwarding für WireGuard VPN (UDP 51820) und DDNS geplant.",
+      "security": "NAT ist KEIN Sicherheitsfeature — es versteckt interne IPs, filtert aber keinen Traffic. Eine Firewall muss zusätzlich filtern. NAT Traversal (STUN/TURN) wird für VoIP, Gaming, P2P gebraucht. IPv6 macht NAT eigentlich überflüssig (genug Adressen für alle).",
+      "relatedTerms": ["firewall-konzept", "port-ranges", "rfc1918", "gateway"],
+      "links": [
+        { "title": "NAT erklärt (Cloudflare)", "url": "https://www.cloudflare.com/learning/network-layer/what-is-nat/" }
+      ]
+    },
+    {
+      "id": "gateway",
+      "term": "Gateway / Default Gateway",
+      "tags": ["Netzwerk", "Routing"],
+      "summary": "Der Ausgang aus deinem Subnetz. Wenn ein Paket nicht lokal zustellbar ist, geht es an den Gateway — der routet es weiter.",
+      "explanation": "Jedes Gerät in einem Netzwerk hat einen Default Gateway konfiguriert. Wenn ein Paket an eine IP geht die NICHT im eigenen Subnetz liegt, wird es an den Gateway geschickt. Der Gateway ist typischerweise ein Router oder eine Firewall.\n\nBeispiel: Dein PC (192.168.0.155/24) will google.com (142.250.x.x) erreichen. 142.250.x.x ist nicht in 192.168.0.0/24 → Paket geht an den Gateway 192.168.0.1 (TP-Link Router). Der Router kennt den Weg ins Internet.\n\nDer Begriff 'Gateway' wird auch breiter verwendet für jede Protokoll-Übersetzung (z.B. Mail-Gateway, API-Gateway, IoT-Gateway).",
+      "howItWorks": "1. PC will 142.250.80.46 erreichen\n2. Subnetz-Check: 142.250.80.46 AND 255.255.255.0 ≠ 192.168.0.0 → nicht lokal\n3. Paket geht an Default Gateway 192.168.0.1\n4. Gateway (Router) hat Route ins Internet → leitet weiter\n5. Rückweg: Antwort kommt am Gateway an → NAT-Tabelle → zurück zum PC",
+      "homelab": "Aktuell: 192.168.0.1 (TP-Link). Geplant: OPNsense als .1 Gateway in jedem Subnetz (10.0.1.1, 10.0.2.1, 10.0.3.1, 10.0.4.1). OPNsense routet zwischen allen Subnetzen.",
+      "security": "Der Gateway ist der kritischste Punkt im Netz — wer den Gateway kontrolliert, kontrolliert allen Traffic. ARP Spoofing kann den Gateway fälschen (MITM). Fix: Static ARP für Gateway, DHCP Snooping.",
+      "relatedTerms": ["routing", "nat", "subnetting", "dmz"],
+      "links": []
+    },
+    {
+      "id": "subnetting",
+      "term": "Subnetting & CIDR",
+      "tags": ["Netzwerk", "IP", "Planung"],
+      "summary": "Ein großes Netzwerk in kleinere Teilnetze (Subnetze) aufteilen. CIDR-Notation (/24, /16) gibt die Größe an.",
+      "explanation": "Subnetting teilt einen IP-Bereich in kleinere, logisch getrennte Netze. Jedes Subnetz hat seinen eigenen Broadcast-Bereich und braucht einen Router um mit anderen Subnetzen zu kommunizieren.\n\n/24 = 256 Adressen (254 nutzbar) → 255.255.255.0\n/25 = 128 Adressen (126 nutzbar) → 255.255.255.128\n/16 = 65536 Adressen → 255.255.0.0\n/8 = 16 Millionen Adressen → 255.0.0.0\n\nFormel: Hosts = 2^(32-Prefix) - 2 (Netzwerk-Adresse und Broadcast abziehen)\n/24: 2^8 - 2 = 254 nutzbare Hosts\n/25: 2^7 - 2 = 126 nutzbare Hosts",
+      "howItWorks": "Beispiel dein Homelab:\n• 10.0.1.0/24 → MGMT: 10.0.1.1 bis 10.0.1.254\n• 10.0.2.0/24 → SVC: 10.0.2.1 bis 10.0.2.254\n• 10.0.3.0/24 → LAB: 10.0.3.1 bis 10.0.3.254\n• 10.0.4.0/24 → DMZ: 10.0.4.1 bis 10.0.4.254\n\nAlle zusammen sind Teil von 10.0.0.0/21 (8 × /24 = 2048 Adressen). Aber du nutzt nur 4 davon.",
+      "homelab": "IP-Plan mit 4 Subnetzen: MGMT, SVC, LAB, DMZ. Jedes /24 = 254 Hosts. Aktuell alles in 192.168.0.0/24 bis OPNsense steht.",
+      "security": "Subnetting ist die Basis für Netzwerksegmentierung. Getrennte Subnetze = getrennter Broadcast = Isolation. Aber: Subnetting allein ist keine Firewall. Ohne Firewall-Regeln können Subnetze über den Router frei kommunizieren.",
+      "relatedTerms": ["rfc1918", "cidr-notation", "vlan-konzept", "gateway"],
+      "links": [
+        { "title": "Subnet Calculator", "url": "https://www.subnet-calculator.com/" },
+        { "title": "CIDR Visualizer", "url": "https://cidr.xyz/" }
+      ]
+    },
+    {
+      "id": "rfc1918",
+      "term": "RFC 1918 (Private IP-Ranges)",
+      "tags": ["Netzwerk", "IP", "Standard"],
+      "summary": "Drei IP-Bereiche die für private Netze reserviert sind und NICHT im Internet geroutet werden.",
+      "explanation": "RFC 1918 definiert drei Bereiche:\n• 10.0.0.0/8 → 10.0.0.0 – 10.255.255.255 (16.7 Mio Adressen)\n• 172.16.0.0/12 → 172.16.0.0 – 172.31.255.255 (1 Mio Adressen)\n• 192.168.0.0/16 → 192.168.0.0 – 192.168.255.255 (65.536 Adressen)\n\nJeder darf diese Adressen in seinem Netz verwenden — sie sind nicht einmalig und werden nicht im Internet geroutet. Dein Router übersetzt sie via NAT in die öffentliche IP deines ISPs.",
+      "howItWorks": "Dein Heimnetz nutzt 192.168.0.0/24 (RFC 1918). Dein geplantes Homelab nutzt 10.0.0.0/8-Bereich (auch RFC 1918). Beide sind nur intern erreichbar. Für externen Zugriff: NAT oder VPN.",
+      "homelab": "Aktuell: 192.168.0.0/24. Geplant: 10.0.1-4.0/24. Beides RFC 1918. Der TP-Link Router macht NAT ins Internet.",
+      "security": "RFC 1918-Adressen in Internet-Traffic = Konfigurationsfehler oder Spoofing. Firewalls sollten eingehende Pakete mit privater Source-IP blocken (Bogon Filtering).",
+      "relatedTerms": ["nat", "subnetting", "apipa"],
+      "links": [
+        { "title": "RFC 1918", "url": "https://datatracker.ietf.org/doc/html/rfc1918" }
+      ]
+    },
+    {
+      "id": "apipa",
+      "term": "APIPA (169.254.x.x)",
+      "tags": ["Netzwerk", "IP", "Troubleshooting"],
+      "summary": "Automatic Private IP Addressing — wenn ein Gerät keinen DHCP-Server findet, gibt es sich selbst eine 169.254.x.x Adresse.",
+      "explanation": "Wenn Windows/Linux einen DHCP-Server sucht und keine Antwort bekommt (Timeout), weist es sich automatisch eine Adresse aus 169.254.0.0/16 zu. Das Gerät kann dann nur mit anderen APIPA-Geräten im selben LAN kommunizieren — kein Gateway, kein DNS, kein Internet.\n\nWenn du 169.254.x.x siehst → DHCP funktioniert nicht. Mögliche Ursachen: DHCP-Server down, Kabel lose, falsches VLAN.",
+      "howItWorks": "1. Client sendet DHCP Discover (Broadcast)\n2. Keine Antwort nach ~30 Sekunden\n3. Client wählt zufällige IP aus 169.254.1.0 – 169.254.254.255\n4. Client prüft per ARP ob die IP frei ist\n5. Falls frei: IP wird zugewiesen, kein Gateway, kein DNS",
+      "homelab": "Wenn der Jumphost oder eine VM 169.254.x.x hat: DHCP-Server (TP-Link oder AdGuard) nicht erreichbar. Erste Diagnose: Kabel? VLAN? DHCP-Scope voll?",
+      "security": "APIPA ist kein Sicherheitsfeature. In sicheren Netzen: APIPA deaktivieren und stattdessen Fehler melden wenn kein DHCP verfügbar ist.",
+      "relatedTerms": ["dhcp-konzept", "rfc1918"],
+      "links": []
+    },
+    {
+      "id": "broadcast-unicast-multicast",
+      "term": "Broadcast / Unicast / Multicast / Anycast",
+      "tags": ["Netzwerk", "Grundlagen"],
+      "summary": "Vier Wege wie Pakete adressiert werden können — an einen, alle, eine Gruppe, oder den nächstgelegenen.",
+      "explanation": "• Unicast: ein Absender → ein Empfänger (99% des Traffics: HTTP, SSH, etc.)\n• Broadcast: ein Absender → ALLE Geräte im Subnetz (ARP, DHCP Discover). Broadcast-Adresse eines /24: x.x.x.255\n• Multicast: ein Absender → eine GRUPPE von Empfängern die sich angemeldet haben (Video-Streaming, OSPF: 224.0.0.5)\n• Anycast: ein Absender → der NÄCHSTE aus einer Gruppe von Empfängern mit derselben IP (DNS Root Server, CDNs, Cloudflare 1.1.1.1)\n\nBroadcasts stoppen am Router/Gateway — deshalb ist Subnetting wichtig: kleinere Subnetze = kleinere Broadcast-Domains = weniger unnötiger Traffic.",
+      "howItWorks": "ARP Request (Broadcast): 'Wer hat 192.168.0.200?' → alle 254 Geräte im /24 empfangen das Paket, aber nur Proxmox antwortet.\nHTTP Request (Unicast): Browser → direkt an 192.168.0.200 → nur Proxmox empfängt.\nOSPF Hello (Multicast): Router sendet an 224.0.0.5 → nur andere OSPF-Router empfangen.",
+      "homelab": "Broadcasts sind der Grund warum VLANs wichtig sind. In einem großen flachen Netz flutet jeder ARP/DHCP-Request alle Geräte. Mit VLANs: Broadcast nur innerhalb des VLANs.",
+      "security": "Broadcast Storms können Netze lahmlegen (STP verhindert Loops). Smurf Attack: ICMP Broadcast an Netzadresse mit gefälschter Source-IP → alle antworten an das Opfer.",
+      "relatedTerms": ["subnetting", "vlan-konzept", "mac-adresse"],
+      "links": []
+    },
+    {
+      "id": "mac-adresse",
+      "term": "MAC-Adresse",
+      "tags": ["Netzwerk", "Layer 2", "Grundlagen"],
+      "summary": "48-Bit Hardware-Adresse einer Netzwerkkarte. Weltweit eindeutig (theoretisch). Arbeitet auf Layer 2.",
+      "explanation": "MAC = Media Access Control. Jede NIC hat eine (theoretisch) weltweit eindeutige MAC-Adresse.\n\nAufbau: 6 Bytes hexadezimal, z.B. 00:15:5D:00:9B:01\n• Erste 3 Bytes (00:15:5D) = OUI (Organizationally Unique Identifier) = Hersteller\n  → 00:15:5D = Microsoft/Hyper-V\n• Letzte 3 Bytes (00:9B:01) = geräte-spezifisch\n\nFormate: 00:15:5D:00:9B:01 (Unix), 00-15-5D-00-9B-01 (Windows), 0015.5D00.9B01 (Cisco)\n\nMAC-Adressen sind NUR im lokalen Netz relevant. Ein Frame wird anhand der MAC-Adresse zugestellt. Am Router wird die MAC ausgetauscht (Hop-by-Hop).",
+      "howItWorks": "PC will Proxmox (192.168.0.200) erreichen:\n1. PC prüft ARP-Cache: IP 192.168.0.200 → MAC?\n2. Falls nicht gecached: ARP Request (Broadcast) 'Wer hat 192.168.0.200?'\n3. Proxmox antwortet mit seiner MAC: 00:15:5D:00:9B:01\n4. PC baut Ethernet-Frame: Dest-MAC = 00:15:5D:00:9B:01\n5. Switch leitet Frame anhand der MAC an den richtigen Port",
+      "homelab": "MAC Spoofing auf Hyper-V aktiviert weil LXC Container eigene MACs generieren die der vSwitch sonst blockt. OUI 00:15:5D = alle deine Hyper-V VMs.",
+      "security": "MAC Spoofing (Angreifer ändert seine MAC), MAC Flooding (Switch CAM-Table überlaufen lassen → Hub-Modus). Fix: Port Security (max. MACs pro Port), 802.1X, DAI.",
+      "relatedTerms": ["arp-konzept", "broadcast-unicast-multicast", "vlan-konzept"],
+      "links": [
+        { "title": "OUI Lookup", "url": "https://macvendors.com/" }
+      ]
+    },
+    {
+      "id": "dns-record-typen",
+      "term": "DNS Record-Typen",
+      "tags": ["Netzwerk", "DNS"],
+      "summary": "Die verschiedenen Eintragstypen in DNS: A, AAAA, CNAME, MX, TXT, PTR, SRV, NS, SOA.",
+      "explanation": "• A: Domain → IPv4 (proxmox.homelab.local → 192.168.0.200)\n• AAAA: Domain → IPv6\n• CNAME: Alias → anderer Name (www.homelab.local → homelab.local)\n• MX: Mail Exchange — welcher Server empfängt Mail für die Domain (Priority + Hostname)\n• TXT: Freitext — genutzt für SPF, DKIM, DMARC, Domain-Verification\n• PTR: Reverse DNS — IP → Domain (für Mail-Server essentiell)\n• SRV: Service Location — Hostname + Port für einen Service (_ldap._tcp.homelab.local → ldap.homelab.local:389)\n• NS: Nameserver — welcher DNS-Server ist zuständig für die Zone\n• SOA: Start of Authority — Metadaten der Zone (Serial, Refresh, Retry, Expire)\n• CAA: Certificate Authority Authorization — welche CA darf Zertifikate für die Domain ausstellen",
+      "howItWorks": "dig homelab.local A → 192.168.0.200\ndig homelab.local MX → 10 mail.homelab.local\ndig homelab.local TXT → 'v=spf1 mx -all'\nnslookup -type=PTR 200.0.168.192.in-addr.arpa → proxmox.homelab.local",
+      "homelab": "AdGuard verwaltet aktuell nur DNS-Filtering (Blocklists). Für interne DNS-Records (proxmox.homelab.local etc.) brauchst du entweder AdGuard DNS Rewrites oder einen eigenen autoritativen DNS (z.B. CoreDNS, dnsmasq).",
+      "security": "DNSSEC signiert Records gegen Manipulation. CAA Records limitieren welche CAs Certs ausstellen dürfen. SPF/DKIM/DMARC (alles TXT Records) schützen gegen Mail-Spoofing.",
+      "relatedTerms": ["dns-resolver-typen"],
+      "links": [
+        { "title": "DNS Record Types (Cloudflare)", "url": "https://www.cloudflare.com/learning/dns/dns-records/" }
+      ]
+    },
+    {
+      "id": "dns-resolver-typen",
+      "term": "DNS Resolver vs Recursive vs Authoritative",
+      "tags": ["Netzwerk", "DNS"],
+      "summary": "Drei Rollen im DNS-System: der Resolver der fragt, der Recursive der die Kette abfragt, und der Authoritative der die Antwort hat.",
+      "explanation": "• Stub Resolver: dein PC — fragt den konfigurierten DNS-Server (z.B. AdGuard)\n• Recursive Resolver: empfängt die Frage und klappert die DNS-Hierarchie ab (Root → TLD → Authoritative) bis er die Antwort hat. Cached das Ergebnis. (Cloudflare 1.1.1.1, Google 8.8.8.8, dein AdGuard)\n• Authoritative Server: hat die echte Antwort für eine Zone. 'homelab.local? Ja, das ist 192.168.0.200.' Antwortet nicht recursiv — nur für seine eigenen Zonen.\n• Forwarder: leitet DNS-Queries an einen anderen Recursive Resolver weiter statt selbst die Hierarchie abzufragen. (AdGuard ist ein Forwarder → sendet an Cloudflare DoH)",
+      "howItWorks": "Du tippst proxmox.homelab.local im Browser:\n1. Stub Resolver (Windows) fragt AdGuard (192.168.0.201)\n2. AdGuard kennt die Antwort nicht → forwarded an Cloudflare DoH\n3. Cloudflare: 'homelab.local? Nicht im öffentlichen DNS.'\n4. Antwort: NXDOMAIN (es sei denn AdGuard hat einen DNS Rewrite konfiguriert)",
+      "homelab": "AdGuard = Forwarder + DNS-Filter. Für interne Hostnamen: DNS Rewrites in AdGuard konfigurieren. Später: eigener autoritativer DNS für homelab.local Zone.",
+      "security": "Open Resolvers (die jeden fragen lassen) werden für DNS Amplification DDoS missbraucht. Dein AdGuard sollte nur aus dem LAN erreichbar sein (Port 53 auf Firewall nach außen blocken).",
+      "relatedTerms": ["dns-record-typen"],
+      "links": []
+    },
+    {
+      "id": "port-ranges",
+      "term": "Port-Ranges (Well-known, Registered, Dynamic)",
+      "tags": ["Netzwerk", "Transport", "Grundlagen"],
+      "summary": "TCP/UDP Ports sind in drei Bereiche aufgeteilt: 0-1023 (well-known), 1024-49151 (registered), 49152-65535 (dynamic).",
+      "explanation": "• Well-known Ports (0–1023): System-Ports, brauchen Root-Rechte. HTTP=80, HTTPS=443, SSH=22, DNS=53, SMTP=25, FTP=21, DHCP=67/68, NTP=123\n• Registered Ports (1024–49151): für Anwendungen registriert. Proxmox=8006, MySQL=3306, PostgreSQL=5432, RDP=3389, WireGuard=51820\n• Dynamic/Ephemeral Ports (49152–65535): temporäre Ports die das OS für ausgehende Verbindungen vergibt. Dein Browser nutzt z.B. Port 54321 als Source Port.\n\nEin 'Port' ist keine physische Schnittstelle — es ist eine 16-Bit Zahl (0–65535) die einen Dienst auf einem Host identifiziert. IP-Adresse = Haus, Port = Wohnungstür.",
+      "howItWorks": "Browser → proxmox:8006\nSource: 192.168.0.155:54321 (dynamisch)\nDest: 192.168.0.200:8006 (registered)\n\nAntwort:\nSource: 192.168.0.200:8006\nDest: 192.168.0.155:54321",
+      "homelab": "Wichtige Ports: 8006 (Proxmox), 80/443 (AdGuard/Web), 22 (SSH), 53 (DNS), 51820 (WireGuard). Firewall-Regeln basieren auf Ports: SVC → MGMT nur Port 53+123 erlaubt.",
+      "security": "Port Scanning (nmap) findet offene Ports = offene Dienste = Angriffsfläche. Firewall: nur benötigte Ports öffnen. Dienste auf non-standard Ports ≠ Security (Security by Obscurity).",
+      "relatedTerms": ["nat", "firewall-konzept"],
+      "links": [
+        { "title": "IANA Port Numbers", "url": "https://www.iana.org/assignments/service-names-port-numbers/" }
+      ]
+    },
+    {
+      "id": "routing",
+      "term": "Routing (statisch vs dynamisch)",
+      "tags": ["Netzwerk", "Routing"],
+      "summary": "Entscheidet welchen Weg ein Paket durch das Netzwerk nimmt. Statisch: manuell konfiguriert. Dynamisch: Protokolle (OSPF, BGP) berechnen den Weg automatisch.",
+      "explanation": "Jeder Router hat eine Routing-Tabelle: 'Für Netz X → schicke an Interface Y / Next-Hop Z'.\n\nStatisches Routing: Admin trägt Routen manuell ein. Einfach, vorhersagbar, skaliert nicht.\nDynamisches Routing: Protokolle wie OSPF/BGP tauschen Routen automatisch aus und reagieren auf Ausfälle.\n\nFür ein kleines Homelab (4 Subnetze, 1 Router) reicht statisches Routing. Dynamisches Routing wird relevant wenn mehrere Router oder Redundanz im Spiel sind.",
+      "howItWorks": "OPNsense Routing-Tabelle (geplant):\n• 10.0.1.0/24 → direkt verbunden (MGMT Interface)\n• 10.0.2.0/24 → direkt verbunden (SVC Interface)\n• 10.0.3.0/24 → direkt verbunden (LAB Interface)\n• 10.0.4.0/24 → direkt verbunden (DMZ Interface)\n• 0.0.0.0/0 → 192.168.0.1 (Default Route → Internet via TP-Link)",
+      "homelab": "OPNsense als zentraler Router. Statische Routen reichen. OSPF/BGP erst relevant wenn EVE-NG Lab oder zweiter Router dazukommt.",
+      "security": "Route Poisoning, Route Hijacking (falsche Routen injizieren). Fix: OSPF/BGP Authentication. Statische Routen sind immun gegen Routing-Angriffe (aber unflexibel).",
+      "relatedTerms": ["gateway", "nat", "vlan-konzept"],
+      "links": []
+    },
+    {
+      "id": "vlan-konzept",
+      "term": "VLAN (Konzept & Einsatz)",
+      "tags": ["Netzwerk", "Segmentierung", "Security"],
+      "summary": "Virtuelle LANs trennen ein physisches Netzwerk in logische Segmente. Ein Switch, mehrere isolierte Netze.",
+      "explanation": "Ohne VLANs: alle Geräte am Switch sind im gleichen Netz und sehen alle Broadcasts. Mit VLANs: der Switch trennt Ports in verschiedene virtuelle Netze. Port 1-4 = VLAN 10 (MGMT), Port 5-8 = VLAN 20 (SVC), etc.\n\nPhysisch ein Switch, logisch mehrere. Geräte in verschiedenen VLANs können NICHT direkt kommunizieren — sie brauchen einen Router (Inter-VLAN Routing).\n\nAccess Port: gehört zu einem VLAN, Frames sind ungetaggt (für Endgeräte)\nTrunk Port: trägt mehrere VLANs, Frames sind mit 802.1Q Tag versehen (zwischen Switches/Router)",
+      "howItWorks": "Dein geplantes Setup:\n• VLAN 10 (MGMT): Proxmox, OPNsense, AdGuard, Jumphost\n• VLAN 20 (SVC): Reverse Proxy, Gitea, Wiki, Vaultwarden\n• VLAN 30 (LAB): Ansible, TACACS+, Kali, EVE-NG\n• VLAN 40 (DMZ): Webserver, DDNS\n\nOPNsense hat ein Interface in jedem VLAN und routet dazwischen mit Firewall-Regeln.",
+      "homelab": "TP-Link Archer C80 ist NICHT VLAN-fähig. Lösung: Proxmox Linux Bridges pro VLAN (virtuelle Trennung) oder managed Switch kaufen. OPNsense VM bekommt mehrere vNICs (eine pro VLAN-Bridge).",
+      "security": "VLANs sind Segmentierung, keine Firewall. Inter-VLAN Traffic muss zusätzlich durch Firewall-Regeln gefiltert werden. VLAN Hopping (Double Tagging) als Angriffsvektor. Native VLAN ändern, DTP deaktivieren.",
+      "relatedTerms": ["subnetting", "routing", "firewall-konzept", "dmz"],
+      "links": [
+        { "title": "Proxmox VLAN Config", "url": "https://pve.proxmox.com/wiki/Network_Configuration#_vlan_802_1q" }
+      ]
+    },
+    {
+      "id": "dmz",
+      "term": "DMZ (Demilitarisierte Zone)",
+      "tags": ["Netzwerk", "Security", "Architektur"],
+      "summary": "Ein isoliertes Subnetz für öffentlich erreichbare Dienste. Wenn ein DMZ-Server kompromittiert wird, kann der Angreifer nicht ins interne Netz.",
+      "explanation": "Die DMZ sitzt zwischen Internet und internem Netz, geschützt durch Firewall-Regeln:\n• Internet → DMZ: erlaubt (auf definierte Ports, z.B. 80/443)\n• DMZ → Internet: erlaubt (Updates, DNS)\n• DMZ → LAN: GEBLOCKT (das ist der Kernpunkt)\n• LAN → DMZ: erlaubt (Administration)\n\nWenn ein Webserver in der DMZ gehackt wird, kann der Angreifer nicht weiter ins interne Netz (MGMT, SVC) — die Firewall blockt den Traffic.",
+      "howItWorks": "Dein Plan:\n• DMZ (10.0.4.0/24): Webserver, DDNS-Endpunkt, externer Reverse Proxy\n• Firewall-Regel: DMZ → alle internen Netze = GEBLOCKT\n• Nur definierte Rückkanäle erlaubt (z.B. DMZ → DNS auf Port 53)",
+      "homelab": "VLAN 40 / 10.0.4.0/24. Webserver und DDNS-Endpunkt. Über Port-Forwarding vom Router erreichbar. OPNsense filtert Traffic zwischen DMZ und internen Netzen.",
+      "security": "Defense in Depth: selbst bei kompromittiertem DMZ-Server ist das interne Netz geschützt. Monitoring: DMZ-Traffic intensiver überwachen (IDS/Suricata). Keine Credentials oder Secrets in DMZ-Servern speichern.",
+      "relatedTerms": ["firewall-konzept", "vlan-konzept", "nat"],
+      "links": []
+    },
+    {
+      "id": "firewall-konzept",
+      "term": "Firewall (Konzept & Typen)",
+      "tags": ["Netzwerk", "Security"],
+      "summary": "Kontrolliert welcher Netzwerk-Traffic erlaubt und welcher blockiert wird. Stateless, Stateful oder Next-Gen.",
+      "explanation": "• Packet Filter (Stateless): prüft jedes Paket einzeln (Source/Dest IP, Port, Protocol). Schnell, aber dumm — kennt keine Verbindungen.\n• Stateful Firewall: trackt TCP-Verbindungen. Weiß: 'dieses ACK gehört zu einem erlaubten SYN'. Blockt ungültige Pakete. Standard heute.\n• NGFW (Next-Generation): Stateful + Deep Packet Inspection + Application Awareness + IDS/IPS + URL-Filtering. Erkennt: 'das ist HTTP aber die Payload ist Malware'.\n• WAF (Web Application Firewall): speziell für HTTP — blockt SQL Injection, XSS, etc. Sitzt vor Webservern.\n\nOPNsense ist eine Stateful Firewall mit optionalem IDS (Suricata).",
+      "howItWorks": "Deine geplanten Regeln:\n• MGMT → alle: ERLAUBT (Admin braucht überall Zugang)\n• SVC → MGMT: nur DNS/NTP (Port 53, 123)\n• LAB → SVC/MGMT: GEBLOCKT (Lab ist isoliert)\n• DMZ → LAN: GEBLOCKT (kompromittierte DMZ = kein LAN-Zugang)\n• LAN → DMZ: ERLAUBT\n• Alles → Internet: ERLAUBT",
+      "homelab": "OPNsense als virtuelle Firewall in Proxmox (p2-firewall). Aktuell: keine Firewall zwischen Geräten (alles in einem flachen Netz). Priorität für Phase 2.",
+      "security": "Default Deny: alles blocken, explizit erlauben. Regeln so spezifisch wie möglich (nicht 'any any any allow'). Logging für geblockte Verbindungen. Regelmäßig Review der Regeln.",
+      "relatedTerms": ["dmz", "nat", "vlan-konzept", "port-ranges"],
+      "links": [
+        { "title": "OPNsense Docs", "url": "https://docs.opnsense.org/" }
+      ]
+    },
+    {
+      "id": "load-balancer",
+      "term": "Load Balancer (L4 vs L7)",
+      "tags": ["Netzwerk", "Infrastruktur"],
+      "summary": "Verteilt Traffic auf mehrere Backend-Server für Lastverteilung und Hochverfügbarkeit.",
+      "explanation": "• L4 Load Balancer (Transport Layer): verteilt basierend auf IP + Port. Sieht keinen HTTP-Inhalt. Schnell, aber unintelligent. (HAProxy TCP-Mode, Linux IPVS)\n• L7 Load Balancer (Application Layer): versteht HTTP — kann basierend auf URL, Header, Cookie routen. Langsamer, aber flexibler. (HAProxy HTTP-Mode, Nginx, Traefik)\n\nVerteilungs-Algorithmen:\n• Round Robin: abwechselnd Server 1, 2, 3, 1, 2, 3...\n• Least Connections: an den Server mit den wenigsten aktiven Verbindungen\n• IP Hash: gleiche Client-IP immer zum gleichen Server (Sticky Sessions)\n• Weighted: Server mit mehr Kapazität bekommen mehr Traffic",
+      "howItWorks": "3 Webserver hinter einem Load Balancer:\nClient → LB (10.0.2.10:443) → Web1 (10.0.2.20), Web2 (10.0.2.21), Web3 (10.0.2.22)\nLB verteilt Requests per Round Robin. Wenn Web2 ausfällt: LB erkennt das (Health Check) und sendet nur noch an Web1 und Web3.",
+      "homelab": "Aktuell nicht relevant (Single-Server). Aber Traefik/Nginx Proxy Manager können auch als L7 Load Balancer dienen. Wird relevant wenn mehrere Instanzen eines Dienstes laufen.",
+      "security": "DDoS-Mitigation (Rate Limiting, Connection Limits). SSL Offloading (TLS-Terminierung). Health Checks erkennen kompromittierte Server. WAF-Integration möglich.",
+      "relatedTerms": ["reverse-proxy", "high-availability"],
+      "links": [
+        { "title": "HAProxy Docs", "url": "https://www.haproxy.com/documentation/" }
+      ]
+    },
+    {
+      "id": "tls-terminierung",
+      "term": "TLS-Terminierung / SSL Offloading",
+      "tags": ["Netzwerk", "Security", "Web"],
+      "summary": "Die TLS-Verschlüsselung wird am Reverse Proxy / Load Balancer entschlüsselt. Dahinter läuft unverschlüsselter HTTP-Traffic zum Backend.",
+      "explanation": "TLS-Terminierung bedeutet: der Reverse Proxy entschlüsselt den HTTPS-Traffic und leitet ihn als normales HTTP an den Backend-Server weiter. Das Backend muss sich nicht um TLS kümmern — weniger Overhead, einfachere Konfiguration.\n\nVorteil: ein Zertifikat am Proxy reicht für alle Dienste. Backends brauchen kein eigenes TLS-Setup.\nNachteil: Traffic zwischen Proxy und Backend ist unverschlüsselt. In einem trusted Netz (z.B. gleiches VLAN, selber Host) kein Problem. Über unvertrauenswürdige Netze: mTLS oder Re-Encryption zum Backend.",
+      "howItWorks": "Client ──HTTPS──→ Reverse Proxy ──HTTP──→ Backend\n                    (TLS endet hier)     (kein TLS nötig)\n\nAlternativ mit Re-Encryption:\nClient ──HTTPS──→ Proxy ──HTTPS──→ Backend (eigenes Cert)",
+      "homelab": "Geplant: Nginx Proxy Manager terminiert TLS mit Let's Encrypt Wildcard-Cert. Proxmox, AdGuard, Gitea etc. laufen intern auf HTTP. Nur der Proxy hat das Zertifikat.",
+      "security": "Traffic zwischen Proxy und Backend ist Klartext — nur im vertrauenswürdigen Netz akzeptabel. Für Zero Trust: mTLS (Client + Server Zertifikat) auch intern. Headers wie X-Forwarded-For setzen damit Backends die echte Client-IP sehen.",
+      "relatedTerms": ["reverse-proxy", "load-balancer"],
+      "links": []
+    },
+    {
+      "id": "mtu-fragmentation",
+      "term": "MTU & Fragmentierung",
+      "tags": ["Netzwerk", "Transport", "Troubleshooting"],
+      "summary": "Maximum Transmission Unit — die maximale Paketgröße die ein Netzwerk-Link übertragen kann. Standard Ethernet: 1500 Bytes.",
+      "explanation": "MTU = Maximum Transmission Unit. Ethernet Standard: 1500 Bytes Payload pro Frame. Wenn ein IP-Paket größer als die MTU ist, muss es fragmentiert werden (aufgeteilt in kleinere Pakete).\n\nProbleme:\n• Fragmentierung kostet Performance (Overhead, Re-Assembly)\n• Wenn ein Fragment verloren geht: ganzes Paket erneut senden\n• VPN-Tunnel (WireGuard, IPsec) reduzieren die effektive MTU weil ihre Header Platz brauchen (z.B. 1500 - 60 = 1440 für WireGuard)\n\nPath MTU Discovery (PMTUD): Sender setzt 'Don't Fragment' Flag → Router antwortet mit ICMP 'Fragmentation Needed' → Sender reduziert Paketgröße. Funktioniert nur wenn ICMP nicht geblockt wird!",
+      "howItWorks": "ping -f -l 1472 192.168.0.200 → OK (1472 + 28 Byte IP/ICMP Header = 1500)\nping -f -l 1473 192.168.0.200 → 'Packet needs to be fragmented but DF set'\n→ MTU ist 1500",
+      "homelab": "Standard 1500 funktioniert. Bei WireGuard VPN: MTU auf 1420 reduzieren (WireGuard empfiehlt das). Proxmox VMs erben die MTU der Bridge. Jumbo Frames (9000) erst relevant bei NAS/Storage-Traffic.",
+      "security": "ICMP nicht komplett blocken — PMTUD braucht ICMP Type 3 Code 4. MTU-Mismatch führt zu mysteriösen Verbindungsproblemen (SSH geht, SCP hängt → Paketgröße!).",
+      "relatedTerms": ["ttl", "latenz-bandbreite"],
+      "links": []
+    },
+    {
+      "id": "ttl",
+      "term": "TTL (Time To Live / Hop Limit)",
+      "tags": ["Netzwerk", "IP", "Grundlagen"],
+      "summary": "Zähler im IP-Header der bei jedem Router-Hop um 1 verringert wird. Bei 0 wird das Paket verworfen — verhindert endlose Routing-Loops.",
+      "explanation": "Jedes IP-Paket hat einen TTL-Wert (IPv4) oder Hop Limit (IPv6). Startwert typisch: 64 (Linux), 128 (Windows), 255 (Netzwerkgeräte). Bei jedem Router wird der TTL um 1 reduziert. Wenn TTL=0: Router verwirft das Paket und sendet ICMP Time Exceeded zurück.\n\nTraceroute nutzt das aus: sendet Pakete mit TTL=1 (erster Router antwortet), TTL=2 (zweiter Router), etc. → zeigt den Pfad zum Ziel.\n\nDNS hat auch TTL: dort bedeutet es wie lange ein DNS-Eintrag gecacht werden darf (in Sekunden, nicht Hops).",
+      "howItWorks": "PC (TTL=64) → Router 1 (TTL=63) → Router 2 (TTL=62) → ... → Server empfängt mit TTL=52 → 12 Hops unterwegs.\n\ntracert 8.8.8.8 zeigt jeden Hop und seine Latenz.",
+      "homelab": "Intern nur 1-2 Hops (PC → Router → Proxmox). TTL-Probleme sind selten im Homelab. Aber: tracert ist ein wertvolles Debugging-Tool.",
+      "security": "TTL-basiertes Fingerprinting: TTL=128 = Windows, TTL=64 = Linux. Kann für OS-Detection verwendet werden (nmap -O).",
+      "relatedTerms": ["mtu-fragmentation", "routing"],
+      "links": []
+    },
+    {
+      "id": "latenz-bandbreite",
+      "term": "Latenz vs Bandbreite vs Throughput vs Jitter",
+      "tags": ["Netzwerk", "Performance", "Grundlagen"],
+      "summary": "Vier verschiedene Metriken die alle 'Geschwindigkeit' beschreiben — aber unterschiedliche Dinge messen.",
+      "explanation": "• Latenz: wie LANGE ein einzelnes Paket von A nach B braucht (in ms). Gemessen mit Ping. Niedrig = gut.\n• Bandbreite: wie BREIT die Leitung ist (in Mbit/s). Die theoretische Maximalkapazität. Mehr ≠ schneller, nur mehr gleichzeitig.\n• Throughput: wie viel Daten TATSÄCHLICH pro Sekunde durchkommen. Immer ≤ Bandbreite. (Overhead, Paketverlust, Congestion)\n• Jitter: wie STARK die Latenz schwankt. Latenz 10ms ±1ms = gut (wenig Jitter). Latenz 10ms ±50ms = schlecht. Kritisch für VoIP/Gaming.\n\nAnalogie: Autobahn.\nBandbreite = Anzahl Spuren (4 Spuren = 4 Autos gleichzeitig)\nLatenz = Fahrtzeit (100km entfernt = 1h)\nThroughput = tatsächliche Autos/Stunde (Stau reduziert das)\nJitter = wie gleichmäßig die Autos ankommen",
+      "howItWorks": "ping 192.168.0.200 → Latenz ~0.5ms (lokal)\nping 8.8.8.8 → Latenz ~15ms (Internet)\niperf3 -c 192.168.0.200 → Throughput ~940 Mbit/s (Gigabit LAN)\nSpeedtest → Bandbreite 100 Mbit/s (ISP-Limit)",
+      "homelab": "Intern: Gigabit Ethernet, Latenz <1ms. Internet: abhängig vom ISP. Bei VPN: Latenz steigt durch Encryption-Overhead. Monitoring via Grafana/Prometheus (p4-grafana) geplant.",
+      "security": "Hohe Latenz oder Jitter kann auf DDoS, Netzwerk-Angriff oder Fehlkonfiguration hinweisen. Baseline-Messungen machen um Anomalien zu erkennen.",
+      "relatedTerms": ["mtu-fragmentation", "qos"],
+      "links": [
+        { "title": "iperf3", "url": "https://iperf.fr/" }
+      ]
+    },
+    {
+      "id": "qos",
+      "term": "QoS (Quality of Service)",
+      "tags": ["Netzwerk", "Performance"],
+      "summary": "Priorisierung von Netzwerk-Traffic. VoIP bekommt Vorrang vor Downloads, Admin-Traffic vor Bulk-Transfers.",
+      "explanation": "QoS markiert und priorisiert Pakete damit wichtiger Traffic (VoIP, Video, Management) weniger Latenz und Paketverlust hat als unwichtiger (Downloads, Backups).\n\nMechanismen:\n• DSCP (Differentiated Services Code Point): 6-Bit Markierung im IP-Header (64 Klassen)\n• 802.1p: 3-Bit Priority im VLAN-Tag (8 Klassen: 0=Best Effort, 5=Voice, 7=Network Control)\n• Traffic Shaping: begrenzt Bandbreite für bestimmte Flows\n• Traffic Policing: verwirft Pakete die ein Limit überschreiten",
+      "howItWorks": "OPNsense QoS-Regeln (geplant):\n• MGMT Traffic (SSH, SNMP): Priority 6 (hoch)\n• DNS/NTP: Priority 5\n• HTTP/HTTPS: Priority 3 (normal)\n• Bulk (Backups, Downloads): Priority 1 (niedrig)",
+      "homelab": "Erst relevant wenn das Netz ausgelastet ist oder VoIP/Video läuft. OPNsense hat Traffic Shaping eingebaut. Für jetzt: alles Best Effort.",
+      "security": "QoS kann missbraucht werden: Angreifer markiert seinen Traffic als Priority 7 → verdrängt legitimen Traffic. Fix: Re-Marking an Trust Boundaries (Firewall/Router ignoriert Client-Markierungen).",
+      "relatedTerms": ["latenz-bandbreite", "vlan-konzept"],
+      "links": []
+    },
+    {
+      "id": "loopback",
+      "term": "Loopback (127.0.0.1 / localhost)",
+      "tags": ["Netzwerk", "Grundlagen"],
+      "summary": "Die Adresse die immer auf das eigene Gerät zeigt. 127.0.0.1 (IPv4) oder ::1 (IPv6). Traffic verlässt nie die Maschine.",
+      "explanation": "127.0.0.0/8 ist der gesamte Loopback-Bereich (127.0.0.1 – 127.255.255.254). Traffic an Loopback geht nie auf das Kabel — er bleibt komplett im OS-Stack. Wird benutzt für:\n• Lokale Dienste testen (Webserver auf localhost:8080)\n• Dienste die nur lokal erreichbar sein sollen (Datenbanken)\n• Health Checks\n\nDas Loopback-Interface (lo) ist immer UP, auch ohne Netzwerkkarte. Unter Linux: ip addr show lo → 127.0.0.1/8 und ::1/128.",
+      "howItWorks": "curl http://localhost:8080 → spricht den lokalen Webserver an\nDer Traffic geht: Anwendung → TCP-Stack → Loopback → TCP-Stack → Anwendung\nNie über die NIC, nie über das Kabel.",
+      "homelab": "AdGuard lauscht auf 0.0.0.0:80 (alle Interfaces). Wenn es auf 127.0.0.1:80 lauschen würde, wäre es nur vom Container selbst erreichbar — nicht von außen.",
+      "security": "Dienste die nur lokal gebraucht werden auf 127.0.0.1 binden statt 0.0.0.0. Dann sind sie von außen nicht erreichbar — kein Firewall-Rule nötig.",
+      "relatedTerms": ["port-ranges"],
+      "links": []
+    },
+    {
+      "id": "half-full-duplex",
+      "term": "Half-Duplex vs Full-Duplex",
+      "tags": ["Netzwerk", "Layer 1", "Grundlagen"],
+      "summary": "Half-Duplex: senden ODER empfangen (nicht gleichzeitig). Full-Duplex: senden UND empfangen gleichzeitig.",
+      "explanation": "• Half-Duplex: nur eine Richtung gleichzeitig. Wie ein Walkie-Talkie — einer spricht, der andere hört. Hubs arbeiten in Half-Duplex. WiFi ist technisch Half-Duplex (CSMA/CA).\n• Full-Duplex: beide Richtungen gleichzeitig. Wie ein Telefon. Switches mit dedizierten Ports arbeiten in Full-Duplex.\n\nGigabit Ethernet ist immer Full-Duplex. Auto-Negotiation handelt die Geschwindigkeit und den Duplex-Modus automatisch aus. Duplex-Mismatch (eine Seite Full, andere Half) führt zu massivem Paketverlust — ein klassischer Netzwerkfehler.",
+      "howItWorks": "Full-Duplex Gigabit: 1 Gbit/s senden + 1 Gbit/s empfangen = 2 Gbit/s theoretisch gleichzeitig.\nHalf-Duplex 100 Mbit: 100 Mbit/s in eine Richtung, dann umschalten.",
+      "homelab": "Alle deine Verbindungen sind Full-Duplex (Gigabit Switch/Router). WiFi (TP-Link AP) ist Half-Duplex — ein Grund warum WiFi langsamer ist als Kabel.",
+      "security": "Duplex-Mismatch kann wie ein Netzwerk-Angriff aussehen (massiver Paketverlust). Immer Auto-Negotiation einschalten — manuelle Duplex-Konfiguration nur wenn nötig.",
+      "relatedTerms": ["latenz-bandbreite"],
+      "links": []
+    },
+    {
+      "id": "dhcp-konzept",
+      "term": "DHCP (Konzept & DORA)",
+      "tags": ["Netzwerk", "IP", "Grundlagen"],
+      "summary": "Automatische IP-Vergabe. DORA-Prozess: Discover → Offer → Request → Acknowledge. Ohne DHCP müsste jedes Gerät manuell konfiguriert werden.",
+      "explanation": "DHCP vergibt nicht nur IP-Adressen sondern auch:\n• Subnetzmaske\n• Default Gateway\n• DNS-Server(s)\n• NTP-Server\n• Domain-Name\n• Lease-Time (wie lange die IP gültig ist)\n\nDHCP Lease Lifecycle:\n1. New: Client sendet Discover (Broadcast)\n2. Offer: Server bietet IP + Config an\n3. Request: Client akzeptiert das Angebot\n4. Acknowledge: Server bestätigt\n5. Renewal: bei 50% der Lease-Time versucht Client zu verlängern\n6. Rebinding: bei 87.5% versucht Client bei JEDEM DHCP-Server\n7. Expire: Lease abgelaufen → Client muss komplett neu anfragen",
+      "howItWorks": "Client startet → kein IP → sendet DHCP Discover (Broadcast, 0.0.0.0 → 255.255.255.255)\nDHCP Server antwortet: 'Hier, nimm 192.168.0.42, Gateway .1, DNS .201, Lease 24h'\nClient: 'OK, die nehme ich' → Request\nServer: 'Bestätigt, ab jetzt 24h gültig' → Acknowledge",
+      "homelab": "TP-Link Archer C80 ist der DHCP-Server. Vergibt IPs aus 192.168.0.100-254, DNS auf 192.168.0.201 (AdGuard), Gateway 192.168.0.1. Später: OPNsense DHCP mit Scopes pro VLAN.",
+      "security": "DHCP Starvation: alle IPs belegen → legitime Clients bekommen keine. Rogue DHCP: Angreifer antwortet schneller als der echte Server → falscher Gateway = MITM. Fix: DHCP Snooping auf Switches.",
+      "relatedTerms": ["apipa", "dns-resolver-typen", "gateway"],
+      "links": []
+    },
+    {
+      "id": "arp-konzept",
+      "term": "ARP (Konzept & Poisoning)",
+      "tags": ["Netzwerk", "Layer 2", "Security"],
+      "summary": "Address Resolution Protocol — löst IP-Adressen zu MAC-Adressen auf. Essenziell für LAN-Kommunikation, aber anfällig für Spoofing.",
+      "explanation": "ARP ist die Brücke zwischen Layer 3 (IP) und Layer 2 (Ethernet). Wenn dein PC ein Paket an 192.168.0.200 senden will, muss er die MAC-Adresse von Proxmox kennen — sonst kann er keinen Ethernet-Frame bauen.\n\nARP hat KEINE Authentifizierung. Jeder kann antworten: 'Die IP 192.168.0.1 gehört zu meiner MAC!' → ARP Spoofing/Poisoning.\n\nARP-Cache: das OS merkt sich die Zuordnungen temporär.\n• Windows: arp -a (anzeigen), arp -s IP MAC (statisch)\n• Linux: ip neigh show, ip neigh add IP lladdr MAC dev eth0",
+      "howItWorks": "ARP Poisoning Angriff:\n1. Angreifer sendet gefälschte ARP-Replies: '192.168.0.1 (Gateway) hat MAC AA:BB:CC:DD:EE:FF (meine MAC)'\n2. Opfer-PC cached das → sendet allen Traffic an den Angreifer statt an den echten Gateway\n3. Angreifer leitet Traffic weiter an den echten Gateway → Man-in-the-Middle\n4. Opfer merkt nichts — Internet funktioniert normal, aber Angreifer liest alles mit",
+      "homelab": "Dein MAC-Spoofing auf Hyper-V ist kein ARP Spoofing — es erlaubt nur dass LXC Container eigene MACs haben. Aber: im Homelab ist ARP Poisoning ein reales Risiko wenn Lab-VMs (Kali) im gleichen VLAN wie Produktiv-Dienste sind. → VLANs trennen!",
+      "security": "Dynamic ARP Inspection (DAI) auf managed Switches. Static ARP Entries für Gateway. VLAN-Trennung: Lab-Geräte in eigenes VLAN damit ARP-Angriffe isoliert bleiben.",
+      "relatedTerms": ["mac-adresse", "broadcast-unicast-multicast", "vlan-konzept"],
+      "links": []
+    },
+    {
+      "id": "cidr-notation",
+      "term": "CIDR-Notation (Prefix Length)",
+      "tags": ["Netzwerk", "IP", "Grundlagen"],
+      "summary": "/24 = 256 Adressen, /16 = 65536 Adressen. Die Zahl nach dem Slash gibt an wie viele Bits der Netz-Anteil hat.",
+      "explanation": "CIDR = Classless Inter-Domain Routing. Ersetzt die alte Klassen-Einteilung (Class A/B/C).\n\nDie Prefix-Länge (/N) sagt: die ersten N Bits der IP-Adresse sind der Netzwerk-Anteil, der Rest ist der Host-Anteil.\n\n/24: 24 Bits Netz + 8 Bits Host = 2^8 = 256 Adressen (254 nutzbar)\n/25: 25 Bits Netz + 7 Bits Host = 2^7 = 128 Adressen (126 nutzbar)\n/30: 30 Bits Netz + 2 Bits Host = 2^2 = 4 Adressen (2 nutzbar) → Point-to-Point Links\n/32: Host-Route (genau 1 Adresse)\n\nSubnetzmaske ist die andere Darstellung:\n/24 = 255.255.255.0 (11111111.11111111.11111111.00000000)\n/25 = 255.255.255.128 (11111111.11111111.11111111.10000000)",
+      "howItWorks": "10.0.1.0/24:\n• Netzwerk-Adresse: 10.0.1.0 (nicht nutzbar)\n• Erster Host: 10.0.1.1\n• Letzter Host: 10.0.1.254\n• Broadcast: 10.0.1.255 (nicht nutzbar)\n• Hosts: 254\n\nSchnellrechnung: 256 - Letzte Oktet der Subnetzmaske = Hosts pro Subnetz",
+      "homelab": "Alle deine Subnetze sind /24 (254 Hosts). Das reicht für ein Homelab locker. Produktiv-Netze nutzen oft /22 (1022 Hosts) oder /20 (4094 Hosts).",
+      "security": "Zu große Subnetze (/16, /8) = zu viele Geräte in einer Broadcast-Domain = Performance-Probleme und größere Angriffsfläche. Right-Size deine Subnetze.",
+      "relatedTerms": ["subnetting", "rfc1918"],
+      "links": [
+        { "title": "CIDR Visualizer", "url": "https://cidr.xyz/" }
+      ]
+    },
+    {
+      "id": "high-availability",
+      "term": "High Availability (HA) / Failover",
+      "tags": ["Netzwerk", "Infrastruktur"],
+      "summary": "Systeme so designen dass der Ausfall einer Komponente den Dienst nicht unterbricht. Redundanz + automatisches Failover.",
+      "explanation": "HA-Design Prinzipien:\n• Kein Single Point of Failure (SPoF): jede kritische Komponente redundant\n• Automatisches Failover: wenn Primär ausfällt, übernimmt Sekundär sofort\n• Health Checks: aktive Überwachung ob Komponenten funktionieren\n\nHA-Level (Uptime):\n• 99% = 87.6h Downtime/Jahr\n• 99.9% (three nines) = 8.7h/Jahr\n• 99.99% (four nines) = 52min/Jahr\n• 99.999% (five nines) = 5min/Jahr\n\nVRRP (Virtual Router Redundancy Protocol): zwei Router teilen sich eine virtuelle IP. Wenn der aktive Router ausfällt, übernimmt der Standby sofort.\nCRSYNC / Proxmox HA: Cluster aus mehreren Proxmox-Nodes — VMs werden automatisch auf einen anderen Node migriert bei Ausfall.",
+      "howItWorks": "Dein Homelab HA-Schwachstellen:\n• DNS: nur ein AdGuard → fällt Proxmox aus, kein DNS. Geplant: Pi Zero 2 W als Secondary (idea-033)\n• Router: nur ein TP-Link → fällt er aus, kein Internet. Für Homelab akzeptabel.\n• Proxmox: Single Node → keine Live-Migration möglich. Erst mit zweitem Node.",
+      "homelab": "Erster HA-Schritt: Secondary DNS (Pi Zero 2 W als idea-033). Langfristig: Proxmox Cluster mit 2-3 Nodes für VM-Failover.",
+      "security": "HA ist ein Security-Feature: Verfügbarkeit ist eins der drei CIA-Ziele (Confidentiality, Integrity, Availability). DDoS-Schutz ist im Kern ein HA-Problem.",
+      "relatedTerms": ["load-balancer", "dns-resolver-typen"],
+      "links": []
+    }
+  ]
+}

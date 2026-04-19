@@ -34,7 +34,7 @@
     ];
 
     const links = pages.map(p => {
-      const isActive = current === p.file || (p.file === 'wiki-preview.html' && current === 'osi-reference.html');
+      const isActive = current === p.file || (p.file === 'wiki-preview.html' && (current === 'osi-reference.html' || current === 'academy.html'));
       return `<a href="${p.href}" class="nav-link${isActive ? ' active' : ''}">${p.label}</a>`;
     }).join('');
 

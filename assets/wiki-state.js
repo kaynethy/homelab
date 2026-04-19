@@ -2,7 +2,7 @@
 async function loadWiki() {
   try {
     const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/');
-    const path = inSubdir ? '../homelab-wiki.json' : './homelab-wiki.json';
+    const path = inSubdir ? '../wiki/homelab-wiki.json' : './wiki/homelab-wiki.json';
     const res = await fetch(path);
     window.WIKI = await res.json();
   } catch (e) {

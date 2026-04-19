@@ -1,4 +1,4 @@
-/* === PROTOCOLS STATE — loads homelab-osiwiki.json === */
+/* === PROTOCOLS STATE — loads wiki/homelab-osiwiki.json === */
 (function() {
   'use strict';
 
@@ -9,7 +9,7 @@
 
   async function loadProtocols() {
     try {
-      var res = await fetch(getRoot() + 'homelab-osiwiki.json', { cache: 'no-cache' });
+      var res = await fetch(getRoot() + 'wiki/homelab-osiwiki.json', { cache: 'no-cache' });
       var data = await res.json();
       window.PROTOCOLS = {
         meta: data.meta || {},

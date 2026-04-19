@@ -1,0 +1,345 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "category": "Security",
+    "description": "Security-Konzepte und -Fundamentals — von Encryption bis Zero Trust, von Hashing bis Penetration Testing"
+  },
+  "entries": [
+    {
+      "id": "firewall-typen",
+      "term": "Firewall (Stateless vs Stateful vs NGFW)",
+      "tags": ["Security", "Netzwerk", "Firewall"],
+      "summary": "Drei Generationen von Firewalls — vom einfachen Paketfilter bis zur Application-Aware Next-Gen Firewall.",
+      "explanation": "• Stateless Packet Filter (1. Generation): prüft jedes Paket einzeln anhand von Source/Dest IP, Port, Protokoll. Kennt keine Verbindungen. Schnell aber dumm — ein ACK-Paket ohne vorheriges SYN wird durchgelassen.\n\n• Stateful Firewall (2. Generation): trackt TCP-Verbindungen in einer State Table. Weiß: 'dieses ACK gehört zu einem erlaubten SYN'. Blockt ungültige Pakete (XMAS Scan, NULL Scan). Standard heute. OPNsense ist stateful.\n\n• NGFW (Next-Generation, 3. Generation): Stateful + Deep Packet Inspection + Application Awareness. Erkennt: 'das ist HTTP, aber die Payload ist eine SQL Injection'. Integriert IDS/IPS, URL-Filtering, TLS-Inspection. Produkte: Palo Alto, Fortinet, Sophos.\n\n• WAF (Web Application Firewall): spezialisiert auf HTTP/HTTPS. Blockt OWASP Top 10 (SQLi, XSS, CSRF). Sitzt vor Webservern, oft als Reverse-Proxy-Modul (ModSecurity).",
+      "howItWorks": "Stateful Firewall (OPNsense) Beispiel:\n1. PC sendet SYN an Proxmox:8006 → Firewall erlaubt (Regel: MGMT → alle)\n2. State Table: {src:192.168.0.155:54321, dst:192.168.0.200:8006, state:SYN_SENT}\n3. Proxmox antwortet SYN-ACK → Firewall prüft State Table → gehört zur erlaubten Verbindung → durchlassen\n4. Verbindung steht → state:ESTABLISHED\n5. FIN → state:TIME_WAIT → Eintrag wird nach Timeout gelöscht",
+      "homelab": "OPNsense als Stateful Firewall geplant (p2-firewall). Aktuell: keine Firewall zwischen Geräten. Regeln definiert: MGMT→alle erlaubt, LAB/DMZ isoliert, SVC→MGMT nur DNS/NTP.",
+      "security": "Default Deny: alles blocken, explizit erlauben. Regeln so spezifisch wie möglich. Logging für geblockte Verbindungen. Regelmäßig Regel-Review. Firewall-Regeln von oben nach unten — erste passende Regel gewinnt.",
+      "relatedTerms": ["ids-ips", "packet-filter-vs-application-gw", "defense-in-depth"],
+      "links": [
+        { "title": "OPNsense Docs", "url": "https://docs.opnsense.org/" },
+        { "title": "OWASP Top 10", "url": "https://owasp.org/www-project-top-ten/" }
+      ]
+    },
+    {
+      "id": "packet-filter-vs-application-gw",
+      "term": "Packet Filter vs Application Gateway",
+      "tags": ["Security", "Firewall"],
+      "summary": "Packet Filter arbeitet auf Layer 3/4 (IP/Port). Application Gateway versteht Layer 7 (HTTP, DNS, SMTP) und kann Inhalte inspizieren.",
+      "explanation": "• Packet Filter: sieht nur IP-Header und TCP/UDP-Header. Entscheidung basiert auf Source/Dest IP, Port, Protokoll. Kann nicht unterscheiden ob Port 443 wirklich HTTPS ist oder ein Malware-C2-Channel.\n\n• Application Gateway (Application-Level Proxy): versteht das Anwendungsprotokoll. Ein HTTP-Proxy kann URLs filtern, POST-Bodies inspizieren, Datei-Uploads scannen. Ein SMTP-Proxy kann Anhänge prüfen, SPF/DKIM validieren.\n\nVorteil Packet Filter: schnell, einfach, wenig Overhead.\nVorteil Application GW: erkennt Angriffe auf Anwendungsebene (SQL Injection, Command Injection, Malware in Downloads).\n\nIn der Praxis: beides kombinieren. OPNsense ist primär Packet Filter / Stateful Firewall, kann aber mit Plugins (Suricata, ClamAV) Application-Level Inspection nachrüsten.",
+      "howItWorks": "Packet Filter sieht: TCP, Src:10.0.3.5, Dst:10.0.2.10, DstPort:443 → Regel: LAB→SVC HTTPS erlaubt → durchlassen.\nApplication GW sieht: HTTP POST /api/login, Body: {\"user\":\"admin' OR '1'='1\", ...} → SQL Injection erkannt → blocken.",
+      "homelab": "OPNsense + Suricata Plugin = Packet Filter + IDS/IPS. Für echte Application-Level Inspection: WAF (ModSecurity) am Reverse Proxy.",
+      "security": "Packet Filter allein reicht nicht gegen moderne Angriffe. Defense in Depth: Packet Filter + IDS + WAF + Application-Level Monitoring.",
+      "relatedTerms": ["firewall-typen", "ids-ips"],
+      "links": []
+    },
+    {
+      "id": "ids-ips",
+      "term": "IDS vs IPS (Intrusion Detection / Prevention)",
+      "tags": ["Security", "Monitoring"],
+      "summary": "IDS erkennt Angriffe und alarmiert. IPS erkennt UND blockiert Angriffe automatisch. Gleiche Technologie, unterschiedlicher Modus.",
+      "explanation": "• IDS (Intrusion Detection System): passiv. Spiegelt den Traffic (Mirror/SPAN Port), analysiert ihn, schlägt Alarm bei verdächtigen Mustern. Blockt nichts — der Admin muss reagieren.\n\n• IPS (Intrusion Prevention System): aktiv. Sitzt INLINE im Traffic-Pfad (nicht gespiegelt), analysiert und BLOCKT verdächtige Pakete automatisch. Risiko: False Positives blockieren legitimen Traffic.\n\nDetection-Methoden:\n• Signature-based: bekannte Angriffsmuster (wie Antivirus). Schnell, aber erkennt nur bekannte Angriffe.\n• Anomaly-based: lernt 'normales' Verhalten und alarmiert bei Abweichungen. Erkennt Zero-Days, aber mehr False Positives.\n• Protocol Analysis: prüft ob Protokolle korrekt implementiert sind (z.B. HTTP RFC-konform).\n\nSuricata kann beides: IDS-Modus (alert only) oder IPS-Modus (drop).",
+      "howItWorks": "Suricata auf OPNsense:\n1. Traffic fließt durch OPNsense\n2. Suricata prüft gegen Regelsets (ET Open, Snort Rules)\n3. Match: alert 'ET EXPLOIT Apache Struts RCE Attempt'\n4. IDS-Modus: Alert in Log → Admin prüft\n5. IPS-Modus: Paket wird gedroppt → Angriff geblockt",
+      "homelab": "Geplant: Suricata auf OPNsense (p4-ids). Erst im IDS-Modus betreiben um False Positives zu tunen, dann auf IPS umschalten. ET Open Ruleset als Start.",
+      "security": "IDS/IPS ist kein Ersatz für Firewall — es ergänzt sie. Regelsets aktuell halten (automatische Updates). Alerts monitoren und nicht ignorieren (Alert Fatigue).",
+      "relatedTerms": ["firewall-typen", "siem", "defense-in-depth"],
+      "links": [
+        { "title": "Suricata Docs", "url": "https://docs.suricata.io/" },
+        { "title": "ET Open Rulesets", "url": "https://rules.emergingthreats.net/" }
+      ]
+    },
+    {
+      "id": "encryption-sym-asym",
+      "term": "Encryption (Symmetric vs Asymmetric)",
+      "tags": ["Security", "Kryptographie"],
+      "summary": "Symmetrisch: ein Schlüssel für Ver- und Entschlüsselung (schnell). Asymmetrisch: Schlüsselpaar Public/Private (langsam, aber löst Key-Exchange).",
+      "explanation": "• Symmetrische Verschlüsselung: ein Key für alles. Alice und Bob teilen denselben Schlüssel. Problem: wie tauscht man den Schlüssel sicher aus?\n  Algorithmen: AES-128, AES-256 (Standard), ChaCha20 (WireGuard)\n  Geschwindigkeit: sehr schnell, Hardware-Beschleunigung (AES-NI)\n\n• Asymmetrische Verschlüsselung: zwei Keys. Public Key zum Verschlüsseln (kann jeder haben). Private Key zum Entschlüsseln (geheim). Löst das Key-Exchange-Problem.\n  Algorithmen: RSA (2048/4096 bit), ECDSA, Ed25519\n  Geschwindigkeit: 100-1000x langsamer als symmetrisch\n\n• In der Praxis: Hybrid. TLS nutzt asymmetrisch für den Key-Exchange (ECDHE), dann symmetrisch (AES-GCM) für die eigentlichen Daten. So kombiniert man Sicherheit (asymmetrisch) mit Geschwindigkeit (symmetrisch).",
+      "howItWorks": "TLS Handshake (Hybrid):\n1. Client + Server einigen sich auf Cipher Suite (z.B. TLS_AES_256_GCM_SHA384)\n2. ECDHE Key Exchange: beide Seiten berechnen einen gemeinsamen Session Key (asymmetrisch)\n3. Session Key wird für AES-256-GCM verwendet (symmetrisch)\n4. Alle Daten ab jetzt symmetrisch verschlüsselt — schnell\n\nSSH Key-Auth:\n1. Server hat Public Key in authorized_keys\n2. Server sendet Challenge (Zufallszahl) verschlüsselt mit Public Key\n3. Client entschlüsselt mit Private Key → beweist Identität",
+      "homelab": "SSH nutzt Ed25519 (asymmetrisch) für Auth, dann AES (symmetrisch) für die Session. WireGuard: Curve25519 für Key Exchange, ChaCha20 für Daten. Proxmox Web-UI: TLS mit RSA-Cert (selbstsigniert).",
+      "security": "Nie eigene Krypto erfinden. AES-256 und Ed25519 sind der goldene Standard. RSA unter 2048 Bit ist unsicher. Alte Algorithmen (DES, 3DES, RC4) deaktivieren.",
+      "relatedTerms": ["key-exchange", "pfs", "cipher-suite", "hashing"],
+      "links": [
+        { "title": "Cryptographic Right Answers", "url": "https://latacora.micro.blog/2018/04/03/cryptographic-right-answers.html" }
+      ]
+    },
+    {
+      "id": "hashing",
+      "term": "Hashing (MD5, SHA-256, bcrypt, Argon2)",
+      "tags": ["Security", "Kryptographie"],
+      "summary": "Einweg-Funktion: aus beliebigen Daten wird ein fester Hash. Nicht umkehrbar. Für Passwörter, Integritätsprüfung, Signaturen.",
+      "explanation": "Hash = Einweg-Fingerabdruck. Gleiche Eingabe → immer gleicher Hash. Kleinste Änderung → komplett anderer Hash (Avalanche-Effekt).\n\n• MD5 (128 Bit): GEBROCHEN. Kollisionen berechenbar. Nur noch für Checksummen (Datei-Downloads), nie für Passwörter.\n• SHA-1 (160 Bit): GEBROCHEN. Google hat 2017 eine Kollision demonstriert.\n• SHA-256 (256 Bit): sicher. Standard für Integritätsprüfung, Zertifikate, Blockchain.\n• SHA-3 (256/512 Bit): neuester Standard, anderer Algorithmus (Keccak).\n\nFür PASSWÖRTER braucht man spezielle, langsame Hash-Funktionen:\n• bcrypt: absichtlich langsam, einstellbarer Cost-Factor. Standard.\n• Argon2: noch moderner, nutzt viel RAM (schützt gegen GPU-Cracking). Gewinner des Password Hashing Competition 2015.\n• PBKDF2: älterer Standard, in vielen Systemen (WPA2 WiFi).\n\nWarum langsam? Weil ein Angreifer Milliarden Hashes/Sekunde probieren kann. bcrypt mit Cost 12: ~4 Hashes/Sekunde auf einer GPU. SHA-256: ~10 Milliarden/Sekunde.",
+      "howItWorks": "Passwort speichern:\n1. User gibt Passwort 'MeinPasswort123' ein\n2. System generiert zufälligen Salt: 'a8f2e9c1'\n3. Hash: bcrypt('MeinPasswort123' + 'a8f2e9c1', cost=12) → '$2a$12$a8f2e9c1...'\n4. Gespeichert wird: Hash + Salt (NICHT das Passwort)\n\nLogin prüfen:\n1. User gibt Passwort ein\n2. System liest Salt aus gespeichertem Hash\n3. Berechnet Hash mit gleichem Salt\n4. Vergleicht Ergebnis → Match = Login OK",
+      "homelab": "AdGuard nutzt bcrypt für Passwort-Hashes (dein bcrypt $2y/$2a Problem aus Session 6). SHA-256 Checksums bei ISO-Downloads prüfen (z.B. Debian ISO). Proxmox nutzt PAM/shadow mit SHA-512.",
+      "security": "Niemals MD5 oder SHA-1 für Passwörter. Immer Salt verwenden (verhindert Rainbow Tables). Cost-Factor von bcrypt regelmäßig erhöhen wenn Hardware schneller wird. Passwörter NIEMALS im Klartext speichern.",
+      "relatedTerms": ["salt-pepper", "encryption-sym-asym", "brute-force-dictionary"],
+      "links": [
+        { "title": "How bcrypt works", "url": "https://auth0.com/blog/hashing-in-action-understanding-bcrypt/" },
+        { "title": "Argon2 Spec", "url": "https://github.com/P-H-C/phc-winner-argon2" }
+      ]
+    },
+    {
+      "id": "salt-pepper",
+      "term": "Salt & Pepper (Passwort-Hashing)",
+      "tags": ["Security", "Kryptographie"],
+      "summary": "Salt: zufälliger Wert pro Passwort der vor dem Hashing angehängt wird. Pepper: geheimer globaler Wert zusätzlich zum Salt.",
+      "explanation": "• Salt: einzigartiger Zufallswert PRO USER. Wird zusammen mit dem Hash gespeichert (kein Geheimnis). Verhindert dass gleiche Passwörter gleiche Hashes haben → Rainbow Tables nutzlos.\n\nOhne Salt: 'password123' → immer gleicher Hash → Angreifer berechnet einmal, knackt alle Accounts.\nMit Salt: 'password123' + Salt1 → Hash1, 'password123' + Salt2 → Hash2 → jeder Account muss einzeln geknackt werden.\n\n• Pepper: geheimer Wert der auf dem SERVER liegt (nicht in der DB). Wird VOR dem Hashing angehängt. Selbst wenn die DB gestohlen wird, fehlt dem Angreifer der Pepper.\n\nPepper ist umstritten — wenn er verloren geht, sind alle Passwörter nicht mehr verifizierbar. Alternative: HMAC-basiertes Hashing.",
+      "howItWorks": "Ohne Salt: hash('password123') → 482c811da5d5b4bc → identisch für jeden User der 'password123' nutzt\nMit Salt: hash('password123' + 'x7kq2') → a1b2c3d4 | hash('password123' + 'm3pf8') → e5f6g7h8 → unterschiedliche Hashes\nMit Pepper: hash('password123' + 'x7kq2' + 'SERVER_SECRET') → komplett anderer Hash",
+      "homelab": "bcrypt generiert den Salt automatisch — er ist Teil des Hash-Strings ($2a$12$SALT_HIER...HASH_HIER). Deshalb ist bcrypt so praktisch: Salt-Management ist eingebaut.",
+      "security": "Salt muss kryptographisch zufällig sein (nicht der Username!). Mindestens 16 Bytes. Salt ist kein Geheimnis — er macht nur Rainbow Tables nutzlos. Pepper muss sicher aufbewahrt werden (Environment Variable, nicht in der DB).",
+      "relatedTerms": ["hashing", "brute-force-dictionary"],
+      "links": []
+    },
+    {
+      "id": "pki",
+      "term": "PKI (Public Key Infrastructure)",
+      "tags": ["Security", "Zertifikate"],
+      "summary": "Das Vertrauenssystem hinter HTTPS. Zertifizierungsstellen (CAs) bürgen dafür dass ein Public Key wirklich zu einer Domain/Person gehört.",
+      "explanation": "PKI löst das Vertrauensproblem: woher weiß dein Browser dass der Public Key wirklich zu proxmox.homelab.local gehört und nicht zu einem Angreifer?\n\nAntwort: eine Zertifizierungsstelle (CA) hat das Zertifikat signiert. Dein Browser vertraut einer Liste von Root-CAs (vorinstalliert). Wenn die CA sagt 'dieser Public Key gehört zu google.com' → Browser vertraut dem.\n\nChain of Trust:\n• Root CA (selbstsigniert, offline gelagert, extrem geschützt)\n  → Intermediate CA (signiert von Root, online, stellt Zertifikate aus)\n    → Server Cert (signiert von Intermediate, auf deinem Webserver)\n\nLet's Encrypt ist eine kostenlose CA die automatisiert Zertifikate ausstellt (ACME-Protokoll, 90 Tage Gültigkeit).",
+      "howItWorks": "Let's Encrypt Cert holen:\n1. Reverse Proxy sendet CSR (Certificate Signing Request) an Let's Encrypt\n2. Let's Encrypt prüft Domain-Ownership (HTTP-01 oder DNS-01 Challenge)\n3. Prüfung bestanden → LE signiert das Zertifikat\n4. Cert wird am Reverse Proxy installiert\n5. Browser prüft: Root CA (ISRG Root X1) → Intermediate (R3) → Server Cert → Chain valid ✓",
+      "homelab": "Proxmox nutzt selbstsigniertes Cert (Browser warnt). Geplant: Let's Encrypt via Reverse Proxy (p2-reverseproxy) und eigene interne CA mit Step-CA (p4-ca) für interne Dienste.",
+      "security": "Certificate Pinning (nur bestimmte CAs für eine Domain akzeptieren). Certificate Transparency (öffentliche Logs aller ausgestellten Certs). HSTS (Browser merkt sich dass eine Domain nur HTTPS nutzt). Eigene CA: Private Key OFFLINE lagern.",
+      "relatedTerms": ["ca-root-intermediate", "encryption-sym-asym", "cipher-suite"],
+      "links": [
+        { "title": "Let's Encrypt", "url": "https://letsencrypt.org/" },
+        { "title": "Step-CA", "url": "https://smallstep.com/docs/step-ca/" }
+      ]
+    },
+    {
+      "id": "ca-root-intermediate",
+      "term": "Certificate Authority (Root / Intermediate / Leaf)",
+      "tags": ["Security", "Zertifikate"],
+      "summary": "Drei Stufen der Zertifikatskette: Root CA (Vertrauensanker), Intermediate CA (stellt aus), Leaf/Server Cert (dein Server).",
+      "explanation": "• Root CA: selbstsigniert. Der ultimative Vertrauensanker. Private Key wird offline gelagert (HSM, Safe). Wenn ein Root-Key kompromittiert wird, sind ALLE davon abgeleiteten Zertifikate unsicher. Deshalb: Root signiert nur Intermediate CAs, nie direkt Server-Certs.\n\n• Intermediate CA: signiert von Root. Stellt die eigentlichen Server-Zertifikate aus. Kann revoked werden ohne die Root zu kompromittieren. Let's Encrypt R3 ist eine Intermediate CA.\n\n• Leaf/Server Certificate: das Zertifikat auf deinem Server. Enthält: Public Key, Domain(s) im SAN, Gültigkeitszeitraum, Signatur der Intermediate CA.\n\nWarum die Trennung? Wenn die Intermediate CA gehackt wird: Root revoked die Intermediate, stellt eine neue aus, alle neuen Certs kommen von der neuen Intermediate. Die Root bleibt unberührt.",
+      "howItWorks": "Browser prüft Zertifikatskette:\n1. Server sendet: Server Cert + Intermediate Cert\n2. Browser hat Root Certs vorinstalliert (Trust Store)\n3. Prüfung: Server Cert signiert von Intermediate? ✓\n4. Intermediate signiert von Root? ✓ (Root ist im Trust Store)\n5. Alle Certs gültig (Datum, Revocation)? ✓\n6. Domain im SAN des Server Certs? ✓\n→ Verbindung vertrauenswürdig ✓",
+      "homelab": "Eigene interne CA (p4-ca): Root CA generieren, offline sichern. Intermediate CA online lassen für automatische Cert-Ausstellung. Alle internen Dienste bekommen Certs von der eigenen CA. Root-Cert auf allen Clients installieren.",
+      "security": "Root CA Private Key: NIEMALS online lassen. In einem HSM oder verschlüsseltem USB-Stick im Safe. Key Ceremony dokumentieren. CRL (Certificate Revocation List) oder OCSP für Revocation.",
+      "relatedTerms": ["pki", "encryption-sym-asym"],
+      "links": []
+    },
+    {
+      "id": "zero-trust",
+      "term": "Zero Trust",
+      "tags": ["Security", "Architektur"],
+      "summary": "\"Never trust, always verify.\" Kein Gerät und kein User wird automatisch vertraut — auch nicht im internen Netz.",
+      "explanation": "Traditionell: Burg-und-Graben-Modell. Alles hinter der Firewall ist vertrauenswürdig, alles draußen nicht. Problem: wenn ein Angreifer die Firewall überwindet (Phishing, Exploit), kann er sich frei im Netz bewegen (Lateral Movement).\n\nZero Trust: JEDE Verbindung wird authentifiziert und autorisiert, egal ob intern oder extern. Prinzipien:\n• Verify explicitly: jeder Request wird geprüft (Identity, Device, Location, Context)\n• Least privilege: minimale Berechtigungen, nur für die nötige Dauer\n• Assume breach: designen als ob der Angreifer schon im Netz ist\n\nZero Trust ist kein Produkt das man kauft — es ist eine Architektur-Philosophie die sich durch alle Ebenen zieht.",
+      "howItWorks": "Zero Trust im Homelab:\n• SSH: Key-Auth statt Passwort, nicht als Root, nur von Jumphost\n• VLANs: Lab kann MGMT nicht erreichen, auch wenn es im selben Proxmox läuft\n• Firewall: Default Deny, explizite Regeln pro Service/Port\n• Dienste: jeder Dienst hat eigenen Service Account, keine shared Credentials\n• Monitoring: alle Zugriffe loggen, Anomalien erkennen",
+      "homelab": "Du baust Zero Trust schrittweise auf: VLANs (Segmentierung), SSH Key-Auth (Verify explicitly), Firewall Default Deny (Least Privilege), Jumphost als einziger SSH-Eingang (choke point).",
+      "security": "Zero Trust ist das Ziel, nicht der Startpunkt. Jeder Schritt in Richtung Zero Trust verbessert die Sicherheit. Anfangen mit: Segmentierung, starke Auth, Logging.",
+      "relatedTerms": ["least-privilege", "defense-in-depth", "security-by-design"],
+      "links": [
+        { "title": "NIST Zero Trust Architecture", "url": "https://csrc.nist.gov/publications/detail/sp/800-207/final" }
+      ]
+    },
+    {
+      "id": "least-privilege",
+      "term": "Principle of Least Privilege",
+      "tags": ["Security", "Grundprinzip"],
+      "summary": "Jeder User, Prozess und Dienst bekommt nur die MINIMALEN Berechtigungen die für seine Aufgabe nötig sind. Nicht mehr.",
+      "explanation": "Warum? Wenn ein Account kompromittiert wird, begrenzt Least Privilege den Schaden. Ein Webserver-Account der nur seine eigenen Dateien lesen kann, kann bei einem Exploit nicht die ganze Datenbank dumpen.\n\nBeispiele:\n• Linux: Dienste laufen unter eigenem User, nicht als Root. Apache als www-data, nicht als root.\n• SSH: PermitRootLogin prohibit-password. Normaler User + sudo statt direkt Root.\n• Firewall: nur benötigte Ports öffnen, nicht 'any any allow'.\n• Datenbank: Anwendung bekommt nur SELECT/INSERT auf ihre Tabellen, nicht GRANT ALL.\n• API: Token mit minimalen Scopes (read-only wenn nur gelesen wird).",
+      "howItWorks": "Dein Jumphost (noob@192.168.0.204):\n• Login als 'noob', nicht als root\n• sudo nur wenn nötig (und mit Passwort bestätigen)\n• SSH-Key statt Passwort (stärker, kein Brute-Force möglich)\n• Später: sudo auf bestimmte Befehle einschränken (sudoers: noob ALL=(ALL) /usr/bin/apt, /usr/bin/systemctl)",
+      "homelab": "Du machst es schon richtig: noob-User mit sudo statt direkt Root. Nächste Schritte: PasswordAuthentication no in sshd_config, Service Accounts für Dienste, API-Tokens mit minimalen Scopes.",
+      "security": "Least Privilege ist eines der wichtigsten Security-Prinzipien. Es reduziert die Blast Radius bei einem Breach. Regelmäßig prüfen: hat ein Account noch alle Berechtigungen die er hat? Braucht er sie noch?",
+      "relatedTerms": ["zero-trust", "defense-in-depth", "aaa", "access-control"],
+      "links": []
+    },
+    {
+      "id": "defense-in-depth",
+      "term": "Defense in Depth",
+      "tags": ["Security", "Grundprinzip"],
+      "summary": "Mehrere Sicherheitsschichten übereinander — wenn eine versagt, fängt die nächste den Angriff auf. Wie eine Zwiebel.",
+      "explanation": "Keine einzelne Sicherheitsmaßnahme ist perfekt. Defense in Depth schichtet mehrere Maßnahmen übereinander:\n\n1. Physisch: Server in abgeschlossenem Raum\n2. Netzwerk: Firewall, VLANs, DMZ\n3. Host: OS-Hardening, Patches, Antivirus\n4. Anwendung: Input-Validation, WAF, sichere Coding-Practices\n5. Daten: Encryption at Rest, Encryption in Transit, Backup\n6. Identity: MFA, Least Privilege, SSO\n7. Monitoring: IDS, Logging, SIEM, Alerting\n\nWenn die Firewall umgangen wird → IDS erkennt den Angriff → Host-Firewall blockt → Anwendung validiert Input → Daten sind verschlüsselt → Monitoring alarmiert.",
+      "howItWorks": "Angriffsszenario gegen dein Homelab:\n1. Angreifer findet offenen Port → Firewall (OPNsense) blockt unerlaubte Ports ✓\n2. Angreifer nutzt erlaubten Port 443 → WAF am Reverse Proxy prüft ✓\n3. Angreifer findet Schwachstelle in Web-App → IDS (Suricata) erkennt Exploit-Pattern ✓\n4. Exploit gelingt trotzdem → Container-Isolation begrenzt Schaden ✓\n5. Angreifer versucht Lateral Movement → VLANs blocken Zugang zu MGMT ✓\n6. Angreifer exfiltriert Daten → Monitoring erkennt ungewöhnlichen Traffic ✓",
+      "homelab": "Du baust Schicht für Schicht: Phase 2 = Netzwerk (Firewall, VLANs). Phase 3 = Dienste (Container-Isolation). Phase 4 = Security (IDS, Monitoring, PKI, Pentesting).",
+      "security": "Keine Schicht allein ist ausreichend. Die Kombination macht die Stärke. Budget und Aufwand verteilen — nicht alles in die Firewall stecken und den Rest vergessen.",
+      "relatedTerms": ["zero-trust", "least-privilege", "security-by-design", "firewall-typen"],
+      "links": []
+    },
+    {
+      "id": "security-by-design",
+      "term": "Security by Design / Security by Default",
+      "tags": ["Security", "Grundprinzip"],
+      "summary": "Sicherheit von Anfang an einplanen statt nachträglich draufschrauben. Default-Konfigurationen sollen sicher sein.",
+      "explanation": "• Security by Design: Sicherheit ist kein Feature das man am Ende hinzufügt — sie wird von Anfang an in die Architektur eingebaut. Subnetz-Planung VOR dem Deployment. SSH-Keys VOR dem ersten Login. Firewall-Regeln VOR dem ersten Dienst.\n\n• Security by Default: neue Systeme sind out-of-the-box sicher konfiguriert. Keine Default-Passwörter, keine offenen Ports die nicht nötig sind, Verschlüsselung aktiviert. Der Admin muss Sicherheit nicht erst einschalten — er muss sie bewusst ausschalten wenn er sie nicht will.\n\nDein Homelab-Projekt folgt diesem Prinzip: erst IP-Plan und Segmentierung (Design), dann Deployment. SSH-Keys statt Passwörter. Firewall-Regeln definiert bevor OPNsense steht.",
+      "howItWorks": "Security by Design in deinem Homelab:\n• IP-Plan definiert BEVOR VMs deployed werden\n• VLANs geplant BEVOR das Netz flach ist\n• SSH Key-Auth eingerichtet BEVOR Passwort-Auth deaktiviert wird\n• Firewall-Regeln definiert BEVOR OPNsense installiert wird\n• Backup-Strategie BEVOR produktive Daten existieren",
+      "homelab": "Dein gesamtes Homelab-Projekt ist Security by Design — du planst zuerst, baust dann. Die Dokumentation (diese Website!) ist Teil davon.",
+      "security": "Security by Design spart langfristig Zeit und Geld. Nachträgliches Absichern ist immer teurer und fehleranfälliger als von Anfang an richtig bauen.",
+      "relatedTerms": ["zero-trust", "defense-in-depth", "least-privilege", "hardening"],
+      "links": []
+    },
+    {
+      "id": "aaa",
+      "term": "AAA (Authentication, Authorization, Accounting)",
+      "tags": ["Security", "Identity"],
+      "summary": "Die drei Säulen der Zugriffskontrolle: WER bist du (Auth), WAS darfst du (Authz), WAS hast du getan (Accounting).",
+      "explanation": "• Authentication (AuthN): Identität beweisen. 'Wer bist du?' Methoden: Passwort, SSH-Key, Zertifikat, Biometrie, TOTP/FIDO2.\n\n• Authorization (AuthZ): Berechtigungen prüfen. 'Was darfst du?' Du bist authentifiziert als 'noob', aber darfst du sudo? Darfst du auf Proxmox Web-UI? Darfst du VMs löschen?\n\n• Accounting (Acct): Logging. 'Was hast du getan?' Wer hat wann welchen Befehl auf welchem Gerät ausgeführt. Für Compliance, Forensik und Troubleshooting.\n\nRADIUS und TACACS+ implementieren alle drei Säulen. TACACS+ trennt sie sogar komplett voneinander (Authorization separat konfigurierbar pro Befehl).",
+      "howItWorks": "SSH Login auf Jumphost:\n1. Authentication: SSH Ed25519 Key-Auth → 'Du bist noob' ✓\n2. Authorization: noob ist in sudo-Gruppe → darf sudo nutzen ✓\n3. Accounting: auth.log: 'Apr 19 15:32 noob SSH login from 192.168.0.155' ✓",
+      "homelab": "Aktuell: lokale Auth (PAM/shadow). Geplant: TACACS+ (idea-013) für Netzwerkgeräte-Auth mit Command Authorization. RADIUS (idea-014) für WiFi/802.1X. Authentik (p4-sso) als zentraler Identity Provider.",
+      "security": "Alle drei Säulen sind gleich wichtig. Authentication ohne Authorization = jeder darf alles. Authorization ohne Accounting = niemand weiß wer was getan hat. Accounting ohne Authentication = Logs ohne Identität.",
+      "relatedTerms": ["mfa-2fa", "access-control", "least-privilege"],
+      "links": []
+    },
+    {
+      "id": "mfa-2fa",
+      "term": "MFA / 2FA (TOTP, FIDO2, Passkeys)",
+      "tags": ["Security", "Identity"],
+      "summary": "Multi-Faktor-Authentifizierung: mindestens zwei verschiedene Faktoren kombinieren — Wissen + Besitz + Biometrie.",
+      "explanation": "Drei Faktor-Kategorien:\n• Wissen: Passwort, PIN, Security Question\n• Besitz: Smartphone (TOTP App), Hardware-Key (YubiKey), Smartcard\n• Biometrie: Fingerabdruck, Gesicht, Iris\n\n2FA = zwei Faktoren. MFA = zwei oder mehr Faktoren.\n\nMethoden:\n• TOTP (Time-based OTP): 6-stelliger Code der sich alle 30s ändert. Apps: Google Authenticator, Authy, KeePassXC.\n• FIDO2/WebAuthn: Hardware-Key (YubiKey) oder Plattform-Authenticator. Phishing-resistent weil der Key die Domain prüft.\n• Passkeys: FIDO2-basiert, synchronisiert über Cloud (iCloud, Google). Ersetzt Passwort komplett.\n• SMS-OTP: UNSICHER (SIM-Swapping). Besser als nichts, aber nicht empfohlen.\n• Push Notification: 'Bist du das?' auf dem Smartphone. Komfortabel aber anfällig für MFA Fatigue (Angreifer spammt Push-Requests).",
+      "howItWorks": "TOTP Ablauf:\n1. Setup: Server generiert Secret, zeigt QR-Code\n2. User scannt QR-Code mit TOTP-App (KeePassXC)\n3. Login: User gibt Passwort + 6-stelligen TOTP-Code ein\n4. Server berechnet TOTP aus gleichem Secret + aktuelle Zeit\n5. Codes stimmen überein → Login OK\n\nFIDO2:\n1. Browser sendet Challenge an Hardware-Key\n2. Key signiert Challenge mit privatem Key + prüft Domain\n3. Server prüft Signatur mit gespeichertem Public Key\n→ Phishing unmöglich: Key signiert nur für die echte Domain",
+      "homelab": "Geplant: 2FA für Proxmox (TOTP), Authentik/Keycloak mit FIDO2 Support (p4-2fa). KeePassXC kann TOTP-Codes generieren. Überlegen: YubiKey kaufen für Hardware-2FA.",
+      "security": "TOTP > SMS. FIDO2 > TOTP. Passkeys ersetzen langfristig Passwörter. Backup-Codes sicher aufbewahren (KeePass). MFA Fatigue: Push-basierte 2FA mit Number Matching statt Simple Approve.",
+      "relatedTerms": ["aaa", "access-control", "zero-trust"],
+      "links": [
+        { "title": "FIDO Alliance", "url": "https://fidoalliance.org/" }
+      ]
+    },
+    {
+      "id": "brute-force-dictionary",
+      "term": "Brute Force vs Dictionary Attack",
+      "tags": ["Security", "Angriffe"],
+      "summary": "Brute Force: alle möglichen Kombinationen durchprobieren. Dictionary: eine Wortliste mit bekannten/häufigen Passwörtern nutzen.",
+      "explanation": "• Brute Force: systematisch alle Kombinationen testen. 'aaa', 'aab', 'aac', ... Bei 8 Zeichen (a-z, A-Z, 0-9): 62^8 = 218 Billionen Möglichkeiten. Dauert selbst mit GPU lange.\n\n• Dictionary Attack: Wortliste mit häufigen Passwörtern (rockyou.txt: 14 Millionen). Testet 'password123', 'admin', 'letmein' etc. Schneller als Brute Force, aber findet nur schwache Passwörter.\n\n• Hybrid: Dictionary + Regeln. 'password' → 'Password1', 'p@ssw0rd', 'password2024'. Tools: Hashcat, John the Ripper.\n\n• Credential Stuffing: gestohlene Login-Daten von einem Service bei anderen Services probieren (User recyclen Passwörter).",
+      "howItWorks": "Gegen SSH:\n1. Angreifer scannt Port 22 (offen)\n2. Versucht: root/admin, root/password, root/123456...\n3. Ohne Schutz: tausende Versuche pro Minute möglich\n\nDein Schutz:\n• SSH Key-Auth: Brute Force unmöglich (kein Passwort zum Raten)\n• Fail2Ban: nach 5 Fehlversuchen IP für 15min blocken\n• PasswordAuthentication no: Passwort-Login komplett deaktiviert\n• Port ändern: 22 → 2222 (Security by Obscurity, hilft ein wenig)",
+      "homelab": "AdGuard Passwort-Desaster (Session 6): auth_attempts=5 hat den Account nach 5 Fehlversuchen gesperrt — das IST Brute-Force-Schutz, hat dich aber auch selbst ausgesperrt. Lesson Learned.",
+      "security": "Starke Passwörter (20+ Zeichen, Passwort-Manager). Kein Passwort-Recycling. MFA. Account Lockout oder Progressive Delays. Fail2Ban auf allen SSH-Diensten.",
+      "relatedTerms": ["hashing", "salt-pepper", "mfa-2fa", "hardening"],
+      "links": [
+        { "title": "Have I Been Pwned", "url": "https://haveibeenpwned.com/" }
+      ]
+    },
+    {
+      "id": "mitm",
+      "term": "Man-in-the-Middle (MITM)",
+      "tags": ["Security", "Angriffe"],
+      "summary": "Angreifer positioniert sich zwischen zwei Kommunikationspartner und liest/manipuliert den Traffic mit. Beide Seiten merken es nicht.",
+      "explanation": "Ablauf:\n1. Angreifer leitet Traffic über sich um (ARP Spoofing, DNS Spoofing, Rogue WiFi AP)\n2. Opfer glaubt es spricht mit dem Server, spricht aber mit dem Angreifer\n3. Angreifer leitet Traffic an den echten Server weiter → Kommunikation funktioniert normal\n4. Angreifer liest alles mit (Passwörter, Daten) oder manipuliert (Malware injizieren)\n\nSchutz:\n• TLS/HTTPS: Zertifikat verifiziert die Identität des Servers. MITM bräuchte ein gefälschtes Cert.\n• HSTS: Browser verweigert HTTP-Verbindung zu HTTPS-Seiten\n• Certificate Pinning: nur bestimmte Certs akzeptieren\n• Encrypted DNS (DoH/DoT): DNS-Manipulation verhindern",
+      "howItWorks": "ARP-MITM in deinem Netz:\n1. Angreifer (Kali in Lab-VLAN) sendet: '192.168.0.1 ist bei meiner MAC'\n2. Dein PC cached das → aller Traffic geht zum Angreifer statt zum Router\n3. Angreifer forwarded an echten Router → Internet funktioniert\n4. Angreifer läuft Wireshark → sieht alles was unverschlüsselt ist\n\nGegen HTTPS-Traffic hilft das nicht — TLS verschlüsselt Ende-zu-Ende.",
+      "homelab": "VLANs verhindern ARP-MITM zwischen Segmenten. Kali VM im Lab-VLAN kann MGMT-Devices nicht per ARP angreifen. Aber INNERHALB eines VLANs ist MITM möglich → DAI, Port Security.",
+      "security": "Immer TLS verwenden. Zertifikat-Warnungen NICHT wegklicken. VPN für öffentliche Netze. VLANs trennen Angriffs-Surfaces.",
+      "relatedTerms": ["spoofing", "encryption-sym-asym", "pki"],
+      "links": []
+    },
+    {
+      "id": "spoofing",
+      "term": "Spoofing (IP, MAC, DNS, ARP)",
+      "tags": ["Security", "Angriffe"],
+      "summary": "Fälschen einer Identität: IP-Adresse, MAC-Adresse, DNS-Antwort oder ARP-Reply. Ziel: sich als jemand anderes ausgeben.",
+      "explanation": "• IP Spoofing: Source-IP im IP-Header fälschen. Für DDoS (Amplification: Opfer-IP als Source → alle Antworten gehen ans Opfer). Schwer für TCP (SYN-ACK kommt nicht zurück), einfach für UDP.\n\n• MAC Spoofing: eigene MAC-Adresse ändern. Legitim: Hyper-V MAC Spoofing für LXC Container. Bösartig: MAC-Filter umgehen, sich als anderes Gerät ausgeben.\n\n• DNS Spoofing: gefälschte DNS-Antworten senden. proxmox.homelab.local → Angreifer-IP statt echte IP. Fix: DNSSEC, verschlüsseltes DNS (DoH/DoT).\n\n• ARP Spoofing: gefälschte ARP-Replies senden. 'Gateway 192.168.0.1 ist bei meiner MAC' → Traffic umleiten (MITM). Fix: DAI, Static ARP.",
+      "howItWorks": "DNS Spoofing:\n1. User fragt: 'Was ist die IP von proxmox.homelab.local?'\n2. Angreifer antwortet schneller als der echte DNS: '10.0.3.50 (Angreifer-IP)'\n3. User verbindet zu 10.0.3.50 → Phishing-Seite die wie Proxmox aussieht\n4. User gibt Login ein → Angreifer hat Credentials\n\nFix: DNSSEC signiert Antworten → Fälschung erkennbar.",
+      "homelab": "MAC Spoofing auf Hyper-V ist KEIN Angriff — es ist nötig damit LXC Container eigene MACs haben dürfen. ARP/DNS Spoofing Angriffe in deinem Lab mit Kali üben (p4-pentest), aber nur im Lab-VLAN!",
+      "security": "Ingress Filtering (BCP38): Router blockt Pakete mit gefälschter Source-IP. DNSSEC für DNS-Authentizität. DAI für ARP-Schutz. 802.1X als Basis-Schutz auf Switch-Ports.",
+      "relatedTerms": ["mitm", "defense-in-depth"],
+      "links": []
+    },
+    {
+      "id": "hardening",
+      "term": "Hardening (OS, SSH, Web)",
+      "tags": ["Security", "Operations"],
+      "summary": "Unnötige Dienste deaktivieren, sichere Defaults setzen, Angriffsfläche minimieren. Das System auf das Nötigste reduzieren.",
+      "explanation": "OS Hardening:\n• Unnötige Dienste deaktivieren (systemctl disable)\n• Nicht benötigte Pakete deinstallieren\n• Automatische Security-Updates (unattended-upgrades)\n• Kernel-Parameter härten (sysctl: disable IP forwarding wenn nicht Router)\n• File Permissions prüfen (keine world-writable Dateien)\n\nSSH Hardening:\n• PasswordAuthentication no\n• PermitRootLogin prohibit-password\n• MaxAuthTries 3\n• AllowUsers/AllowGroups\n• Port ändern (optional)\n• Idle Timeout: ClientAliveInterval 300, ClientAliveCountMax 2\n\nWeb Hardening:\n• Security Headers (CSP, X-Frame-Options, X-Content-Type-Options)\n• TLS 1.2+ only, starke Cipher Suites\n• Server-Version nicht exponieren (ServerTokens Off)\n• Rate Limiting, Input Validation",
+      "howItWorks": "SSH Hardening auf deinem Jumphost:\n1. vim /etc/ssh/sshd_config ← vim verwenden!\n2. PasswordAuthentication no\n3. PermitRootLogin prohibit-password\n4. MaxAuthTries 3\n5. AllowUsers noob\n6. systemctl restart sshd\n7. TESTEN ob Key-Login noch funktioniert bevor Session schließen!",
+      "homelab": "p1-ssh-remaining: sshd_config Hardening steht noch aus. Erst Key-Auth testen, dann Passwort deaktivieren. Proxmox Web-UI: Standard-Port 8006, selbstsigniertes Cert — Hardening folgt mit Reverse Proxy.",
+      "security": "CIS Benchmarks (Center for Internet Security) sind der Gold-Standard für Hardening-Guides. Für Debian, Ubuntu, Proxmox gibt es spezifische Benchmarks. Regelmäßig patchen ist das wichtigste Hardening.",
+      "relatedTerms": ["least-privilege", "security-by-design", "cve-vulnerability"],
+      "links": [
+        { "title": "CIS Benchmarks", "url": "https://www.cisecurity.org/cis-benchmarks" },
+        { "title": "Mozilla SSH Guidelines", "url": "https://infosec.mozilla.org/guidelines/openssh" }
+      ]
+    },
+    {
+      "id": "cve-vulnerability",
+      "term": "CVE / Vulnerability Management",
+      "tags": ["Security", "Operations"],
+      "summary": "CVE = eindeutige ID für bekannte Sicherheitslücken. Vulnerability Management = Prozess um Schwachstellen zu finden, bewerten und beheben.",
+      "explanation": "• CVE (Common Vulnerabilities and Exposures): standardisierte IDs für Sicherheitslücken. Format: CVE-YYYY-NNNNN (z.B. CVE-2024-12345).\n• CVSS (Common Vulnerability Scoring System): Schweregrad 0-10. Critical: 9.0-10.0, High: 7.0-8.9, Medium: 4.0-6.9, Low: 0.1-3.9.\n• NVD (National Vulnerability Database): öffentliche Datenbank aller CVEs mit CVSS-Scores.\n\nVulnerability Management Lifecycle:\n1. Discover: Assets inventarisieren (was läuft wo?)\n2. Assess: Schwachstellen scannen (Nessus, OpenVAS)\n3. Prioritize: nach CVSS und Business-Impact\n4. Remediate: Patch, Workaround oder Accept Risk\n5. Verify: erneut scannen ob gefixt\n6. Report: dokumentieren für Compliance",
+      "howItWorks": "Beispiel: Proxmox VE 9.1.7\n1. Neue CVE für den Linux Kernel veröffentlicht (CVSS 9.8)\n2. apt-get update && apt-get dist-upgrade → Kernel-Patch\n3. Reboot → neue Kernel-Version aktiv\n4. Verify: Kernel-Version prüfen, CVE nicht mehr betroffen",
+      "homelab": "Regelmäßig patchen: apt update/upgrade auf allen VMs. Proxmox hat eigene Security Advisories. Debian Security Tracker für den Jumphost. Monitoring geplant (p4-grafana): Dashboard für veraltete Pakete.",
+      "security": "Patch-Management ist die #1 Security-Maßnahme. 80% aller Exploits nutzen bekannte, ungepatchte Schwachstellen. Automatische Updates (unattended-upgrades) für Security-Patches.",
+      "relatedTerms": ["hardening", "pentest-vs-scan"],
+      "links": [
+        { "title": "NVD", "url": "https://nvd.nist.gov/" },
+        { "title": "Debian Security Tracker", "url": "https://security-tracker.debian.org/" }
+      ]
+    },
+    {
+      "id": "pentest-vs-scan",
+      "term": "Penetration Testing vs Vulnerability Scanning",
+      "tags": ["Security", "Testing"],
+      "summary": "Vulnerability Scan: automatisiert, findet bekannte Schwachstellen. Pentest: manuell, simuliert einen echten Angreifer und versucht aktiv einzubrechen.",
+      "explanation": "• Vulnerability Scanning: automatisiertes Tool scannt Systeme gegen eine Datenbank bekannter CVEs. Schnell, breit, viele False Positives. Tools: Nessus, OpenVAS, Qualys. Ergebnis: Liste von Schwachstellen mit CVSS-Scores.\n\n• Penetration Testing: ein Mensch (Pentester) versucht aktiv in Systeme einzubrechen. Nutzt die gefundenen Schwachstellen aus, versucht Privilege Escalation, Lateral Movement. Langsam, teuer, aber findet echte Exploit-Chains die Scanner übersehen.\n\nPentest-Phasen:\n1. Reconnaissance: Informationen sammeln (OSINT, Port Scanning)\n2. Scanning: Schwachstellen identifizieren\n3. Exploitation: Schwachstellen ausnutzen\n4. Post-Exploitation: Privilege Escalation, Lateral Movement\n5. Reporting: Findings dokumentieren mit Remediation",
+      "howItWorks": "Lab-Setup für Pentesting (p4-pentest):\n• Kali Linux (10.0.3.21): Pentest-Tools (nmap, Metasploit, Burp Suite)\n• Metasploitable (10.0.3.22): absichtlich verwundbares Target\n• DVWA (Damn Vulnerable Web App): Web-Schwachstellen üben\n• ISOLIERT im Lab-VLAN: darf NICHT auf MGMT/SVC zugreifen",
+      "homelab": "Phase 4: Pentest-Lab im Lab-VLAN. Erst gegen Metasploitable/DVWA üben, dann (vorsichtig, mit Snapshot) gegen eigene Dienste testen. OpenVAS als Vulnerability Scanner auf dem Jumphost.",
+      "security": "Pentesting nur auf eigenen Systemen oder mit schriftlicher Genehmigung. Ohne Genehmigung = Straftat. Immer Snapshot VOR dem Pentest. Lab-VLAN strikt isoliert halten.",
+      "relatedTerms": ["cve-vulnerability", "defense-in-depth"],
+      "links": [
+        { "title": "Kali Linux", "url": "https://www.kali.org/" },
+        { "title": "DVWA", "url": "https://github.com/digininja/DVWA" }
+      ]
+    },
+    {
+      "id": "siem",
+      "term": "SIEM (Security Information and Event Management)",
+      "tags": ["Security", "Monitoring"],
+      "summary": "Zentrales System das Logs aus allen Quellen sammelt, korreliert und Sicherheitsvorfälle erkennt. Das Gehirn des Security-Monitorings.",
+      "explanation": "SIEM kombiniert zwei Funktionen:\n• SIM (Security Information Management): Log-Sammlung, Archivierung, Compliance-Reporting\n• SEM (Security Event Management): Echtzeit-Analyse, Korrelation, Alerting\n\nWas ein SIEM macht:\n1. Logs einsammeln (Firewall, Server, Switches, Applications)\n2. Normalisieren (verschiedene Log-Formate → einheitliches Schema)\n3. Korrelieren ('5 fehlgeschlagene SSH-Logins von gleicher IP in 1 Minute' → Alert)\n4. Alerting (E-Mail, Slack, PagerDuty)\n5. Dashboard (Übersicht aller Security-Events)\n\nProdukte: Splunk (Enterprise), Elastic SIEM (Open Source), Wazuh (Open Source), Grafana Loki (leichtgewichtig).",
+      "howItWorks": "SIEM Korrelationsregel:\nWENN: 5x SSH auth failure von IP X in 2 Minuten\nUND: IP X ist nicht in der Whitelist\nUND: danach 1x SSH auth success von IP X\nDANN: Alert 'Possible Brute Force + Successful Login' → Severity HIGH",
+      "homelab": "Geplant: Grafana + Loki als leichtgewichtiges Log-Management (p4-loki). Suricata Alerts nach Loki schicken. Langfristig: Wazuh als vollwertiges Open-Source SIEM.",
+      "security": "SIEM ist nur so gut wie seine Regeln und seine Log-Quellen. Alle kritischen Systeme müssen loggen. Log-Retention: mindestens 90 Tage. Alerting so tunen dass es nicht in Alert Fatigue endet.",
+      "relatedTerms": ["ids-ips", "defense-in-depth"],
+      "links": [
+        { "title": "Wazuh", "url": "https://wazuh.com/" },
+        { "title": "Grafana Loki", "url": "https://grafana.com/oss/loki/" }
+      ]
+    },
+    {
+      "id": "access-control",
+      "term": "Access Control (RBAC, ABAC, ACL)",
+      "tags": ["Security", "Identity"],
+      "summary": "Drei Modelle die bestimmen WER auf WAS zugreifen darf: rollenbasiert (RBAC), attributbasiert (ABAC), listenbasiert (ACL).",
+      "explanation": "• ACL (Access Control List): explizite Liste wer was darf. Pro Ressource eine Liste von Erlaubnis/Verbot-Einträgen. Simpel, skaliert schlecht. Beispiel: Firewall-Regeln, Dateisystem-Permissions.\n\n• RBAC (Role-Based Access Control): Berechtigungen werden Rollen zugewiesen, User bekommen Rollen. User → Rolle 'Admin' → darf alles. User → Rolle 'Viewer' → darf nur lesen. Skaliert gut, Standard in Enterprise.\n\n• ABAC (Attribute-Based Access Control): Entscheidung basierend auf Attributen von User, Ressource, Umgebung. 'User mit Abteilung=IT UND Standort=Büro UND Zeit=Arbeitszeit darf auf Server zugreifen'. Flexibler als RBAC, komplexer.\n\nProxmox nutzt RBAC: Rollen wie PVEAdmin, PVEAuditor, PVEVMUser mit verschiedenen Berechtigungen.",
+      "howItWorks": "Proxmox RBAC:\n• Rolle 'PVEAdmin': alle Rechte auf VMs, Storage, Nodes\n• Rolle 'PVEVMUser': VMs starten/stoppen, Console, aber keine Config-Änderungen\n• Rolle 'PVEAuditor': nur lesen, nichts ändern\n\nUser 'noob@pam' bekommt Rolle 'PVEAdmin' auf Path '/' → voller Zugriff.\nUser 'monitoring@pam' bekommt Rolle 'PVEAuditor' auf Path '/' → nur lesen.",
+      "homelab": "Proxmox hat RBAC eingebaut. Für den Anfang reicht root. Später: eigene User mit spezifischen Rollen (Monitoring-User, Backup-User). Authentik/Keycloak kann RBAC für alle Dienste zentral verwalten.",
+      "security": "Principle of Least Privilege über RBAC umsetzen. Rollen regelmäßig reviewen. Keine Shared Accounts — jeder User eigener Account mit eigener Rolle.",
+      "relatedTerms": ["aaa", "least-privilege", "mfa-2fa"],
+      "links": []
+    },
+    {
+      "id": "cipher-suite",
+      "term": "Cipher Suite (Aufbau & Auswahl)",
+      "tags": ["Security", "Kryptographie"],
+      "summary": "Eine Kombination aus Algorithmen für Key Exchange, Verschlüsselung, Integrität und Signatur. Bestimmt die Sicherheit einer TLS-Verbindung.",
+      "explanation": "TLS 1.3 Cipher Suite Aufbau:\nTLS_AES_256_GCM_SHA384\n• AES_256: symmetrische Verschlüsselung (256-Bit AES)\n• GCM: Betriebsmodus (Galois/Counter Mode — AEAD: Authentifizierung + Encryption in einem)\n• SHA384: Hash für Handshake-Integrität\n\nTLS 1.2 Cipher Suite (komplexer):\nTLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384\n• ECDHE: Key Exchange (Elliptic Curve Diffie-Hellman Ephemeral)\n• RSA: Authentifizierung (Server-Zertifikat)\n• AES_256_GCM: Verschlüsselung\n• SHA384: Integrität\n\nTLS 1.3 hat die Auswahl auf 5 sichere Suites reduziert. TLS 1.2 hat hunderte — viele davon unsicher (RC4, DES, MD5, Export-Grade).",
+      "howItWorks": "Gute Cipher Suite Konfiguration (Nginx):\nssl_protocols TLSv1.2 TLSv1.3;\nssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';\nssl_prefer_server_ciphers on;\n\n→ Nur ECDHE (PFS), nur AES-GCM (AEAD), keine Legacy-Algorithmen.",
+      "homelab": "Reverse Proxy (Nginx/Traefik) konfiguriert die Cipher Suites zentral. Proxmox Web-UI hat eigene TLS-Konfiguration. SSL Labs Test für Prüfung: ssllabs.com/ssltest.",
+      "security": "Unsichere Cipher Suites deaktivieren: RC4, DES, 3DES, MD5, SHA1, Export-Grade. ECDHE bevorzugen (PFS). Regelmäßig prüfen mit Mozilla SSL Configuration Generator.",
+      "relatedTerms": ["encryption-sym-asym", "pfs", "key-exchange", "pki"],
+      "links": [
+        { "title": "Mozilla SSL Config Generator", "url": "https://ssl-config.mozilla.org/" },
+        { "title": "SSL Labs Test", "url": "https://www.ssllabs.com/ssltest/" }
+      ]
+    },
+    {
+      "id": "key-exchange",
+      "term": "Key Exchange (DH, ECDHE)",
+      "tags": ["Security", "Kryptographie"],
+      "summary": "Wie zwei Parteien über einen unsicheren Kanal einen gemeinsamen Schlüssel vereinbaren ohne dass ein Mithörer ihn kennt.",
+      "explanation": "Das Grundproblem: Alice und Bob wollen verschlüsselt kommunizieren. Dafür brauchen sie einen gemeinsamen Schlüssel. Aber wie tauschen sie ihn aus wenn Eve mithört?\n\n• Diffie-Hellman (DH): mathematisches Verfahren. Beide Seiten tauschen öffentliche Werte aus → jede Seite kann den gemeinsamen Schlüssel berechnen → Eve kann ihn NICHT berechnen. Basiert auf der Schwierigkeit des Diskreten-Logarithmus-Problems.\n\n• ECDHE (Elliptic Curve DH Ephemeral): DH über elliptische Kurven. Gleiche Sicherheit mit kürzeren Schlüsseln (256-Bit ECDHE ≈ 3072-Bit DH). 'Ephemeral': für jede Session ein neuer Key → Perfect Forward Secrecy.\n\nDH-Groups:\n• Group 14 (2048 Bit): Minimum für Sicherheit\n• Group 19 (256-Bit ECDHE): Standard heute\n• Group 21 (521-Bit ECDHE): maximale Sicherheit\n• Group 1-5 (768-1536 Bit): UNSICHER, deaktivieren",
+      "howItWorks": "Vereinfacht (Farben-Analogie):\n1. Alice und Bob einigen sich öffentlich auf Gelb (Public)\n2. Alice mischt Gelb + ihr Geheimnis (Rot) → Orange (sendet an Bob)\n3. Bob mischt Gelb + sein Geheimnis (Blau) → Grün (sendet an Alice)\n4. Alice mischt Grün + Rot → Braun (gemeinsamer Key)\n5. Bob mischt Orange + Blau → Braun (gleicher gemeinsamer Key!)\n6. Eve hat Gelb, Orange, Grün → kann Braun NICHT berechnen",
+      "homelab": "SSH: verwendet ECDHE automatisch für Key Exchange. WireGuard: Curve25519 (eine elliptische Kurve). IPsec: DH-Group konfigurierbar (Group 14+ verwenden).",
+      "security": "Immer ECDHE verwenden (nicht statisches DH/RSA Key Exchange — kein PFS). DH-Groups unter 2048 Bit deaktivieren. ssh-audit.com prüft SSH Key Exchange Algorithmen.",
+      "relatedTerms": ["pfs", "encryption-sym-asym", "cipher-suite"],
+      "links": []
+    },
+    {
+      "id": "pfs",
+      "term": "Perfect Forward Secrecy (PFS)",
+      "tags": ["Security", "Kryptographie"],
+      "summary": "Jede Session hat eigene temporäre Schlüssel. Wird ein Schlüssel kompromittiert, sind vergangene Sessions trotzdem sicher.",
+      "explanation": "Ohne PFS: Server hat einen langlebigen Private Key für Key Exchange. Wenn dieser Key gestohlen wird → Angreifer kann ALLE aufgezeichneten vergangenen Sessions entschlüsseln.\n\nMit PFS (ECDHE): jede Session generiert neue, temporäre (ephemeral) Keys. Nach der Session werden sie gelöscht. Selbst wenn der Server-Key gestohlen wird → vergangene Sessions bleiben verschlüsselt weil die Session-Keys nicht mehr existieren.\n\nDas 'E' in ECDHE steht für 'Ephemeral' = kurzlebig = PFS.\n\nWarum das wichtig ist: Geheimdienste zeichnen verschlüsselten Traffic auf in der Hoffnung, die Keys irgendwann zu knacken oder zu stehlen. PFS macht das nutzlos.",
+      "howItWorks": "TLS ohne PFS (RSA Key Exchange):\n1. Server-Key gestohlen (heute)\n2. Angreifer hat Traffic von vor 6 Monaten aufgezeichnet\n3. Entschlüsselt allen alten Traffic → alle Passwörter, Daten sichtbar\n\nTLS mit PFS (ECDHE):\n1. Server-Key gestohlen (heute)\n2. Angreifer hat alten Traffic → kann ihn NICHT entschlüsseln\n3. Ephemeral Keys existieren nicht mehr → Forward Secrecy ✓",
+      "homelab": "SSH nutzt PFS automatisch. TLS am Reverse Proxy: ECDHE Cipher Suites konfigurieren. WireGuard: PFS durch Noise Protocol Framework eingebaut.",
+      "security": "Nur Cipher Suites mit ECDHE (oder DHE) verwenden. RSA-Key-Exchange deaktivieren. In TLS 1.3 ist PFS erzwungen — es gibt keine Cipher Suite ohne PFS.",
+      "relatedTerms": ["key-exchange", "cipher-suite", "encryption-sym-asym"],
+      "links": []
+    }
+  ]
+}

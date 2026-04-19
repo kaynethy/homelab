@@ -6,6 +6,14 @@
   <title>Homelab – Phase 3</title>
   <link rel="stylesheet" href="../assets/style.css">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    .drag-handle { cursor: grab; color: var(--muted); font-size: 14px; padding: 2px 6px; opacity: 0.25; transition: opacity 0.2s; position: absolute; top: 8px; right: 8px; z-index: 2; user-select: none; line-height: 1; }
+    .drag-handle:hover { opacity: 0.7; }
+    .drag-handle:active { cursor: grabbing; }
+    .card.dragging { opacity: 0.4; transform: scale(0.98); }
+    .card.drag-over { border-left: 3px solid var(--accent); background: rgba(79,255,176,0.04); }
+    .card[draggable="true"] { position: relative; }
+  </style>
 </head>
 <body>
 <div class="wrap">
@@ -71,7 +79,7 @@
     if (phase.sections) {
       for (var i = 0; i < phase.sections.length; i++) {
         stepsHtml += '<div class="section-label">' + phase.sections[i].label + '</div>';
-        stepsHtml += renderStepCards(phase.sections[i].steps, pNum);
+        stepsHtml += renderStepCards(phase.sections[i].steps, pNum, i);
       }
     }
 
@@ -126,6 +134,78 @@
         }
       });
     });
+
+    bindDragDrop();
+  }
+
+  // ===== DRAG & DROP =====
+  var dragSrcId = null;
+  var dragSrcContainer = null;
+
+  function bindDragDrop() {
+    document.querySelectorAll('.cards').forEach(function(container) {
+      container.querySelectorAll('.card[draggable="true"]').forEach(function(card) {
+        card.addEventListener('dragstart', function(e) {
+          if (!e.target.closest('.drag-handle') && e.target.className !== 'drag-handle') {
+            e.preventDefault();
+            return;
+          }
+          dragSrcId = card.getAttribute('data-step-id');
+          dragSrcContainer = container;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', dragSrcId);
+        });
+        card.addEventListener('dragend', function() {
+          card.classList.remove('dragging');
+          container.querySelectorAll('.card').forEach(function(c) { c.classList.remove('drag-over'); });
+          dragSrcId = null;
+          dragSrcContainer = null;
+        });
+        card.addEventListener('dragover', function(e) {
+          if (!dragSrcId || dragSrcContainer !== container) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          container.querySelectorAll('.card').forEach(function(c) { c.classList.remove('drag-over'); });
+          card.classList.add('drag-over');
+        });
+        card.addEventListener('dragleave', function() {
+          card.classList.remove('drag-over');
+        });
+        card.addEventListener('drop', function(e) {
+          e.preventDefault();
+          card.classList.remove('drag-over');
+          if (!dragSrcId || dragSrcContainer !== container) return;
+          var targetId = card.getAttribute('data-step-id');
+          if (dragSrcId === targetId) return;
+          var sectionIdx = container.hasAttribute('data-section-idx') ? parseInt(container.getAttribute('data-section-idx')) : null;
+          reorderStep(PHASE_ID, dragSrcId, targetId, sectionIdx);
+        });
+        card.querySelector('.drag-handle').addEventListener('mousedown', function(e) {
+          e.stopPropagation();
+        });
+      });
+    });
+  }
+
+  function reorderStep(phaseId, draggedId, targetId, sectionIdx) {
+    var phase = window.STATE.phases.find(function(p) { return p.id === phaseId; });
+    if (!phase) return;
+    var steps;
+    if (sectionIdx !== null && phase.sections && phase.sections[sectionIdx]) {
+      steps = phase.sections[sectionIdx].steps;
+    } else if (phase.steps) {
+      steps = phase.steps;
+    } else {
+      return;
+    }
+    var oldIndex = steps.findIndex(function(s) { return s.id === draggedId; });
+    var newIndex = steps.findIndex(function(s) { return s.id === targetId; });
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+    var moved = steps.splice(oldIndex, 1)[0];
+    steps.splice(newIndex, 0, moved);
+    window.saveState();
+    init();
   }
 
   function renderHardware() {
@@ -137,17 +217,19 @@
     return '<div class="section-label">Hardware</div><div class="hw-box" style="margin-bottom:20px">' + rows + '</div>';
   }
 
-  function renderStepCards(steps, pNum) {
+  function renderStepCards(steps, pNum, sectionIdx) {
     var cards = steps.filter(function(s) { return s.status !== 'deferred'; }).map(function(step) {
       var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
-      return '<a href="../steps/step.html?id=' + encodeURIComponent(step.id) + '" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block">' +
+      return '<a href="../steps/step.html?id=' + encodeURIComponent(step.id) + '" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block" draggable="true" data-step-id="' + escHtml(step.id) + '">' +
+        '<span class="drag-handle" title="Verschieben">⠿</span>' +
         '<div class="card-status status-' + step.status + '" title="' + step.status + '"></div>' +
         '<div class="card-title">' + escHtml(step.title) + '</div>' +
         '<div class="card-desc">' + escHtml(step.desc || '') + '</div>' +
         '<div class="tags">' + tags + '</div>' +
       '</a>';
     }).join('');
-    return '<div class="cards">' + cards + '</div>';
+    var sidx = sectionIdx !== undefined ? ' data-section-idx="' + sectionIdx + '"' : '';
+    return '<div class="cards"' + sidx + '>' + cards + '</div>';
   }
 
   var IDEAS_KEY = 'homelab_ideas_data';
@@ -197,7 +279,11 @@
   function renderIdeasPreview(phaseId, ideas) {
     if (ideas.length === 0) return '';
     var items = ideas.map(function(i) {
-      return '<li><span class="prio-badge ' + i.prio + '" style="margin:0;flex-shrink:0">' + i.prio + '</span>' + escHtml(i.title) + '</li>';
+      return '<li><a href="../ideas.html?highlight=' + encodeURIComponent(i.id) + '" class="idea-row">' +
+        '<span class="prio-badge ' + i.prio + '" style="margin:0;flex-shrink:0">' + i.prio + '</span>' +
+        escHtml(i.title) +
+        '<span class="idea-arrow">→</span>' +
+      '</a></li>';
     }).join('');
     return '<div class="section-label" style="margin-top:24px">Ideen zu dieser Phase</div>' +
       '<div class="info-box-sm" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">' +

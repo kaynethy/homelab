@@ -2450,8 +2450,22 @@
     // URL filter
     var params = new URLSearchParams(window.location.search);
     var f = params.get('filter');
+    var highlightId = params.get('highlight');
     if (f && ['phase1','phase2','phase3','phase4','open'].includes(f)) activePhase = f;
     if (f && ['high','medium','low'].includes(f)) activePrio = f;
+
+    // If highlight param set, ensure the right phase filter is active so the card is visible
+    if (highlightId) {
+      var hlIdea = getAll().find(function(i) { return i.id === highlightId; });
+      if (hlIdea && hlIdea.phase_id) {
+        activePhase = hlIdea.phase_id;
+      } else {
+        activePhase = 'all';
+      }
+      activePrio = 'all';
+      activeTag = null;
+      hideDone = false;
+    }
 
     renderSidebar();
     renderHeader();
@@ -2461,6 +2475,18 @@
     initPanelTagAC();
     bindCardTagACs();
     bindDragDrop();
+
+    // Highlight specific idea card when arriving via ?highlight=idea-xxx
+    if (highlightId) {
+      var card = document.querySelector('.cmd-card[data-id="' + highlightId + '"]');
+      if (card) {
+        setTimeout(function() {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('highlighted');
+          setTimeout(function() { card.classList.remove('highlighted'); }, 3000);
+        }, 100);
+      }
+    }
   }
 
   window.addEventListener('state-ready', init);

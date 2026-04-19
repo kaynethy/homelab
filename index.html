@@ -382,7 +382,7 @@
     .catch(function() {});
 
   // Wiki card counter
-  fetch('./homelab-wiki.json')
+  fetch('./wiki/homelab-wiki.json')
     .then(function(r) { return r.json(); })
     .then(function(w) {
       var el = document.getElementById('wiki-card-count');

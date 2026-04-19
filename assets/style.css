@@ -1020,6 +1020,14 @@ footer span { color: var(--accent); }
 .ideas-preview { list-style: none; margin-bottom: 12px; }
 .ideas-preview li { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
 .ideas-preview li:last-child { border-bottom: none; }
+.ideas-preview .idea-row { cursor: pointer; transition: background 0.15s ease, padding-left 0.15s ease; padding: 6px 8px; border-radius: 4px; margin: 0 -8px; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); }
+.ideas-preview .idea-row:hover { background: rgba(79, 255, 176, 0.05); padding-left: 14px; }
+.ideas-preview .idea-row .idea-arrow { margin-left: auto; opacity: 0; transition: opacity 0.15s ease; font-size: 12px; color: var(--accent); flex-shrink: 0; }
+.ideas-preview .idea-row:hover .idea-arrow { opacity: 1; }
+
+/* Highlight animation for ideas */
+.cmd-card.highlighted { animation: highlight-pulse 3s ease-out; }
+@keyframes highlight-pulse { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0px transparent; } }
 
 /* Phase notes textarea */
 .phase-notes { width: 100%; min-height: 80px; background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 10px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.6; resize: vertical; outline: none; }

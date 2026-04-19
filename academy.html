@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Netz-Akademie</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ===== ACADEMY TABS ===== */
+    .academy-tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .academy-tabs::-webkit-scrollbar { display: none; }
+    .academy-tab {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .academy-tab .tab-icon { margin-right: 6px; }
+    .academy-tab.active { border-bottom-style: solid; }
+    .academy-panel { display: none; }
+    .academy-panel.active { display: block; animation: panelFadeIn 0.3s ease; }
+    @keyframes panelFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===== GLOBAL SEARCH ===== */
+    .global-search-wrap { position: relative; margin-bottom: 20px; }
+    .global-search {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px 12px 38px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .global-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,255,176,0.08); }
+    .global-search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 14px; color: var(--muted); pointer-events: none;
+    }
+    .global-search-results {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+      margin-top: 4px; max-height: 320px; overflow-y: auto; z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .global-result {
+      padding: 10px 16px; cursor: pointer; border-bottom: 1px solid var(--bg);
+      display: flex; align-items: center; gap: 10px; transition: background 0.12s;
+    }
+    .global-result:last-child { border-bottom: none; }
+    .global-result:hover { background: var(--bg); }
+    .global-result-icon { font-size: 14px; flex-shrink: 0; }
+    .global-result-term { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); flex: 1; }
+    .global-result-source { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+    /* ===== GLOSSAR LAYOUT ===== */
+    .glossar-layout { display: grid; grid-template-columns: 1fr 28px; gap: 12px; align-items: start; }
+    .glossar-main { min-width: 0; }
+    .glossar-search {
+      width: 100%; max-width: 480px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px 14px; color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      outline: none; margin-bottom: 8px; transition: border-color 0.2s;
+    }
+    .glossar-search:focus { border-color: var(--accent); }
+    .glossar-stats {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); margin-bottom: 16px; line-height: 1.6;
+    }
+    .glossar-stats .stat-highlight { font-weight: 600; }
+
+    /* ===== GLOSSAR CARDS ===== */
+    .glossar-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 12px; overflow: hidden; transition: all 0.2s;
+    }
+    .glossar-card:hover { border-right-color: var(--border2); transform: translateX(2px); }
+    .glossar-card.open { transform: translateX(2px); }
+    .glossar-card-header {
+      padding: 16px 20px; cursor: pointer;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .glossar-card-meta { flex: 1; min-width: 0; }
+    .glossar-card-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .glossar-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .glossar-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 2px 8px; border-radius: 3px; border: 1px solid; transition: all 0.15s;
+    }
+    .glossar-card-summary { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .glossar-toggle {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 5px 12px; border-radius: 4px; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0; transition: all 0.15s; border: 1px solid;
+    }
+    .glossar-toggle:hover { filter: brightness(1.2); }
+    .glossar-card-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-top: 1px solid transparent;
+    }
+    .glossar-card.open .glossar-card-body { max-height: 9999px; border-top-color: var(--border); }
+    .glossar-card-body-inner { padding: 20px; }
+    .glossar-section-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin: 16px 0 6px 0; display: flex; align-items: center; gap: 8px;
+    }
+    .glossar-section-label:first-child { margin-top: 0; }
+    .glossar-section-bar { width: 8px; height: 2px; display: inline-block; }
+    .glossar-text { font-size: 13px; color: #8892a8; line-height: 1.7; white-space: pre-wrap; }
+    .glossar-homelab-callout {
+      padding: 12px; border-radius: 0 4px 4px 0; font-size: 13px; line-height: 1.7;
+      color: var(--text); border-left: 3px solid; margin: 8px 0;
+    }
+    .glossar-security-callout {
+      padding: 12px; border-radius: 4px; font-size: 13px; line-height: 1.7;
+      color: #fb923c; background: rgba(255,181,71,0.06);
+      border-left: 3px solid #fb923c; margin: 8px 0;
+    }
+    .glossar-related-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .glossar-related-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 10px;
+      border-radius: 3px; background: var(--bg); border: 1px solid var(--border);
+      color: var(--accent); cursor: pointer; transition: all 0.15s;
+    }
+    .glossar-related-tag:hover { border-color: var(--accent); background: rgba(79,255,176,0.08); }
+    .glossar-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+    .glossar-link {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent);
+      text-decoration: none; padding: 3px 10px; border: 1px solid var(--border);
+      border-radius: 3px; transition: all 0.15s;
+    }
+    .glossar-link:hover { border-color: var(--accent); background: rgba(79,255,176,0.08); }
+    .glossar-coming-soon {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    }
+    .glossar-coming-soon .coming-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+    .glossar-coming-soon h3 { font-size: 16px; color: var(--text); margin-bottom: 8px; }
+    .glossar-coming-soon p { font-size: 13px; max-width: 400px; margin: 0 auto; }
+
+    /* ===== ALPHABET NAV ===== */
+    .alphabet-nav {
+      position: sticky; top: 20px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0; padding-top: 40px;
+    }
+    .alpha-letter {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px;
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--border); cursor: pointer; border-radius: 2px;
+      transition: all 0.12s; user-select: none;
+    }
+    .alpha-letter:hover { color: var(--text); background: var(--bg2); }
+    .alpha-letter.has-entries { color: var(--muted); font-weight: 600; }
+    .alpha-letter.disabled { opacity: 0.25; cursor: default; }
+    .alpha-letter.disabled:hover { color: var(--border); background: transparent; }
+
+    /* ===== DEMOS ===== */
+    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .demo-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .demo-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      transition: opacity 0.2s;
+    }
+    .demo-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .demo-card.coming-soon { opacity: 0.6; }
+    .demo-card.coming-soon:hover { opacity: 0.7; transform: none; }
+    .demo-card-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+    .demo-card h3 { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); margin-bottom: 8px; }
+    .demo-card p { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+    .demo-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 2px 8px; border-radius: 3px; display: inline-block;
+    }
+    .demo-badge.live { background: rgba(34,211,238,0.1); color: #22d3ee; border: 1px solid rgba(34,211,238,0.25); }
+    .demo-badge.soon { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .demo-start-btn {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: #22d3ee; background: rgba(34,211,238,0.08);
+      border: 1px solid rgba(34,211,238,0.25); padding: 6px 16px;
+      border-radius: 4px; cursor: pointer; transition: all 0.15s;
+    }
+    .demo-start-btn:hover { background: rgba(34,211,238,0.15); }
+    .demo-card-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 4px; }
+
+    /* ===== OSI TAB ===== */
+    .osi-stack { max-width: 420px; }
+    .osi-layer {
+      display: grid; grid-template-columns: 40px 1fr auto;
+      align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 2px;
+      background: var(--bg2); border-left: 3px solid var(--border);
+      border-radius: 0 6px 6px 0; cursor: pointer;
+      transition: all 0.25s ease; position: relative; overflow: hidden;
+    }
+    .osi-layer::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, var(--layer-color, transparent), transparent 70%);
+      opacity: 0; transition: opacity 0.25s; pointer-events: none;
+    }
+    .osi-layer:hover { transform: translateX(2px); }
+    .osi-layer:hover::before { opacity: 0.08; }
+    .osi-layer.active { transform: translateX(4px); }
+    .osi-layer.active::before { opacity: 0.12; }
+    .osi-layer-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800;
+      color: var(--border2); text-align: center; transition: all 0.25s;
+      position: relative; z-index: 1;
+    }
+    .osi-layer.active .osi-layer-num { color: inherit; }
+    .osi-layer-name {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;
+      color: var(--text); transition: color 0.2s; position: relative; z-index: 1;
+    }
+    .osi-layer-sub { font-size: 11px; color: var(--muted); margin-top: 2px; position: relative; z-index: 1; }
+    .osi-layer-arrow { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; position: relative; z-index: 1; }
+
+    .osi-detail {
+      background: var(--bg2); border-radius: 8px; padding: 24px;
+      animation: osiSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes osiSlideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes osiFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .osi-detail-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+    .osi-detail-num { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 800; }
+    .osi-detail-title { font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--text); margin: 0; }
+    .osi-detail-en { font-size: 14px; color: var(--muted); }
+    .osi-detail-desc { color: #8892a8; font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
+    .osi-section-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 8px; margin-top: 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .osi-section-bar { width: 8px; height: 2px; display: inline-block; }
+    .osi-tag {
+      display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 3px 10px; border-radius: 3px; background: var(--bg);
+      border: 1px solid var(--border); color: var(--text);
+      margin: 0 6px 6px 0; transition: all 0.2s;
+    }
+    .osi-tag.highlight { border-color: currentColor; }
+    .osi-tag.device { color: #8892a8; }
+    .osi-tag.security { background: rgba(255,181,71,0.08); border-color: rgba(255,181,71,0.2); color: #fb923c; }
+    .osi-homelab {
+      padding: 12px; border-radius: 0 4px 4px 0;
+      font-size: 13px; line-height: 1.7; color: var(--text); border-left: 3px solid;
+    }
+    .osi-deep { font-size: 13px; line-height: 1.8; color: #8892a8; white-space: pre-wrap; }
+    .osi-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'JetBrains Mono', monospace; margin-top: 8px; }
+    .osi-table th { text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .osi-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .osi-table td:first-child { color: #8892a8; font-weight: 600; }
+    .osi-math {
+      background: var(--bg); padding: 16px; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 2;
+      color: var(--text); white-space: pre-wrap;
+    }
+    .osi-grid { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
+    .osi-grid.no-detail { grid-template-columns: 1fr; }
+    .osi-search {
+      width: 100%; max-width: 400px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      padding: 8px 12px; color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      outline: none; margin-bottom: 24px; transition: border-color 0.15s;
+    }
+    .osi-search:focus { border-color: var(--border2); }
+    .osi-search-results {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      margin-top: 4px; max-height: 200px; overflow-y: auto; max-width: 400px; margin-bottom: 16px;
+    }
+    .osi-search-item {
+      padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--bg);
+      display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;
+    }
+    .osi-search-item:hover { background: var(--bg); }
+    .osi-search-item-proto { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .osi-search-item-layer { font-size: 11px; color: var(--muted); }
+
+    /* Encapsulation */
+    .encap-wrap { background: rgba(13,15,20,0.8); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-top: 16px; }
+    .encap-title { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .encap-btns { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .encap-btn {
+      background: transparent; border: 2px solid var(--border); color: var(--muted);
+      padding: 6px 14px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.2s;
+    }
+    .encap-btn.active { background: color-mix(in srgb, currentColor 13%, transparent); }
+    @keyframes encapPulse {
+      0%, 100% { box-shadow: 0 0 0 0 transparent; }
+      50% { box-shadow: 0 0 10px 1px currentColor; }
+    }
+    .encap-btn.active { animation: encapPulse 2s ease-in-out infinite; }
+    .encap-content { background: var(--bg); border-radius: 4px; padding: 16px; transition: all 0.3s; }
+    .encap-layer-label { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+    .encap-desc { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+    .encap-code {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      background: var(--bg2); padding: 12px; border-radius: 4px; overflow-x: auto;
+      white-space: pre-wrap; word-break: break-all; line-height: 1.8;
+    }
+    .encap-code .encap-new { font-weight: 700; }
+    .encap-code .encap-prev { opacity: 0.4; }
+    .encap-nav { display: flex; justify-content: space-between; margin-top: 12px; }
+    .encap-nav button {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 4px 16px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .encap-nav button:hover:not(:disabled) { border-color: var(--border2); color: var(--text); }
+    .encap-nav button:disabled { color: var(--border); cursor: default; }
+
+    /* Protocol detail */
+    .proto-detail-block {
+      background: var(--bg2); border-top: 2px solid var(--accent); border-radius: 0 0 6px 6px;
+      padding: 20px; margin-top: 12px; animation: osiFadeIn 0.3s ease;
+    }
+    .proto-detail-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+    .proto-detail-name { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; }
+    .proto-detail-full { font-size: 12px; color: var(--muted); }
+    .proto-detail-summary { color: #8892a8; font-size: 13px; line-height: 1.7; margin: 8px 0 16px 0; }
+    .proto-detail-facts { list-style: none; padding: 0; margin: 8px 0; }
+    .proto-detail-facts li {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);
+      padding: 4px 0 4px 16px; position: relative; line-height: 1.6;
+    }
+    .proto-detail-facts li::before { content: '\2022'; position: absolute; left: 0; color: var(--muted); }
+    .proto-homelab-callout {
+      padding: 12px; border-radius: 0 4px 4px 0; font-size: 13px; line-height: 1.7;
+      color: var(--text); border-left: 3px solid; margin: 8px 0;
+    }
+    .proto-security-callout {
+      padding: 12px; border-radius: 4px; font-size: 13px; line-height: 1.7;
+      color: #fb923c; background: rgba(255,181,71,0.06); border-left: 3px solid #fb923c; margin: 8px 0;
+    }
+    .proto-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+    .proto-link {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent);
+      text-decoration: none; padding: 3px 10px; border: 1px solid var(--border);
+      border-radius: 3px; transition: all 0.15s;
+    }
+    .proto-link:hover { border-color: var(--accent); background: rgba(79,255,176,0.08); }
+    .proto-related-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .proto-related-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 10px;
+      border-radius: 3px; background: var(--bg); border: 1px solid var(--border);
+      color: var(--accent); cursor: pointer; transition: all 0.15s;
+    }
+    .proto-related-tag:hover { border-color: var(--accent); background: rgba(79,255,176,0.08); }
+    .osi-tag.clickable {
+      cursor: pointer; position: relative; padding-right: 22px; transition: all 0.2s;
+    }
+    .osi-tag.clickable::after {
+      content: '+'; position: absolute; right: 6px; top: 50%;
+      transform: translateY(-50%); font-size: 11px; opacity: 0.5;
+    }
+    .osi-tag.clickable:hover { border-color: currentColor; box-shadow: 0 0 8px -2px currentColor; }
+    .osi-tag.clickable.expanded::after { content: '\2212'; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) { .osi-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) {
+      .academy-tabs { gap: 0; }
+      .academy-tab { padding: 10px 12px; font-size: 11px; }
+      .glossar-layout { grid-template-columns: 1fr; }
+      .alphabet-nav { display: none; }
+      .demo-grid { grid-template-columns: 1fr; }
+      .global-search { font-size: 12px; padding: 10px 12px 10px 32px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><a href="wiki-preview.html">Wiki</a><span class="sep">›</span><span>Netz-Akademie</span></div>
+
+  <header>
+    <div class="header-left">
+      <h1>// netz<span>_akademie</span></h1>
+      <p style="color:var(--muted);font-size:14px;max-width:700px">Interaktiver Lernbereich — Protokolle, Konzepte, Security Fundamentals</p>
+    </div>
+  </header>
+
+  <!-- Global Search -->
+  <div class="global-search-wrap">
+    <span class="global-search-icon">🔍</span>
+    <input type="text" class="global-search" id="global-search" placeholder="Alle Module durchsuchen... (z.B. Reverse Proxy, AES, systemd)">
+    <div class="global-search-results" id="global-search-results" style="display:none"></div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="academy-tabs" id="academy-tabs">
+    <button class="academy-tab active" data-tab="osi" data-color="#4fffb0"><span class="tab-icon">📡</span>OSI-Modell</button>
+    <button class="academy-tab" data-tab="netzwerk" data-color="#4db8ff"><span class="tab-icon">🌐</span>Netzwerk</button>
+    <button class="academy-tab" data-tab="security" data-color="#fb923c"><span class="tab-icon">🔒</span>Security</button>
+    <button class="academy-tab" data-tab="infra" data-color="#a78bfa"><span class="tab-icon">🖥</span>Infrastruktur</button>
+    <button class="academy-tab" data-tab="admin" data-color="#f472b6"><span class="tab-icon">🛠</span>Admin &amp; Tools</button>
+    <button class="academy-tab" data-tab="demos" data-color="#22d3ee"><span class="tab-icon">⚡</span>Demos</button>
+  </div>
+
+  <!-- ===== TAB: OSI-Modell ===== -->
+  <div class="academy-panel active" id="panel-osi">
+    <input type="text" class="osi-search" id="osi-search" placeholder="Protokoll suchen... (z.B. TCP, DNS, SSH)">
+    <div class="osi-search-results" id="osi-search-results" style="display:none"></div>
+    <div class="osi-grid no-detail" id="osi-grid">
+      <div>
+        <div class="osi-stack" id="osi-stack"></div>
+        <div style="margin-top:16px">
+          <button id="btn-encap" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 16px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:1px;transition:all 0.2s">▶ Encapsulation Demo</button>
+          <div id="encap-container" style="display:none"></div>
+        </div>
+      </div>
+      <div id="osi-detail"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: Netzwerk ===== -->
+  <div class="academy-panel" id="panel-netzwerk">
+    <div class="glossar-layout">
+      <div class="glossar-main">
+        <input type="text" class="glossar-search" data-glossar="netzwerk" placeholder="Begriff suchen...">
+        <div class="glossar-stats" id="stats-netzwerk"></div>
+        <div class="glossar-cards" id="cards-netzwerk"></div>
+      </div>
+      <div class="alphabet-nav" id="alpha-netzwerk"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: Security ===== -->
+  <div class="academy-panel" id="panel-security">
+    <div class="glossar-layout">
+      <div class="glossar-main">
+        <input type="text" class="glossar-search" data-glossar="security" placeholder="Begriff suchen...">
+        <div class="glossar-stats" id="stats-security"></div>
+        <div class="glossar-cards" id="cards-security"></div>
+      </div>
+      <div class="alphabet-nav" id="alpha-security"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: Infrastruktur ===== -->
+  <div class="academy-panel" id="panel-infra">
+    <div class="glossar-layout">
+      <div class="glossar-main">
+        <input type="text" class="glossar-search" data-glossar="infra" placeholder="Begriff suchen...">
+        <div class="glossar-stats" id="stats-infra"></div>
+        <div class="glossar-cards" id="cards-infra"></div>
+      </div>
+      <div class="alphabet-nav" id="alpha-infra"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: Admin & Tools ===== -->
+  <div class="academy-panel" id="panel-admin">
+    <div class="glossar-layout">
+      <div class="glossar-main">
+        <input type="text" class="glossar-search" data-glossar="admin" placeholder="Begriff suchen...">
+        <div class="glossar-stats" id="stats-admin"></div>
+        <div class="glossar-cards" id="cards-admin"></div>
+      </div>
+      <div class="alphabet-nav" id="alpha-admin"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: Demos ===== -->
+  <div class="academy-panel" id="panel-demos">
+    <div class="demo-grid" id="demo-grid"></div>
+  </div>
+
+  <footer style="margin-top:40px;padding:16px 0;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--border2);text-align:center">
+    homelab_roadmap · netz_akademie · Security by Design
+  </footer>
+</div>
+
+<script src="assets/state.js"></script>
+<script src="assets/nav.js"></script>
+<script src="assets/protocols-state.js"></script>
+<script src="assets/academy-state.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // =============================================
+  // CONFIG
+  // =============================================
+  var TAB_COLORS = {
+    osi: '#4fffb0', netzwerk: '#4db8ff', security: '#fb923c',
+    infra: '#a78bfa', admin: '#f472b6', demos: '#22d3ee'
+  };
+  var TAB_ICONS = {
+    osi: '📡', netzwerk: '🌐', security: '🔒',
+    infra: '🖥', admin: '🛠', demos: '⚡'
+  };
+  var TAG_COLOR_MAP = {
+    'Netzwerk': '#4db8ff', 'Security': '#fb923c', 'Web': '#4fffb0',
+    'Firewall': '#fb923c', 'Routing': '#4db8ff', 'DNS': '#4db8ff',
+    'Linux': '#a78bfa', 'Windows': '#4db8ff', 'Monitoring': '#22d3ee',
+    'Infrastruktur': '#a78bfa', 'Admin': '#f472b6', 'Automation': '#f472b6',
+    'Container': '#a78bfa', 'Virtualisierung': '#a78bfa', 'VPN': '#fb923c',
+    'Verschlüsselung': '#fb923c', 'Authentifizierung': '#fb923c',
+    'Proxy': '#4db8ff', 'Load Balancing': '#a78bfa', 'TLS': '#fb923c',
+    'HTTP': '#4fffb0', 'VLAN': '#4db8ff', 'Subnetting': '#4db8ff',
+    'NAT': '#4db8ff', 'QoS': '#4db8ff', 'Storage': '#a78bfa',
+    'Backup': '#a78bfa', 'Hardware': '#a78bfa', 'Shell': '#f472b6',
+    'Scripting': '#f472b6', 'Git': '#f472b6', 'Logging': '#22d3ee',
+    'Tools': '#f472b6', 'Homelab': '#4fffb0'
+  };
+
+  function getTagColor(tag) { return TAG_COLOR_MAP[tag] || null; }
+
+  // =============================================
+  // URL PARAMS & TAB SWITCHING
+  // =============================================
+  var params = new URLSearchParams(window.location.search);
+  var initialTab = params.get('tab') || 'osi';
+  var initialLayer = params.get('layer') ? parseInt(params.get('layer')) : null;
+  var initialTerm = params.get('term') || null;
+  var currentTab = 'osi';
+
+  function applyTabColors() {
+    document.querySelectorAll('.academy-tab').forEach(function(t) {
+      var color = t.dataset.color;
+      if (t.classList.contains('active')) {
+        t.style.color = color;
+        t.style.borderBottomColor = color;
+        t.style.textShadow = '0 0 20px ' + color + '40';
+      } else {
+        t.style.color = '';
+        t.style.borderBottomColor = 'transparent';
+        t.style.textShadow = '';
+      }
+    });
+  }
+
+  function switchTab(tabId) {
+    currentTab = tabId;
+    document.querySelectorAll('.academy-tab').forEach(function(t) {
+      t.classList.toggle('active', t.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.academy-panel').forEach(function(p) {
+      p.classList.toggle('active', p.id === 'panel-' + tabId);
+    });
+    applyTabColors();
+    var url = new URL(window.location);
+    url.searchParams.set('tab', tabId);
+    if (tabId !== 'osi') { url.searchParams.delete('layer'); }
+    if (!initialTerm || tabId === 'osi' || tabId === 'demos') { url.searchParams.delete('term'); }
+    history.replaceState(null, '', url);
+  }
+
+  // Tab hover colors
+  document.getElementById('academy-tabs').addEventListener('mouseover', function(e) {
+    var tab = e.target.closest('.academy-tab');
+    if (!tab || tab.classList.contains('active')) return;
+    tab.style.color = tab.dataset.color;
+  });
+  document.getElementById('academy-tabs').addEventListener('mouseout', function(e) {
+    var tab = e.target.closest('.academy-tab');
+    if (!tab || tab.classList.contains('active')) return;
+    tab.style.color = '';
+  });
+  document.getElementById('academy-tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.academy-tab');
+    if (!tab) return;
+    switchTab(tab.dataset.tab);
+  });
+
+  var validTabs = ['osi', 'netzwerk', 'security', 'infra', 'admin', 'demos'];
+  if (validTabs.indexOf(initialTab) !== -1) {
+    switchTab(initialTab);
+  }
+
+  // =============================================
+  // GLOBAL SEARCH
+  // =============================================
+  var globalSearchInput = document.getElementById('global-search');
+  var globalSearchResults = document.getElementById('global-search-results');
+  var glossarModules = ['netzwerk', 'security', 'infra', 'admin'];
+  var glossarModuleNames = { netzwerk: 'Netzwerk', security: 'Security', infra: 'Infrastruktur', admin: 'Admin & Tools' };
+
+  function doGlobalSearch(query) {
+    if (query.length < 2) { globalSearchResults.style.display = 'none'; return; }
+    var q = query.toLowerCase();
+    var results = [];
+
+    // Search OSI protocols
+    OSI_DATA.forEach(function(l) {
+      l.protocols.forEach(function(p) {
+        if (p.toLowerCase().indexOf(q) !== -1) {
+          results.push({ icon: '📡', term: p, source: 'OSI Layer ' + l.layer, type: 'osi', layer: l.layer, color: l.color });
+        }
+      });
+    });
+
+    // Search glossar modules
+    glossarModules.forEach(function(mk) {
+      var gd = window.ACADEMY && window.ACADEMY.glossary[mk];
+      if (!gd || !gd.entries) return;
+      gd.entries.forEach(function(entry) {
+        var haystack = (entry.term + ' ' + entry.summary + ' ' + (entry.tags || []).join(' ')).toLowerCase();
+        if (haystack.indexOf(q) !== -1) {
+          results.push({
+            icon: TAB_ICONS[mk], term: entry.term,
+            source: (entry.tags || []).slice(0, 2).join(' / ') || glossarModuleNames[mk],
+            type: 'glossar', module: mk, termId: entry.id, color: TAB_COLORS[mk]
+          });
+        }
+      });
+    });
+
+    if (results.length === 0) { globalSearchResults.style.display = 'none'; return; }
+    if (results.length > 12) results = results.slice(0, 12);
+
+    globalSearchResults.style.display = '';
+    globalSearchResults.innerHTML = results.map(function(r, i) {
+      return '<div class="global-result" data-idx="' + i + '">' +
+        '<span class="global-result-icon">' + r.icon + '</span>' +
+        '<span class="global-result-term" style="color:' + r.color + '">' + escHtml(r.term) + '</span>' +
+        '<span class="global-result-source">' + escHtml(r.source) + '</span></div>';
+    }).join('');
+
+    globalSearchResults.querySelectorAll('.global-result').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var idx = parseInt(this.dataset.idx);
+        var r = results[idx];
+        globalSearchInput.value = '';
+        globalSearchResults.style.display = 'none';
+        if (r.type === 'osi') {
+          switchTab('osi');
+          activeLayer = r.layer;
+          highlightProtocol = r.term;
+          renderStack(); renderDetail();
+        } else if (r.type === 'glossar') {
+          glossarOpenTerm[r.module] = r.termId;
+          switchTab(r.module);
+          renderGlossar(r.module);
+          setTimeout(function() {
+            var c = document.querySelector('.glossar-card[data-id="' + r.termId + '"]');
+            if (c) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 100);
+        }
+      });
+    });
+  }
+
+  globalSearchInput.addEventListener('input', function() { doGlobalSearch(this.value.trim()); });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.global-search-wrap')) globalSearchResults.style.display = 'none';
+  });
+
+  // =============================================
+  // OSI TAB
+  // =============================================
+  var OSI_DATA = [
+    {
+      layer: 7, name: "Anwendung", nameEn: "Application", color: "#4fffb0",
+      protocols: ["HTTP/HTTPS", "FTP", "SMTP", "DNS", "SSH", "SNMP", "DHCP", "LDAP", "NTP"],
+      devices: ["Proxy", "Gateway", "Load Balancer"], pdu: "Daten",
+      security: ["TLS/SSL", "SSH-Encryption", "HTTPS", "DNSSEC"],
+      description: "Schnittstelle zum Benutzer. Hier laufen die Anwendungsprotokolle die du direkt siehst — dein Browser, dein SSH-Client, dein DNS-Resolver.",
+      homelab: "AdGuard (DNS auf Layer 7), PuTTY (SSH), Proxmox Web-UI (HTTPS), NTP/Chrony",
+      deepDive: "HTTP ist zustandslos — jeder Request ist unabhängig. Cookies und Sessions sind Workarounds dafür. DNS löst Namen zu IPs auf BEVOR die TCP-Verbindung steht. SSH verschlüsselt auf Layer 7, nicht auf Layer 4."
+    },
+    {
+      layer: 6, name: "Darstellung", nameEn: "Presentation", color: "#7b61ff",
+      protocols: ["SSL/TLS", "JPEG", "MPEG", "ASCII", "UTF-8", "Base64", "gzip"],
+      devices: [], pdu: "Daten",
+      security: ["Verschlüsselung", "Zertifikate (X.509)", "Encoding"],
+      description: "Übersetzung, Verschlüsselung, Kompression. Wandelt Daten in ein Format das beide Seiten verstehen.",
+      homelab: "Let's Encrypt Zertifikate, TLS-Terminierung am Reverse Proxy, Base64 in API-Calls",
+      deepDive: "TLS Handshake: Client Hello → Server Hello + Zertifikat → Key Exchange → Encrypted Session. Der Reverse Proxy terminiert TLS hier — dahinter läuft oft unverschlüsseltes HTTP zum Backend."
+    },
+    {
+      layer: 5, name: "Sitzung", nameEn: "Session", color: "#a78bfa",
+      protocols: ["NetBIOS", "RPC", "SOCKS", "PPTP", "L2TP"],
+      devices: [], pdu: "Daten",
+      security: ["Session-Tokens", "Authentication"],
+      description: "Verwaltet Verbindungen (Sitzungen) zwischen zwei Systemen. Öffnen, halten, schließen.",
+      homelab: "SSH-Sessions (PuTTY/Pageant), SMB-Freigaben, RPC für Proxmox API",
+      deepDive: "In der Praxis verschmelzen Layer 5-7 oft. TCP hat eigentlich schon Session-Management — Layer 5 ist eher ein konzeptionelles Modell. Aber: Websockets sind ein gutes Beispiel für echtes Session-Management."
+    },
+    {
+      layer: 4, name: "Transport", nameEn: "Transport", color: "#4db8ff",
+      protocols: ["TCP", "UDP", "SCTP", "QUIC"],
+      devices: ["Firewall (Stateful)", "Load Balancer"], pdu: "Segment (TCP) / Datagramm (UDP)",
+      security: ["Firewall-Regeln (Port-basiert)", "Rate Limiting"],
+      description: "Ende-zu-Ende Kommunikation. TCP = zuverlässig (Reihenfolge, Fehlerkorrektur). UDP = schnell (kein Overhead, kein Handshake).",
+      homelab: "OPNsense Firewall-Regeln (Port 53 DNS, 123 NTP, 443 HTTPS), AdGuard auf Port 53/80",
+      deepDive: "TCP 3-Way Handshake: SYN → SYN-ACK → ACK. Erst danach fließen Daten. UDP hat das nicht — ein Paket raus, fertig. DNS nutzt UDP (schnell, kleine Pakete), fällt auf TCP zurück wenn Antwort >512 Bytes. QUIC (HTTP/3) baut auf UDP auf und hat eigenes Reliability-Layer.",
+      comparison: {
+        title: "TCP vs UDP",
+        headers: ["Eigenschaft", "TCP", "UDP"],
+        rows: [
+          ["Verbindung", "Verbindungsorientiert (Handshake)", "Verbindungslos"],
+          ["Zuverlässigkeit", "Garantierte Zustellung + Reihenfolge", "Best Effort, kein Ack"],
+          ["Geschwindigkeit", "Langsamer (Overhead)", "Schneller (kein Overhead)"],
+          ["Header-Größe", "20-60 Bytes", "8 Bytes"],
+          ["Flow Control", "Ja (Sliding Window)", "Nein"],
+          ["Use Cases", "HTTP, SSH, SMTP, FTP", "DNS, NTP, VoIP, Gaming, QUIC"],
+          ["Homelab", "Proxmox Web-UI, PuTTY SSH", "AdGuard DNS, Chrony NTP"]
+        ]
+      }
+    },
+    {
+      layer: 3, name: "Vermittlung", nameEn: "Network", color: "#00d4aa",
+      protocols: ["IPv4", "IPv6", "ICMP", "ARP", "OSPF", "BGP", "IPsec"],
+      devices: ["Router", "Layer-3-Switch", "Firewall"], pdu: "Paket",
+      security: ["IPsec", "ACLs", "Firewall-Regeln", "VPN-Tunnel"],
+      description: "Routing und logische Adressierung (IP-Adressen). Entscheidet WELCHEN WEG ein Paket nimmt.",
+      homelab: "IP-Plan (10.0.1-4.0/24), OPNsense Routing, Subnetting, VLAN-Routing, WireGuard/IPsec VPN",
+      deepDive: "Subnetting: /24 = 256 Adressen (254 nutzbar). Dein Plan: 10.0.1.0/24 (MGMT), 10.0.2.0/24 (SVC), 10.0.3.0/24 (LAB), 10.0.4.0/24 (DMZ). CIDR-Notation ersetzt die alte Klassen-Einteilung (A/B/C). ARP löst IP → MAC auf (Layer 3 → Layer 2 Brücke)."
+    },
+    {
+      layer: 2, name: "Sicherung", nameEn: "Data Link", color: "#fb923c",
+      protocols: ["Ethernet (802.3)", "WiFi (802.11)", "PPP", "VLAN (802.1Q)", "STP", "LLDP", "LACP"],
+      devices: ["Switch", "Bridge", "Access Point"], pdu: "Frame",
+      security: ["802.1X (Port-Auth)", "MAC-Filtering", "BPDU Guard", "Port Security"],
+      description: "Physische Adressierung (MAC-Adressen), Fehlererkennung (CRC), Frame-Aufbau. Steuert den Zugriff auf das Medium.",
+      homelab: "MAC Spoofing (Hyper-V), vmbr0 Bridge, Proxmox Bridge-Ports, VLAN-Tags, Switch-Konfiguration",
+      deepDive: "MAC-Adressen: 48 Bit, z.B. 00:15:5D:00:9B:01 (dein Proxmox-NIC). Erste 3 Bytes = Hersteller (OUI), letzte 3 = Gerät. Ein Frame hat: Preamble → Dest MAC → Src MAC → EtherType → Payload → FCS (CRC-32). Hamming-Distanz: Mindestanzahl Bit-Änderungen zwischen zwei gültigen Codes. CRC-32 hat Hamming-Distanz 4 → erkennt alle 1-3 Bit-Fehler.",
+      math: {
+        title: "Hamming-Distanz & Fehlererkennung",
+        content: "Hamming-Distanz d(x,y) = Anzahl unterschiedlicher Bits zwischen zwei Codewörtern.\n\nBeispiel: d(1011, 1110) = 2 (Bit 1 und Bit 3 unterschiedlich)\n\nRegeln:\n• d ≥ 2: Erkennung von 1-Bit-Fehlern\n• d ≥ 3: Korrektur von 1-Bit-Fehlern (Hamming-Code)\n• d ≥ 2t+1: Korrektur von t Fehlern\n\nCRC-32 (Ethernet): Polynom-Division über GF(2). Erkennt alle Burst-Fehler ≤32 Bit."
+      }
+    },
+    {
+      layer: 1, name: "Bitübertragung", nameEn: "Physical", color: "#ef4444",
+      protocols: ["Ethernet (Kabel)", "WiFi (Funk)", "Glasfaser", "USB", "Bluetooth", "DSL"],
+      devices: ["Hub", "Repeater", "Modem", "Kabel", "Transceiver"], pdu: "Bit",
+      security: ["Physische Sicherheit", "Abschirmung", "Frequenz-Hopping"],
+      description: "Rohe Bits über das physische Medium. Spannung, Licht, Funk — die echte Hardware.",
+      homelab: "CAT6 Kabel, ExternalSwitch (Hyper-V vSwitch), NIC (hv_netvsc Treiber), WiFi für Pi Zero 2 W",
+      deepDive: "Signalarten: Elektrisch (Kupfer, ±5V), Optisch (Glasfaser, Licht an/aus), Funk (WiFi, 2.4/5GHz). Encoding: Manchester (Ethernet 10BASE-T), 4B/5B (Fast Ethernet), PAM-5 (Gigabit). Dein ExternalSwitch in Hyper-V ist ein virtueller Layer-1/2-Switch — er simuliert die physische Verbindung zwischen VM und Host-NIC."
+    }
+  ];
+
+  var ENCAP_STEPS = [
+    { layer: "Daten", label: "Layer 7-5", desc: "HTTP GET /index.html", color: "#4fffb0",
+      newPart: "GET /index.html HTTP/1.1\nHost: proxmox.homelab.local", prevPart: "" },
+    { layer: "+ TCP Header", label: "Layer 4", desc: "Src Port: 54321 → Dst Port: 8006", color: "#4db8ff",
+      newPart: "[TCP | SrcPort:54321 | DstPort:8006 | Seq:1 | Ack:0 | SYN]", prevPart: " + Daten" },
+    { layer: "+ IP Header", label: "Layer 3", desc: "Src: 192.168.0.155 → Dst: 192.168.0.200", color: "#00d4aa",
+      newPart: "[IP | Src:192.168.0.155 | Dst:192.168.0.200 | TTL:64 | Proto:TCP]", prevPart: " + TCP + Daten" },
+    { layer: "+ Ethernet Frame", label: "Layer 2", desc: "Src MAC → Dst MAC + CRC", color: "#fb923c",
+      newPart: "[ETH | DstMAC:00:15:5d:00:9b:01 | SrcMAC:... | Type:0x0800]", prevPart: " + IP + TCP + Daten + [FCS]" },
+    { layer: "→ Bits", label: "Layer 1", desc: "10110010 01001... auf dem Kabel", color: "#ef4444",
+      newPart: "10110010 01001101 11010010 10110100 01001...", prevPart: "" }
+  ];
+
+  var activeLayer = null;
+  var highlightProtocol = null;
+  var expandedProtocol = null;
+  var encapStep = 0;
+  var encapVisible = false;
+
+  function findProtocolData(tagName) {
+    if (!window.PROTOCOLS || !window.PROTOCOLS.protocols) return null;
+    var lower = tagName.toLowerCase();
+    return window.PROTOCOLS.protocols.find(function(p) {
+      return p.name.toLowerCase() === lower || p.id.toLowerCase() === lower;
+    }) || null;
+  }
+
+  function findProtocolById(id) {
+    if (!window.PROTOCOLS || !window.PROTOCOLS.protocols) return null;
+    return window.PROTOCOLS.protocols.find(function(p) { return p.id === id; }) || null;
+  }
+
+  function findLayerForProtocolId(protocolId) {
+    var proto = findProtocolById(protocolId);
+    if (!proto) return null;
+    for (var i = 0; i < OSI_DATA.length; i++) {
+      for (var j = 0; j < OSI_DATA[i].protocols.length; j++) {
+        if (OSI_DATA[i].protocols[j].toLowerCase() === proto.name.toLowerCase()) {
+          return OSI_DATA[i];
+        }
+      }
+    }
+    if (proto.layers && proto.layers.length > 0) {
+      return OSI_DATA.find(function(l) { return l.layer === proto.layers[0]; }) || null;
+    }
+    return null;
+  }
+
+  function renderStack() {
+    var html = '';
+    OSI_DATA.forEach(function(l) {
+      var isActive = activeLayer === l.layer;
+      html += '<div class="osi-layer' + (isActive ? ' active' : '') + '" data-layer="' + l.layer + '" style="' +
+        '--layer-color:' + l.color + ';' +
+        'border-left-color:' + (isActive ? l.color : 'var(--border)') + ';' +
+        (isActive ? 'background:linear-gradient(90deg,' + l.color + '15,transparent 70%);' : '') +
+        '">';
+      html += '<div class="osi-layer-num" style="color:' + (isActive ? l.color : '') + '">' + l.layer + '</div>';
+      html += '<div style="position:relative;z-index:1"><div class="osi-layer-name" style="color:' + (isActive ? l.color : '') + '">' + l.name + '</div>';
+      html += '<div class="osi-layer-sub">' + l.nameEn + ' · PDU: ' + l.pdu + '</div></div>';
+      html += '<div class="osi-layer-arrow">' + (isActive ? '▼' : '▶') + '</div>';
+      html += '</div>';
+    });
+    document.getElementById('osi-stack').innerHTML = html;
+  }
+
+  function renderDetail() {
+    var container = document.getElementById('osi-detail');
+    var grid = document.getElementById('osi-grid');
+    if (activeLayer === null) {
+      container.innerHTML = '';
+      grid.classList.add('no-detail');
+      return;
+    }
+    grid.classList.remove('no-detail');
+    var l = OSI_DATA.find(function(d) { return d.layer === activeLayer; });
+    if (!l) return;
+
+    var html = '<div class="osi-detail" style="border-top:3px solid ' + l.color + ';border-color:' + l.color + '33;border-top-color:' + l.color + '">';
+    html += '<div class="osi-detail-header">';
+    html += '<span class="osi-detail-num" style="color:' + l.color + '">' + l.layer + '</span>';
+    html += '<h2 class="osi-detail-title">' + l.name + '</h2>';
+    html += '<span class="osi-detail-en">' + l.nameEn + '</span>';
+    html += '</div>';
+    html += '<p class="osi-detail-desc">' + esc(l.description) + '</p>';
+
+    html += section('PROTOKOLLE', l.color);
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px" id="proto-tags">';
+    l.protocols.forEach(function(p) {
+      var hl = highlightProtocol === p;
+      var protoData = findProtocolData(p);
+      var isClickable = !!protoData;
+      var isExpanded = isClickable && expandedProtocol === protoData.id;
+      var cls = 'osi-tag' + (hl ? ' highlight' : '') + (isClickable ? ' clickable' : '') + (isExpanded ? ' expanded' : '');
+      var style = hl ? 'background:' + l.color + '33;border-color:' + l.color + ';color:' + l.color : (isClickable ? 'color:' + l.color : '');
+      html += '<span class="' + cls + '" data-proto-name="' + esc(p) + '"' + (protoData ? ' data-proto-id="' + protoData.id + '"' : '') + ' style="' + style + '">' + esc(p) + '</span>';
+    });
+    html += '</div>';
+    html += '<div id="proto-expansion"></div>';
+
+    if (l.devices.length > 0) {
+      html += section('GERÄTE', l.color);
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      l.devices.forEach(function(d) {
+        html += '<span class="osi-tag device">' + esc(d) + '</span>';
+      });
+      html += '</div>';
+    }
+
+    html += section('SECURITY', l.color);
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    l.security.forEach(function(s) {
+      html += '<span class="osi-tag security">' + esc(s) + '</span>';
+    });
+    html += '</div>';
+
+    html += section('DEIN HOMELAB', l.color);
+    html += '<div class="osi-homelab" style="background:' + l.color + '08;border-left-color:' + l.color + '">' + esc(l.homelab) + '</div>';
+
+    html += section('DEEP DIVE', l.color);
+    html += '<p class="osi-deep">' + esc(l.deepDive) + '</p>';
+
+    if (l.comparison) {
+      html += section(l.comparison.title, l.color);
+      html += '<div style="overflow-x:auto"><table class="osi-table"><thead><tr>';
+      l.comparison.headers.forEach(function(h) {
+        html += '<th style="color:' + l.color + ';border-bottom:2px solid ' + l.color + '44">' + esc(h) + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+      l.comparison.rows.forEach(function(row) {
+        html += '<tr>';
+        row.forEach(function(cell) { html += '<td>' + esc(cell) + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    if (l.math) {
+      html += section(l.math.title, l.color);
+      html += '<div class="osi-math">' + esc(l.math.content) + '</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function section(title, color) {
+    return '<div class="osi-section-title"><span class="osi-section-bar" style="background:' + color + '"></span>' + title + '</div>';
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function renderProtoExpansion() {
+    var container = document.getElementById('proto-expansion');
+    if (!container) return;
+    if (!expandedProtocol) { container.innerHTML = ''; return; }
+    var proto = findProtocolById(expandedProtocol);
+    if (!proto) { container.innerHTML = ''; return; }
+    var l = OSI_DATA.find(function(d) { return d.layer === activeLayer; });
+    var color = l ? l.color : 'var(--accent)';
+
+    var html = '<div class="proto-detail-block" style="border-top-color:' + color + '">';
+    html += '<div class="proto-detail-header">';
+    html += '<span class="proto-detail-name" style="color:' + color + '">' + esc(proto.name) + '</span>';
+    html += '<span class="proto-detail-full">' + esc(proto.fullName || '') + '</span>';
+    html += '</div>';
+    html += '<div class="proto-detail-summary">' + esc(proto.summary || '') + '</div>';
+
+    if (proto.keyFacts && proto.keyFacts.length > 0) {
+      html += section('KEY FACTS', color);
+      html += '<ul class="proto-detail-facts">';
+      proto.keyFacts.forEach(function(f) { html += '<li>' + esc(f) + '</li>'; });
+      html += '</ul>';
+    }
+    if (proto.useCases && proto.useCases.length > 0) {
+      html += section('USE CASES', color);
+      html += '<div style="font-size:13px;color:var(--text)">' + proto.useCases.map(esc).join(' · ') + '</div>';
+    }
+    if (proto.homelab) {
+      html += section('DEIN HOMELAB', color);
+      html += '<div class="proto-homelab-callout" style="background:' + color + '08;border-left-color:' + color + '">' + esc(proto.homelab) + '</div>';
+    }
+    if (proto.securityRelevance) {
+      html += section('SECURITY', color);
+      html += '<div class="proto-security-callout">⚠ ' + esc(proto.securityRelevance) + '</div>';
+    }
+    if (proto.links && proto.links.length > 0) {
+      html += section('LINKS', color);
+      html += '<div class="proto-links">';
+      proto.links.forEach(function(link) {
+        html += '<a href="' + esc(link.url) + '" target="_blank" rel="noopener" class="proto-link">↗ ' + esc(link.title) + '</a>';
+      });
+      html += '</div>';
+    }
+    if (proto.relatedProtocols && proto.relatedProtocols.length > 0) {
+      html += section('VERWANDT', color);
+      html += '<div class="proto-related-tags">';
+      proto.relatedProtocols.forEach(function(relId) {
+        var relProto = findProtocolById(relId);
+        var label = relProto ? relProto.name : relId;
+        html += '<span class="proto-related-tag" data-related-id="' + esc(relId) + '">' + esc(label) + '</span>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.proto-related-tag').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var relId = this.getAttribute('data-related-id');
+        var relProto = findProtocolById(relId);
+        if (!relProto) return;
+        var targetLayer = findLayerForProtocolId(relId);
+        if (targetLayer) {
+          activeLayer = targetLayer.layer;
+          highlightProtocol = relProto.name;
+          expandedProtocol = relId;
+          renderStack(); renderDetail(); renderProtoExpansion();
+        }
+      });
+    });
+  }
+
+  function renderEncap() {
+    if (!encapVisible) { document.getElementById('encap-container').style.display = 'none'; return; }
+    document.getElementById('encap-container').style.display = '';
+    var s = ENCAP_STEPS[encapStep];
+    var html = '<div class="encap-wrap">';
+    html += '<div class="encap-title">Encapsulation — Schicht für Schicht</div>';
+    html += '<div class="encap-btns">';
+    ENCAP_STEPS.forEach(function(st, i) {
+      var active = i === encapStep;
+      var style = active
+        ? 'border-color:' + st.color + ';color:' + st.color + ';background:' + st.color + '22'
+        : 'border-color:' + st.color + '44;color:' + st.color + '88';
+      html += '<button class="encap-btn' + (active ? ' active' : '') + '" data-encap="' + i + '" style="' + style + '">' + st.label + '</button>';
+    });
+    html += '</div>';
+    html += '<div class="encap-content" style="border:1px solid ' + s.color + '44;border-left:3px solid ' + s.color + '">';
+    html += '<div class="encap-layer-label" style="color:' + s.color + '">' + esc(s.layer) + '</div>';
+    html += '<div class="encap-desc">' + esc(s.desc) + '</div>';
+    // Colored code: new part in step color, prev part muted
+    html += '<div class="encap-code">';
+    html += '<span class="encap-new" style="color:' + s.color + '">' + esc(s.newPart) + '</span>';
+    if (s.prevPart) html += '<span class="encap-prev">' + esc(s.prevPart) + '</span>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="encap-nav">';
+    html += '<button id="encap-prev"' + (encapStep === 0 ? ' disabled' : '') + '>← Hoch (De-Encap)</button>';
+    html += '<button id="encap-next"' + (encapStep === ENCAP_STEPS.length - 1 ? ' disabled' : '') + '>Runter (Encap) →</button>';
+    html += '</div>';
+    html += '</div>';
+    document.getElementById('encap-container').innerHTML = html;
+  }
+
+  function doSearch(term) {
+    var results = document.getElementById('osi-search-results');
+    if (term.length < 2) { results.style.display = 'none'; return; }
+    var matches = [];
+    OSI_DATA.forEach(function(l) {
+      l.protocols.forEach(function(p) {
+        if (p.toLowerCase().indexOf(term.toLowerCase()) !== -1) {
+          matches.push({ protocol: p, layer: l });
+        }
+      });
+    });
+    if (matches.length === 0) { results.style.display = 'none'; return; }
+    results.style.display = '';
+    var html = '';
+    matches.forEach(function(m, i) {
+      html += '<div class="osi-search-item" data-idx="' + i + '">';
+      html += '<span class="osi-search-item-proto" style="color:' + m.layer.color + '">' + esc(m.protocol) + '</span>';
+      html += '<span class="osi-search-item-layer">Layer ' + m.layer.layer + ' — ' + m.layer.name + '</span>';
+      html += '</div>';
+    });
+    results.innerHTML = html;
+    results.querySelectorAll('.osi-search-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-idx'));
+        var match = matches[idx];
+        activeLayer = match.layer.layer;
+        highlightProtocol = match.protocol;
+        document.getElementById('osi-search').value = '';
+        results.style.display = 'none';
+        renderStack(); renderDetail();
+      });
+    });
+  }
+
+  function bindOSI() {
+    document.getElementById('osi-stack').addEventListener('click', function(e) {
+      var layerEl = e.target.closest('.osi-layer');
+      if (!layerEl) return;
+      var num = parseInt(layerEl.getAttribute('data-layer'));
+      activeLayer = activeLayer === num ? null : num;
+      highlightProtocol = null;
+      expandedProtocol = null;
+      renderStack(); renderDetail();
+    });
+
+    document.getElementById('osi-detail').addEventListener('click', function(e) {
+      var tag = e.target.closest('.osi-tag.clickable');
+      if (!tag) return;
+      var protoId = tag.getAttribute('data-proto-id');
+      if (!protoId) return;
+      if (expandedProtocol === protoId) { expandedProtocol = null; }
+      else { expandedProtocol = protoId; highlightProtocol = tag.getAttribute('data-proto-name'); }
+      renderDetail(); renderProtoExpansion();
+    });
+
+    document.getElementById('osi-search').addEventListener('input', function() {
+      highlightProtocol = null;
+      doSearch(this.value);
+    });
+
+    document.getElementById('btn-encap').addEventListener('click', function() {
+      encapVisible = !encapVisible;
+      this.textContent = (encapVisible ? '▼' : '▶') + ' Encapsulation Demo';
+      this.style.borderColor = encapVisible ? 'var(--accent)' : 'var(--border)';
+      this.style.color = encapVisible ? 'var(--accent)' : 'var(--muted)';
+      renderEncap();
+    });
+
+    document.getElementById('encap-container').addEventListener('click', function(e) {
+      if (e.target.id === 'encap-prev' && encapStep > 0) { encapStep--; renderEncap(); }
+      else if (e.target.id === 'encap-next' && encapStep < ENCAP_STEPS.length - 1) { encapStep++; renderEncap(); }
+      else if (e.target.classList.contains('encap-btn')) {
+        encapStep = parseInt(e.target.getAttribute('data-encap'));
+        renderEncap();
+      }
+    });
+  }
+
+  function initOSI() {
+    renderStack();
+    bindOSI();
+    if (initialTab === 'osi' && initialLayer !== null) {
+      activeLayer = initialLayer;
+      renderStack(); renderDetail();
+    }
+  }
+
+  // =============================================
+  // GLOSSAR TABS
+  // =============================================
+  var glossarOpenTerm = {};
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderGlossarStats(moduleKey) {
+    var statsEl = document.getElementById('stats-' + moduleKey);
+    if (!statsEl) return;
+    var data = window.ACADEMY && window.ACADEMY.glossary[moduleKey];
+    if (!data || !data.entries || data.entries.length === 0) { statsEl.innerHTML = ''; return; }
+
+    var entries = data.entries;
+    var totalEntries = entries.length;
+    var totalLinks = 0;
+    var tagCounts = {};
+    entries.forEach(function(e) {
+      totalLinks += (e.links || []).length;
+      (e.tags || []).forEach(function(t) { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+    });
+    var topTags = Object.keys(tagCounts).sort(function(a, b) { return tagCounts[b] - tagCounts[a]; }).slice(0, 8);
+    var color = TAB_COLORS[moduleKey] || 'var(--muted)';
+
+    statsEl.innerHTML = '<span class="stat-highlight" style="color:' + color + '">' + totalEntries + ' Einträge</span>' +
+      ' · ' + totalLinks + ' Links' +
+      (topTags.length > 0 ? ' · Themen: <span class="stat-highlight" style="color:' + color + '">' + topTags.join(', ') + '</span>' : '');
+  }
+
+  function renderAlphabet(moduleKey) {
+    var alphaEl = document.getElementById('alpha-' + moduleKey);
+    if (!alphaEl) return;
+    var data = window.ACADEMY && window.ACADEMY.glossary[moduleKey];
+    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    var available = {};
+    if (data && data.entries) {
+      data.entries.forEach(function(e) {
+        var first = (e.term || '').charAt(0).toUpperCase();
+        available[first] = true;
+      });
+    }
+    var color = TAB_COLORS[moduleKey] || 'var(--muted)';
+    alphaEl.innerHTML = letters.map(function(l) {
+      var has = available[l];
+      return '<span class="alpha-letter' + (has ? ' has-entries' : ' disabled') + '" data-letter="' + l + '"' +
+        (has ? ' style="--alpha-color:' + color + '"' : '') + '>' + l + '</span>';
+    }).join('');
+
+    alphaEl.querySelectorAll('.alpha-letter.has-entries').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var letter = this.dataset.letter;
+        var cardsEl = document.getElementById('cards-' + moduleKey);
+        if (!cardsEl) return;
+        var cards = cardsEl.querySelectorAll('.glossar-card');
+        for (var i = 0; i < cards.length; i++) {
+          var title = cards[i].querySelector('.glossar-card-title');
+          if (title && title.textContent.charAt(0).toUpperCase() === letter) {
+            cards[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  function renderGlossar(moduleKey) {
+    var data = window.ACADEMY && window.ACADEMY.glossary[moduleKey];
+    var cardsEl = document.getElementById('cards-' + moduleKey);
+    if (!cardsEl) return;
+    var tabColor = TAB_COLORS[moduleKey] || 'var(--accent)';
+
+    if (!data || !data.entries || data.entries.length === 0) {
+      cardsEl.innerHTML = '<div class="glossar-coming-soon"><span class="coming-icon">' + (TAB_ICONS[moduleKey] || '📚') + '</span><h3>Coming Soon</h3><p>Inhalte werden nach und nach ergänzt.</p></div>';
+      renderGlossarStats(moduleKey);
+      renderAlphabet(moduleKey);
+      return;
+    }
+
+    var searchInput = document.querySelector('.glossar-search[data-glossar="' + moduleKey + '"]');
+    var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    var filtered = data.entries;
+    if (query.length >= 2) {
+      filtered = data.entries.filter(function(entry) {
+        var haystack = (entry.term + ' ' + entry.summary + ' ' + (entry.tags || []).join(' ')).toLowerCase();
+        return haystack.indexOf(query) !== -1;
+      });
+    }
+
+    if (filtered.length === 0) {
+      cardsEl.innerHTML = '<p style="color:var(--muted);font-family:\'JetBrains Mono\',monospace;font-size:12px">Keine Treffer.</p>';
+      renderGlossarStats(moduleKey);
+      renderAlphabet(moduleKey);
+      return;
+    }
+
+    cardsEl.innerHTML = filtered.map(function(entry) {
+      var isOpen = glossarOpenTerm[moduleKey] === entry.id;
+
+      // Tags with category colors
+      var tagsHtml = (entry.tags || []).map(function(t) {
+        var tc = getTagColor(t) || tabColor;
+        return '<span class="glossar-tag" style="color:' + tc + ';border-color:' + tc + '33;background:' + tc + '0d">' + escHtml(t) + '</span>';
+      }).join('');
+
+      // Body sections
+      var bodyHtml = '';
+      if (entry.explanation) {
+        bodyHtml += '<div class="glossar-section-label"><span class="glossar-section-bar" style="background:' + tabColor + '"></span>ERKLÄRUNG</div>';
+        bodyHtml += '<div class="glossar-text">' + escHtml(entry.explanation) + '</div>';
+      }
+      if (entry.howItWorks) {
+        bodyHtml += '<div class="glossar-section-label"><span class="glossar-section-bar" style="background:' + tabColor + '"></span>WIE FUNKTIONIERT\'S</div>';
+        bodyHtml += '<div class="glossar-text">' + escHtml(entry.howItWorks) + '</div>';
+      }
+      if (entry.homelab) {
+        bodyHtml += '<div class="glossar-section-label"><span class="glossar-section-bar" style="background:' + tabColor + '"></span>DEIN HOMELAB</div>';
+        bodyHtml += '<div class="glossar-homelab-callout" style="background:' + tabColor + '08;border-left-color:' + tabColor + '">' + escHtml(entry.homelab) + '</div>';
+      }
+      if (entry.security) {
+        bodyHtml += '<div class="glossar-section-label"><span class="glossar-section-bar" style="background:#fb923c"></span>SECURITY</div>';
+        bodyHtml += '<div class="glossar-security-callout">⚠ ' + escHtml(entry.security) + '</div>';
+      }
+      if (entry.relatedTerms && entry.relatedTerms.length > 0) {
+        bodyHtml += '<div class="glossar-section-label"><span class="glossar-section-bar" style="background:' + tabColor + '"></span>VERWANDT</div>';
+        bodyHtml += '<div class="glossar-related-tags">';
+        entry.relatedTerms.forEach(function(relId) {
+          var label = relId;
+          glossarModules.forEach(function(mk) {
+            var gd = window.ACADEMY && window.ACADEMY.glossary[mk];
+            if (gd && gd.entries) {
+              var found = gd.entries.find(function(e) { return e.id === relId; });
+              if (found) label = found.term;
+            }
+          });
+          bodyHtml += '<span class="glossar-related-tag" data-term-id="' + escHtml(relId) + '" style="color:' + tabColor + '">' + escHtml(label) + '</span>';
+        });
+        bodyHtml += '</div>';
+      }
+      if (entry.links && entry.links.length > 0) {
+        bodyHtml += '<div class="glossar-section-label"><span class="glossar-section-bar" style="background:' + tabColor + '"></span>LINKS</div>';
+        bodyHtml += '<div class="glossar-links">';
+        entry.links.forEach(function(link) {
+          bodyHtml += '<a href="' + escHtml(link.url) + '" target="_blank" rel="noopener" class="glossar-link" style="color:' + tabColor + '">↗ ' + escHtml(link.title) + '</a>';
+        });
+        bodyHtml += '</div>';
+      }
+
+      return '<div class="glossar-card' + (isOpen ? ' open' : '') + '" data-id="' + escHtml(entry.id) + '" data-module="' + moduleKey + '" style="border-left-color:' + tabColor + '">' +
+        '<div class="glossar-card-header">' +
+          '<div class="glossar-card-meta">' +
+            '<div class="glossar-card-tags">' + tagsHtml + '</div>' +
+            '<div class="glossar-card-title">' + escHtml(entry.term) + '</div>' +
+            '<div class="glossar-card-summary">' + escHtml(entry.summary) + '</div>' +
+          '</div>' +
+          '<button class="glossar-toggle" style="color:' + tabColor + ';background:' + tabColor + '0d;border-color:' + tabColor + '33">' + (isOpen ? 'Schließen ▴' : 'Details ▾') + '</button>' +
+        '</div>' +
+        '<div class="glossar-card-body"><div class="glossar-card-body-inner">' + bodyHtml + '</div></div>' +
+      '</div>';
+    }).join('');
+
+    // Bind card toggle
+    cardsEl.querySelectorAll('.glossar-card-header').forEach(function(header) {
+      header.addEventListener('click', function() {
+        var card = header.closest('.glossar-card');
+        var id = card.dataset.id;
+        var mod = card.dataset.module;
+        if (glossarOpenTerm[mod] === id) { glossarOpenTerm[mod] = null; }
+        else { glossarOpenTerm[mod] = id; }
+        renderGlossar(mod);
+      });
+    });
+
+    // Bind related-tag clicks
+    cardsEl.querySelectorAll('.glossar-related-tag').forEach(function(tag) {
+      tag.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var termId = tag.dataset.termId;
+        for (var i = 0; i < glossarModules.length; i++) {
+          var mk = glossarModules[i];
+          var gd = window.ACADEMY && window.ACADEMY.glossary[mk];
+          if (gd && gd.entries) {
+            var found = gd.entries.find(function(entry) { return entry.id === termId; });
+            if (found) {
+              glossarOpenTerm[mk] = termId;
+              switchTab(mk);
+              renderGlossar(mk);
+              setTimeout(function() {
+                var cardEl = document.querySelector('.glossar-card[data-id="' + termId + '"]');
+                if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 100);
+              return;
+            }
+          }
+        }
+      });
+    });
+
+    renderGlossarStats(moduleKey);
+    renderAlphabet(moduleKey);
+  }
+
+  function bindGlossarSearch() {
+    document.querySelectorAll('.glossar-search').forEach(function(input) {
+      input.addEventListener('input', function() {
+        renderGlossar(input.dataset.glossar);
+      });
+    });
+  }
+
+  // =============================================
+  // DEMOS TAB
+  // =============================================
+  function renderDemos() {
+    var demos = [
+      { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, id: 'demo-encap' },
+      { icon: '📐', title: 'Subnetting Calculator', desc: 'CIDR berechnen, Subnetze aufteilen, Host-Ranges sehen. Visuell dargestellt.', live: false },
+      { icon: '🤝', title: 'TCP Handshake Simulator', desc: '3-Way Handshake Schritt für Schritt visualisiert. SYN → SYN-ACK → ACK animiert.', live: false },
+      { icon: '🔍', title: 'DNS Lookup Visualizer', desc: 'Recursive Resolution live nachvollziehen. Root → TLD → Authoritative → Antwort.', live: false }
+    ];
+
+    var html = demos.map(function(d) {
+      var cls = 'demo-card' + (d.live ? '' : ' coming-soon');
+      return '<div class="' + cls + '"' + (d.id ? ' id="' + d.id + '" style="cursor:pointer"' : '') + '>' +
+        '<span class="demo-card-icon">' + d.icon + '</span>' +
+        '<h3>' + escHtml(d.title) + '</h3>' +
+        '<p>' + escHtml(d.desc) + '</p>' +
+        '<div class="demo-card-footer">' +
+          (d.live
+            ? '<span class="demo-badge live">LIVE</span><button class="demo-start-btn">Starten →</button>'
+            : '<span class="demo-badge soon">COMING SOON</span>') +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    document.getElementById('demo-grid').innerHTML = html;
+
+    var encapCard = document.getElementById('demo-encap');
+    if (encapCard) {
+      encapCard.addEventListener('click', function() {
+        switchTab('osi');
+        encapVisible = true;
+        var btn = document.getElementById('btn-encap');
+        btn.textContent = '▼ Encapsulation Demo';
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        renderEncap();
+        setTimeout(function() {
+          document.getElementById('encap-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      });
+    }
+  }
+
+  // =============================================
+  // INIT
+  // =============================================
+  function initPage() {
+    initOSI();
+    renderDemos();
+  }
+
+  function initGlossars() {
+    glossarModules.forEach(function(key) {
+      renderGlossar(key);
+    });
+    bindGlossarSearch();
+
+    if (initialTerm && glossarModules.indexOf(initialTab) !== -1) {
+      glossarOpenTerm[initialTab] = initialTerm;
+      renderGlossar(initialTab);
+      setTimeout(function() {
+        var cardEl = document.querySelector('.glossar-card[data-id="' + initialTerm + '"]');
+        if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 200);
+    }
+  }
+
+  if (window.PROTOCOLS) { initPage(); }
+  else { window.addEventListener('protocols-ready', initPage); }
+
+  if (window.ACADEMY) { initGlossars(); }
+  else { window.addEventListener('academy-ready', initGlossars); }
+})();
+</script>
+</body>
+</html>

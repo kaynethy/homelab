@@ -51,6 +51,14 @@
         },
         {
           "ip": ".5",
+          "name": "DHCP Server",
+          "role": "Kea DHCP – Statische Leases + dynamische Vergabe alle Subnetze",
+          "status": "planned",
+          "core": true,
+          "step_id": "p2-dhcp"
+        },
+        {
+          "ip": ".6",
           "name": "NTP / Chrony",
           "role": "Zeitserver",
           "status": "planned",
@@ -58,20 +66,12 @@
           "idea_id": "idea-012"
         },
         {
-          "ip": ".6",
+          "ip": ".7",
           "name": "Syslog",
           "role": "Zentrales Logging",
           "status": "planned",
           "core": false,
           "idea_id": "idea-012"
-        },
-        {
-          "ip": ".7",
-          "name": "— Reserve —",
-          "role": "Zweiter DNS (Pi Zero 2 W)",
-          "status": "reserved",
-          "core": false,
-          "idea_id": "idea-033"
         },
         {
           "ip": ".8",

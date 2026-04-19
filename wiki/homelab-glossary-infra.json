@@ -1,0 +1,257 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "category": "Infrastruktur",
+    "description": "Infrastruktur & Virtualisierung — Hypervisoren, Container, Storage, Backup, IaC, Monitoring"
+  },
+  "entries": [
+    {
+      "id": "hypervisor-typ1-typ2",
+      "term": "Hypervisor (Typ 1 vs Typ 2)",
+      "tags": ["Infrastruktur", "Virtualisierung"],
+      "summary": "Software die virtuelle Maschinen erzeugt und verwaltet. Typ 1 läuft direkt auf der Hardware (Bare-Metal), Typ 2 läuft auf einem Host-OS.",
+      "explanation": "• Typ 1 (Bare-Metal): Hypervisor IST das Betriebssystem. Läuft direkt auf der Hardware, kein Host-OS dazwischen. Maximale Performance, minimaler Overhead.\n  Beispiele: Proxmox VE, VMware ESXi, Microsoft Hyper-V Server, KVM (Linux Kernel)\n\n• Typ 2 (Hosted): Hypervisor läuft ALS ANWENDUNG auf einem normalen Betriebssystem. Das Host-OS verwaltet die Hardware, der Hypervisor bekommt Ressourcen zugeteilt.\n  Beispiele: VirtualBox, VMware Workstation, Parallels\n\nSonderfall dein Setup: Hyper-V ist technisch Typ 1 — obwohl Windows 11 'drüber' läuft, wird bei Aktivierung von Hyper-V der Windows-Kernel zu einem Hypervisor. Windows selbst wird zur 'Root Partition' (quasi eine privilegierte VM). Deshalb ist Nested Virtualization möglich: Hyper-V (Typ 1) → Proxmox (Typ 1 in VM) → VMs/Container in Proxmox.",
+      "howItWorks": "Dein Stack:\nHardware (Ryzen 5800X, 64GB RAM)\n  └─ Hyper-V (Typ 1, in Windows integriert)\n      └─ Proxmox VE (Typ 1, als VM, 16→20GB RAM, 8 Cores)\n          ├─ LXC Container (AdGuard, CT100)\n          └─ VMs (Jumphost, VM101)\n\nNested Virt aktiviert: Set-VMProcessor -ExposeVirtualizationExtensions $true\nDadurch kann Proxmox selbst VMs mit Hardware-Virtualisierung starten.",
+      "homelab": "Proxmox VE als Typ-1-Hypervisor nested unter Hyper-V. Windows 11 bleibt als Host unangetastet. Ressourcen: 20GB RAM fest (kein Dynamic Memory), 250GB Disk dynamisch, 8 vCPUs.",
+      "security": "VM-Escape Angriffe: Ausbruch aus einer VM in den Hypervisor (selten, aber kritisch). Fix: Hypervisor immer patchen, VMs isolieren, keine shared Clipboard/Folders in Produktion. Nested Virt hat zusätzliche Angriffsfläche.",
+      "relatedTerms": ["nested-virt", "vm-vs-container", "proxmox-architektur"],
+      "links": [
+        { "title": "Proxmox VE Docs", "url": "https://pve.proxmox.com/wiki/Main_Page" },
+        { "title": "KVM Architecture", "url": "https://www.linux-kvm.org/page/Main_Page" }
+      ]
+    },
+    {
+      "id": "nested-virt",
+      "term": "Nested Virtualization",
+      "tags": ["Infrastruktur", "Virtualisierung"],
+      "summary": "Virtualisierung innerhalb einer VM. Ein Hypervisor in einer VM kann selbst wieder VMs erstellen. Braucht CPU-Feature-Durchreichung.",
+      "explanation": "Normalerweise: Hypervisor nutzt Hardware-Virtualisierung (AMD-V/VT-x) direkt. Bei Nested Virt: der äußere Hypervisor reicht die Virtualisierungs-Extensions an die VM durch.\n\nVoraussetzungen:\n• CPU muss AMD-V (SVM) oder Intel VT-x unterstützen ✓ (dein Ryzen 5800X)\n• Äußerer Hypervisor muss Nested Virt unterstützen ✓ (Hyper-V)\n• Muss explizit aktiviert werden: Set-VMProcessor -ExposeVirtualizationExtensions $true\n\nPerformance-Overhead: ~5-15% je nach Workload. Für ein Homelab/Lab absolut akzeptabel. Für Produktion eher nicht empfohlen.\n\nWichtiger Gotcha: Dynamic Memory NICHT verwenden bei Nested Virt. Der innere Hypervisor (Proxmox) plant RAM beim Start seiner VMs fest ein. Wenn Hyper-V dynamisch RAM entzieht → Proxmox-VMs crashen.",
+      "howItWorks": "Aktivierung:\n1. SVM/AMD-V im BIOS aktivieren ✓\n2. Hyper-V aktivieren (Enable-WindowsOptionalFeature) ✓\n3. VM erstellen (Gen 2, Secure Boot off) ✓\n4. Nested Virt: Set-VMProcessor -VMName 'Proxmox' -ExposeVirtualizationExtensions $true ✓\n5. RAM fest (kein Dynamic Memory) ✓\n6. Proxmox installieren → kann jetzt VMs + Container erstellen ✓",
+      "homelab": "Dein komplettes Homelab basiert auf Nested Virt. Funktioniert stabil seit Session 1. Key Learnings: festes RAM, Secure Boot aus, ExternalSwitch statt Default Switch, MAC Spoofing für LXC Container.",
+      "security": "Nested Virt vergrößert die Angriffsfläche (zwei Hypervisor-Schichten statt einer). Beide Hypervisoren müssen gepatcht werden. Für ein Lern-Homelab akzeptabel, für Produktion: Bare-Metal Proxmox ohne Hyper-V-Schicht.",
+      "relatedTerms": ["hypervisor-typ1-typ2", "proxmox-architektur"],
+      "links": []
+    },
+    {
+      "id": "vm-vs-container",
+      "term": "VM vs Container",
+      "tags": ["Infrastruktur", "Virtualisierung", "Container"],
+      "summary": "VMs virtualisieren die komplette Hardware (eigener Kernel). Container teilen sich den Host-Kernel und isolieren nur den Userspace. Container sind leichter, VMs sind stärker isoliert.",
+      "explanation": "• VM (Virtual Machine): eigener Kernel, eigenes OS, eigene virtuelle Hardware (CPU, RAM, Disk, NIC). Startet ein komplettes Betriebssystem. Schwer (GBs), langsam zu starten (Sekunden-Minuten). Starke Isolation.\n\n• Container: teilt sich den Kernel des Hosts. Nur eigener Userspace (Dateisystem, Prozesse, Netzwerk). Leicht (MBs), startet sofort (Millisekunden). Schwächere Isolation (Kernel-Exploits betreffen alle Container).\n\n• LXC (Linux Containers): System-Container — verhalten sich wie eine VM, teilen aber den Kernel. Ein LXC Container hat init, eigene IP, eigene Dienste. Näher an VM als an Docker.\n\n• Docker/OCI Container: Application-Container — ein Prozess pro Container, optimiert für Microservices. Ephemeral: wird zerstört und neu erstellt statt repariert.\n\nMerkhilfe: VM = eigenes Haus (eigenes Fundament). Container = Wohnung in einem Mehrfamilienhaus (geteiltes Fundament/Kernel).",
+      "howItWorks": "Dein Setup:\n• Proxmox VM (QEMU/KVM): Jumphost (VM 101) — voller Debian-Kernel, eigenes Init, SSH\n• Proxmox LXC: AdGuard (CT 100) — geteilter Kernel mit Proxmox, eigene IP, eigene Dienste\n\nRessourcen:\n• VM 101 (Jumphost): 1 Core, 1GB RAM, 10GB Disk\n• CT 100 (AdGuard): 512MB RAM, 4GB Disk — deutlich leichter",
+      "homelab": "AdGuard als LXC (leichtgewichtig, reicht für DNS). Jumphost als VM (braucht eigenen Kernel für Docker, Ansible etc.). Später: Docker Container auf dem Jumphost für Services (Gitea, n8n, etc.).",
+      "security": "VMs sind sicherer isoliert (eigener Kernel, VM-Escape nötig für Ausbruch). Container teilen den Kernel — ein Kernel-Exploit gibt Root auf dem Host. Für Pentest-Tools (Kali): VM verwenden, NICHT Container. Für vertrauenswürdige Dienste (AdGuard): LXC ist OK.",
+      "relatedTerms": ["lxc-vs-docker", "hypervisor-typ1-typ2", "proxmox-architektur"],
+      "links": []
+    },
+    {
+      "id": "lxc-vs-docker",
+      "term": "LXC vs Docker",
+      "tags": ["Infrastruktur", "Container"],
+      "summary": "LXC = System-Container (wie eine leichte VM, eigenes Init, persistenter State). Docker = Application-Container (ein Prozess, ephemeral, Image-basiert).",
+      "explanation": "• LXC (Linux Containers):\n  - System-Container: verhält sich wie eine VM (eigenes init, SSH, mehrere Dienste)\n  - Persistent: State bleibt erhalten über Neustarts\n  - Management: manuell (apt install, systemctl) wie eine echte Maschine\n  - Use Case: langlebige Server, DNS, Monitoring, kleine Dienste\n  - Proxmox hat LXC nativ integriert (pct create/start/enter)\n\n• Docker (OCI Container):\n  - Application-Container: ein Prozess pro Container (z.B. nginx, postgres)\n  - Ephemeral: Container wird zerstört und aus Image neu gebaut (cattle, not pets)\n  - Dockerfile/Compose: deklarativ, reproduzierbar, versionierbar\n  - Image Registry: Docker Hub, Harbor — vorgefertigte Images für alles\n  - Use Case: Microservices, CI/CD, reproduzierbare Deployments\n\nDocker-Compose ermöglicht Multi-Container Stacks:\n```yaml\nservices:\n  gitea:\n    image: gitea/gitea:latest\n    ports: ['3000:3000']\n  db:\n    image: postgres:15\n```\nEin Befehl (docker compose up) startet Gitea + Datenbank.",
+      "howItWorks": "Im Homelab kombiniert:\n• LXC für stabile Einzeldienste: AdGuard (CT 100), evtl. Pi-hole als Backup\n• Docker auf dem Jumphost für Service-Stacks: Gitea+DB, n8n, NetBox\n• Proxmox verwaltet LXC direkt, Docker läuft in einer VM (nicht direkt in Proxmox — Kernel-Konflikte möglich)",
+      "homelab": "AdGuard läuft als LXC. Docker geplant auf dem Jumphost (192.168.0.204) für: Gitea, n8n, NetBox, evtl. Portainer als Docker-UI. Docker Compose für reproducible Stacks.",
+      "security": "Docker-Images aus vertrauenswürdigen Quellen (offizielle Images). Docker Socket (/var/run/docker.sock) = Root-Zugang zum Host — nie an Container durchreichen ohne guten Grund. Rootless Docker als Alternative.",
+      "relatedTerms": ["vm-vs-container", "docker-compose", "proxmox-architektur"],
+      "links": [
+        { "title": "Docker Docs", "url": "https://docs.docker.com/" },
+        { "title": "Proxmox LXC Docs", "url": "https://pve.proxmox.com/wiki/Linux_Container" }
+      ]
+    },
+    {
+      "id": "proxmox-architektur",
+      "term": "Proxmox VE (Architektur)",
+      "tags": ["Infrastruktur", "Virtualisierung"],
+      "summary": "Debian-basierte Virtualisierungsplattform. Kombiniert KVM (VMs) + LXC (Container) + Web-UI + API + Storage + Cluster + Backup in einer Lösung.",
+      "explanation": "Proxmox VE Stack:\n• Basis: Debian Linux (aktuell Trixie/13)\n• Hypervisor: QEMU/KVM für VMs (Hardware-Virtualisierung)\n• Container: LXC für leichte System-Container\n• Storage: lokal (LVM, ZFS, Directory) oder shared (NFS, Ceph, iSCSI)\n• Netzwerk: Linux Bridges (vmbr0), VLANs, Bonds, OVS\n• Web-UI: https://IP:8006 (JavaScript-basiert, REST-API im Backend)\n• API: vollständige REST-API für Automation (Ansible, Terraform)\n• Cluster: mehrere Nodes, Live-Migration, HA\n• Backup: integriertes Backup (vzdump) + PBS (Proxmox Backup Server)\n\nKein VMware/ESXi Lizenz-Chaos. Komplett Open Source (AGPL). Enterprise-Support optional.",
+      "howItWorks": "Dein Proxmox (pve.homelab.local, 192.168.0.200):\n• VM 101: Jumphost (QEMU/KVM, Debian 13, 1C/1G/10G)\n• CT 100: AdGuard (LXC, Debian 13, 512M/4G)\n• Storage: local-lvm (120→250GB dynamisch)\n• Netzwerk: vmbr0 Bridge auf eth0 (Hyper-V synthetic NIC)\n• Web-UI: https://192.168.0.200:8006\n• API: pvesh, auch über curl/Python nutzbar",
+      "homelab": "Proxmox ist das Herzstück deines Homelabs. Alle VMs und Container laufen hier. Proxmox selbst ist eine Debian-Installation mit KVM/LXC/UI drauf — du kannst auch per SSH direkt auf dem Proxmox-Host arbeiten (apt, vim, etc.).",
+      "security": "Web-UI hat selbstsigniertes Cert (→ Reverse Proxy mit Let's Encrypt). No-Subscription Repo statt Enterprise (kein Support aber alle Updates). Root-Login via SSH: nach Key-Deployment PermitRootLogin prohibit-password setzen. API-Tokens statt Passwort für Automation.",
+      "relatedTerms": ["hypervisor-typ1-typ2", "vm-vs-container", "lxc-vs-docker", "nested-virt"],
+      "links": [
+        { "title": "Proxmox VE Admin Guide", "url": "https://pve.proxmox.com/pve-docs/pve-admin-guide.html" },
+        { "title": "Proxmox API Docs", "url": "https://pve.proxmox.com/wiki/Proxmox_VE_API" }
+      ]
+    },
+    {
+      "id": "docker-compose",
+      "term": "Docker Compose",
+      "tags": ["Infrastruktur", "Container", "DevOps"],
+      "summary": "Tool um Multi-Container-Anwendungen deklarativ zu definieren. Eine YAML-Datei beschreibt alle Services, Netzwerke und Volumes.",
+      "explanation": "Statt jeden Container einzeln mit langen docker run Befehlen zu starten, definiert Docker Compose alles in einer docker-compose.yml:\n\n• Services: welche Container laufen (Image, Ports, Environment Variables)\n• Networks: wie die Container untereinander kommunizieren\n• Volumes: wo Daten persistent gespeichert werden (Container sind ephemeral!)\n• Depends_on: Startreihenfolge (DB vor App)\n\nEin Befehl für alles:\n• docker compose up -d → alle Services starten (detached)\n• docker compose down → alle Services stoppen und Container entfernen\n• docker compose logs -f → Logs aller Services live\n• docker compose pull → alle Images aktualisieren",
+      "howItWorks": "Beispiel NetBox Stack (geplant für p2-ipam):\n```yaml\nversion: '3'\nservices:\n  netbox:\n    image: netboxcommunity/netbox:latest\n    ports: ['8080:8080']\n    depends_on: [postgres, redis]\n    environment:\n      DB_HOST: postgres\n      REDIS_HOST: redis\n  postgres:\n    image: postgres:15\n    volumes: ['pgdata:/var/lib/postgresql/data']\n  redis:\n    image: redis:7-alpine\nvolumes:\n  pgdata:\n```\ndocker compose up -d → NetBox + Postgres + Redis starten. Fertig.",
+      "homelab": "Docker Compose auf dem Jumphost für: NetBox (IPAM), Gitea+DB, n8n, Portainer. Jeder Stack hat seine eigene docker-compose.yml im Git-Repo. Reproducible: `git pull && docker compose up -d` auf neuem Server → alles läuft.",
+      "security": "Docker-Images pinnen (netbox:v4.1.2 statt :latest) für Reproduzierbarkeit. Secrets nicht in docker-compose.yml (docker secrets oder .env mit .gitignore). Health Checks definieren. Container als non-root User laufen lassen.",
+      "relatedTerms": ["lxc-vs-docker", "kubernetes-k3s", "iac"],
+      "links": [
+        { "title": "Docker Compose Docs", "url": "https://docs.docker.com/compose/" }
+      ]
+    },
+    {
+      "id": "kubernetes-k3s",
+      "term": "Kubernetes / K3s",
+      "tags": ["Infrastruktur", "Container", "Orchestrierung"],
+      "summary": "Container-Orchestrierung für Cluster. Kubernetes (K8s) managed hunderte Container über mehrere Nodes. K3s ist die leichtgewichtige Variante für Edge/Homelab.",
+      "explanation": "Docker Compose: ein Host, mehrere Container. Kubernetes: MEHRERE Hosts (Cluster), hunderte/tausende Container automatisch verteilt, skaliert, geheilt.\n\nK8s Konzepte:\n• Pod: kleinste Einheit — ein oder mehrere Container die zusammengehören\n• Deployment: beschreibt gewünschten Zustand (3 Replicas von nginx)\n• Service: stabiler Netzwerk-Endpunkt für Pods (Load Balancing)\n• Ingress: HTTP-Routing von außen (wie Reverse Proxy)\n• Namespace: logische Trennung innerhalb des Clusters\n• ConfigMap/Secret: Konfiguration und Credentials\n\nK3s: Kubernetes in einer einzigen Binary (<100MB). Ideal für Homelab, Edge, IoT. Braucht nur 512MB RAM. Alles was K8s kann, nur leichter.",
+      "howItWorks": "K3s auf dem Jumphost:\n1. curl -sfL https://get.k3s.io | sh -\n2. kubectl get nodes → 1 Node ready\n3. kubectl apply -f gitea.yaml → Gitea Pod deployen\n4. K3s managed: Restart bei Crash, Rolling Updates, Health Checks\n\nFür Homelab: K3s Single-Node reicht. Multi-Node erst wenn zweiter Proxmox-Node dazukommt.",
+      "homelab": "Geplant: p3-containers. Erst Docker Compose zum Lernen, dann K3s wenn mehr Container laufen. K3s kann neben Docker auf dem Jumphost laufen. Traefik ist als Ingress Controller eingebaut.",
+      "security": "RBAC (Role-Based Access Control) für Cluster-Zugriff. Network Policies für Pod-zu-Pod Isolation. Secrets verschlüsselt speichern (sealed-secrets, external-secrets). Pod Security Standards: kein Root in Containern.",
+      "relatedTerms": ["docker-compose", "lxc-vs-docker", "iac"],
+      "links": [
+        { "title": "K3s Docs", "url": "https://docs.k3s.io/" },
+        { "title": "Kubernetes Docs", "url": "https://kubernetes.io/docs/" }
+      ]
+    },
+    {
+      "id": "storage-block-file-object",
+      "term": "Storage (Block vs File vs Object)",
+      "tags": ["Infrastruktur", "Storage"],
+      "summary": "Drei Arten wie Daten gespeichert und zugegriffen werden: Block (Festplatten), File (Dateisysteme/NFS), Object (S3/Buckets).",
+      "explanation": "• Block Storage: rohe Datenblöcke ohne Dateisystem. Das OS formatiert sie selbst (ext4, ZFS). Schnell, flexibel. Wie eine physische Festplatte.\n  Beispiele: LVM, iSCSI, Ceph RBD, AWS EBS\n  Proxmox: local-lvm ist Block Storage (LVM Thin)\n\n• File Storage: Dateisystem mit Ordnerstruktur. Wird über Netzwerk geteilt (NFS, SMB/CIFS). Einfach, bekannt.\n  Beispiele: NFS, SMB, GlusterFS\n  Proxmox: Directory Storage (/var/lib/vz) ist File Storage\n\n• Object Storage: Flache Struktur, Daten als 'Objekte' mit Metadata und einzigartigem Key. Massiv skalierbar, kein Dateisystem.\n  Beispiele: AWS S3, MinIO, Ceph RADOS\n  Use Case: Backups, Logs, Media, Cloud-Native Apps\n\nMerkhilfe:\nBlock = Festplatte (Partition, LVM)\nFile = Netzlaufwerk (\\\\server\\share)\nObject = Cloud-Bucket (s3://backup/proxmox-2026.tar)",
+      "howItWorks": "Dein Proxmox Storage:\n• local (Directory/File): /var/lib/vz — ISOs, CT Templates\n• local-lvm (Block/LVM-Thin): VM-Disks, CT-Rootfs — dynamisch wachsend\n\nSpäter möglich:\n• NFS Share (File): NAS als zentraler Storage\n• PBS (Block/File): Proxmox Backup Server für Backups\n• MinIO (Object): S3-kompatibel für Offsite-Backups",
+      "homelab": "Aktuell: eine 250GB SSD (dynamisch), local + local-lvm. Für echte Storage-Redundanz: zweite Disk oder NAS. PBS (idea-010) braucht separates Speichermedium.",
+      "security": "Encryption at Rest: LUKS für Block-Devices, ZFS native encryption. Backup-Daten verschlüsseln (PBS kann das). Storage-Zugriff über Netzwerk: nur über verschlüsselte Protokolle (NFSv4 mit Kerberos, iSCSI mit CHAP/IPsec).",
+      "relatedTerms": ["raid", "zfs-ext4-btrfs", "backup-321"],
+      "links": []
+    },
+    {
+      "id": "raid",
+      "term": "RAID (0, 1, 5, 6, 10)",
+      "tags": ["Infrastruktur", "Storage"],
+      "summary": "Redundant Array of Independent Disks — mehrere Festplatten zu einem logischen Volume kombinieren für Performance und/oder Redundanz.",
+      "explanation": "• RAID 0 (Striping): Daten auf alle Disks verteilt. Schnell, aber KEINE Redundanz — eine Disk kaputt = alle Daten weg. Nur für temporäre/unwichtige Daten.\n\n• RAID 1 (Mirroring): jede Disk ist eine exakte Kopie. Eine Disk kann ausfallen ohne Datenverlust. 50% Kapazitätsverlust. Einfach, zuverlässig.\n\n• RAID 5 (Striping + 1 Parity): Daten + Parity über min. 3 Disks verteilt. Eine Disk kann ausfallen. Kapazität: (N-1) Disks. Gut für Lesen, langsam beim Schreiben (Parity berechnen).\n\n• RAID 6 (Striping + 2 Parity): wie RAID 5, aber ZWEI Disks können ausfallen. Min. 4 Disks. Kapazität: (N-2). Für große Arrays empfohlen (Rebuild dauert bei großen Disks Stunden/Tage).\n\n• RAID 10 (1+0, Mirror + Stripe): Kombination aus RAID 1 und RAID 0. Schnell UND redundant. Min. 4 Disks, 50% Kapazitätsverlust. Gold-Standard für Datenbanken.\n\nWICHTIG: RAID ist KEIN Backup. RAID schützt gegen Hardware-Ausfall, nicht gegen Ransomware, versehentliches Löschen oder Feuer.",
+      "howItWorks": "RAID 1 mit 2× 1TB:\n• Disk A: [Daten] | Disk B: [exakte Kopie]\n• Disk A fällt aus → Disk B hat alles → Disk A tauschen → Rebuild\n• Nutzbare Kapazität: 1TB (50%)\n\nRAID 5 mit 3× 1TB:\n• Disk A: [D1, P3] | Disk B: [D2, P1] | Disk C: [P2, D3]\n• Eine Disk fällt aus → Daten aus Parity rekonstruierbar\n• Nutzbare Kapazität: 2TB (66%)",
+      "homelab": "Aktuell: eine 1TB SSD, kein RAID. Für echte Redundanz: zweite Disk für ZFS Mirror (RAID 1) oder NAS mit RAID 5/6. PBS (idea-010) braucht separates Storage-Medium — RAID 1 auf dem NAS wäre ideal.",
+      "security": "RAID schützt gegen Disk-Ausfall, NICHT gegen Datenverlust durch Ransomware, User-Fehler oder Feuer. 3-2-1 Backup-Regel zusätzlich zu RAID. RAID-Rebuild bei großen Disks dauert lange — währenddessen ist das Array degraded und verwundbar.",
+      "relatedTerms": ["storage-block-file-object", "zfs-ext4-btrfs", "backup-321"],
+      "links": []
+    },
+    {
+      "id": "zfs-ext4-btrfs",
+      "term": "ZFS vs ext4 vs btrfs",
+      "tags": ["Infrastruktur", "Storage", "Dateisystem"],
+      "summary": "Drei Linux-Dateisysteme: ext4 (bewährt, einfach), ZFS (Enterprise, Snapshots, RAID), btrfs (modern, Snapshots, Copy-on-Write).",
+      "explanation": "• ext4: Standard-Linux-Dateisystem. Bewährt, stabil, schnell, einfach. Kein eingebautes RAID, keine Snapshots (LVM-Snapshots als Alternative). Für die meisten Use Cases ausreichend.\n\n• ZFS: Enterprise-Dateisystem von Sun/Oracle. Copy-on-Write, integriertes RAID (RAIDZ1/2/3), Snapshots, Kompression, Checksumming (erkennt Bit Rot), Send/Receive für Backups. Braucht viel RAM (1GB RAM pro TB Storage als Faustregel). Nicht im Linux-Kernel (DKMS-Modul wegen Lizenz).\n\n• btrfs: Linux-natives CoW-Dateisystem. Snapshots, Subvolumes, Kompression, RAID 1/10. RAID 5/6 ist noch instabil (nicht für Produktion). Leichter als ZFS, weniger Features.\n\nProxmox unterstützt alle drei als Storage-Backend. ext4 als Default bei der Installation.",
+      "howItWorks": "Dein Proxmox: ext4 auf /dev/sda (bei Installation gewählt).\n\nZFS wäre ideal wenn:\n• Zwei Disks vorhanden (ZFS Mirror/RAIDZ1)\n• Snapshots vor Updates (zfs snapshot tank@before-update)\n• Automatische Integritätsprüfung (zfs scrub)\n• Send/Receive für Offsite-Backup (zfs send tank@snap | ssh backup zfs receive)\n\nFür eine einzelne Disk: ext4 ist die richtige Wahl. ZFS auf einer Disk hat keinen Redundanz-Vorteil.",
+      "homelab": "ext4 ist korrekt für dein Single-Disk-Setup. Bei Erweiterung (NAS, zweite Disk): ZFS Mirror. Proxmox kann ZFS bei der Installation wählen oder nachträglich als Pool hinzufügen.",
+      "security": "ZFS Checksumming erkennt Silent Data Corruption (Bit Rot). ext4 hat das nicht — defekte Sektoren werden nicht erkannt bis die Daten gelesen werden. ZFS native Encryption für Encryption at Rest.",
+      "relatedTerms": ["raid", "storage-block-file-object", "backup-321"],
+      "links": [
+        { "title": "Proxmox ZFS Docs", "url": "https://pve.proxmox.com/wiki/ZFS_on_Linux" }
+      ]
+    },
+    {
+      "id": "backup-321",
+      "term": "Backup (3-2-1 Regel, Snapshot vs Backup)",
+      "tags": ["Infrastruktur", "Backup", "Grundprinzip"],
+      "summary": "3 Kopien, auf 2 verschiedenen Medien, 1 davon offsite. Snapshots sind kein Backup — sie schützen nicht gegen Disk-Ausfall.",
+      "explanation": "3-2-1 Regel:\n• 3 Kopien deiner Daten (Original + 2 Backups)\n• 2 verschiedene Medien (SSD + NAS, SSD + USB, SSD + Cloud)\n• 1 Kopie offsite (anderer Standort, Cloud, Freund's Haus)\n\nSnapshot vs Backup:\n• Snapshot: Momentaufnahme des Zustands. Liegt auf dem GLEICHEN Storage. Schützt gegen: versehentliches Löschen, kaputtes Update. Schützt NICHT gegen: Disk-Ausfall, Ransomware (verschlüsselt alle Snapshots mit), Feuer.\n• Backup: Kopie auf ein ANDERES Medium/System. Schützt gegen alles oben genannte.\n\nHyper-V Checkpoints sind Snapshots — sie liegen auf derselben Disk wie die VM. Kein Ersatz für ein echtes Backup.\n\nBackup-Typen:\n• Full: komplette Kopie jedes Mal. Viel Platz, langsam, einfach wiederherzustellen.\n• Incremental: nur Änderungen seit letztem Backup. Wenig Platz, schnell, Restore braucht alle Incrementals.\n• Differential: Änderungen seit letztem Full. Mittelweg.",
+      "howItWorks": "Dein aktueller Stand:\n• Snapshots: Hyper-V Checkpoints (pre-2026-04-19-xxxx) ✓\n• Backup: FEHLT — wenn die SSD stirbt, ist alles weg\n\nGeplant:\n1. Proxmox vzdump für VM/CT Backups (lokal)\n2. PBS (idea-010, deferred) für deduplizierte Backups\n3. Offsite: USB-Disk oder NAS an anderem Ort",
+      "homelab": "Aktuell: nur Hyper-V Snapshots — besser als nichts, aber kein echtes Backup. Nächster Schritt: Proxmox vzdump Cronjob für tägliche VM-Backups auf separaten Storage-Pfad. PBS langfristig als Backup-Server.",
+      "security": "Backups verschlüsseln (PBS kann das). Backup-Zugang isolieren (eigener User, eigenes Netz). Immutable Backups: Angreifer kann alte Backups nicht löschen/verschlüsseln. Regelmäßig Restore testen — ein Backup das nicht wiederherstellbar ist, ist wertlos.",
+      "relatedTerms": ["raid", "storage-block-file-object", "proxmox-architektur"],
+      "links": [
+        { "title": "Proxmox Backup Server", "url": "https://www.proxmox.com/en/proxmox-backup-server" }
+      ]
+    },
+    {
+      "id": "iac",
+      "term": "Infrastructure as Code (IaC)",
+      "tags": ["Infrastruktur", "DevOps", "Automatisierung"],
+      "summary": "Infrastruktur wird in Code beschrieben statt manuell konfiguriert. Reproduzierbar, versionierbar, testbar. Kern von DevOps.",
+      "explanation": "Statt manuell VMs zu klicken und Dienste zu installieren: alles in Code beschreiben.\n\nZwei Ansätze:\n• Deklarativ: beschreibt den gewünschten ZUSTAND. 'Es soll eine VM mit 2 Cores und 4GB RAM geben.' Das Tool sorgt dafür dass es so ist.\n  → Terraform, Ansible (teilweise), Kubernetes YAML\n\n• Imperativ: beschreibt SCHRITTE. 'Erstelle eine VM. Setze RAM auf 4GB. Installiere nginx.'\n  → Shell-Skripte, Ansible Playbooks (teilweise)\n\nVorteile:\n• Reproduzierbar: gleicher Code → gleiches Ergebnis, jedes Mal\n• Versionierbar: Code im Git-Repo, Changes nachvollziehbar\n• Testbar: Code kann geprüft werden bevor er angewendet wird\n• Dokumentation: der Code IST die Dokumentation\n• Drift Detection: Abweichungen vom Soll-Zustand erkennen",
+      "howItWorks": "Terraform für Proxmox VM:\n```hcl\nresource \"proxmox_vm_qemu\" \"jumphost\" {\n  name        = \"jumphost\"\n  target_node = \"pve\"\n  cores       = 1\n  memory      = 1024\n  disk { size = \"10G\" }\n}\n```\nterraform apply → VM wird in Proxmox erstellt.\nterraform destroy → VM wird gelöscht.\n\nAnsible für Konfiguration:\n```yaml\n- hosts: jumphost\n  tasks:\n    - name: Install packages\n      apt: name={{item}} state=present\n      loop: [vim, curl, git, sudo]\n    - name: Deploy SSH key\n      authorized_key: user=noob key={{lookup('file','~/.ssh/id_ed25519.pub')}}\n```\nansible-playbook setup.yml → alle Tasks werden ausgeführt.",
+      "homelab": "Geplant: Ansible Playbooks (p3-ansible) für VM-Konfiguration. Terraform optional für VM-Provisioning in Proxmox. Git-Repo für alle Configs (github.com/kaynethy/homelab). Langfristig: Jumphost komplett per Ansible reproduzierbar.",
+      "security": "Secrets nicht im Code (Ansible Vault, .env mit .gitignore, HashiCorp Vault). Code-Review für Infrastructure-Changes (Pull Requests). Least Privilege für IaC-Service-Accounts. State-Files (Terraform) enthalten sensitive Daten → verschlüsselt speichern.",
+      "relatedTerms": ["config-management", "docker-compose", "git-basics", "cicd"],
+      "links": [
+        { "title": "Terraform Proxmox Provider", "url": "https://registry.terraform.io/providers/Telmate/proxmox/" },
+        { "title": "Ansible Docs", "url": "https://docs.ansible.com/" }
+      ]
+    },
+    {
+      "id": "config-management",
+      "term": "Configuration Management (Ansible, Puppet, Chef)",
+      "tags": ["Infrastruktur", "DevOps", "Automatisierung"],
+      "summary": "Tools die den Zustand von Servern automatisch konfigurieren und konsistent halten. 'Alle Server sollen vim installiert haben' → Tool sorgt dafür.",
+      "explanation": "• Ansible: agentless (SSH-basiert), YAML Playbooks, einfach zu lernen. Push-basiert: du startest den Run manuell oder per Cron. Perfekt für Homelab.\n\n• Puppet: Agent auf jedem Server, Ruby DSL, Pull-basiert (Server prüft alle 30min ob Config stimmt). Enterprise-Standard, steile Lernkurve.\n\n• Chef: Agent-basiert, Ruby, Recipes/Cookbooks. Ähnlich wie Puppet, andere Philosophie.\n\n• SaltStack: Agent oder agentless, YAML/Python, schnell bei großen Fleets.\n\nFür ein Homelab: Ansible. Kein Agent nötig (nur SSH), YAML ist lesbar, riesige Community, Module für alles (Proxmox, Docker, apt, systemd).\n\nIdempotenz: ein Playbook kann beliebig oft ausgeführt werden — wenn der Zustand schon stimmt, passiert nichts. 'apt: name=vim state=present' → beim ersten Run: installiert. Beim zweiten Run: 'already present, skipping'.",
+      "howItWorks": "Ansible Base-Playbook für alle VMs (idea-022):\n```yaml\n- hosts: all\n  become: yes\n  tasks:\n    - name: Update packages\n      apt: upgrade=dist update_cache=yes\n    - name: Install base tools\n      apt: name={{item}}\n      loop: [vim, curl, git, htop, net-tools]\n    - name: Deploy SSH key\n      authorized_key: user=noob key='ssh-ed25519 AAAA...'\n    - name: Harden sshd\n      lineinfile:\n        path: /etc/ssh/sshd_config\n        regexp: '^PasswordAuthentication'\n        line: 'PasswordAuthentication no'\n      notify: restart sshd\n```\nansible-playbook -i inventory.yml base.yml → auf allen VMs ausgeführt.",
+      "homelab": "Geplant: p3-ansible. Inventory mit allen VMs (Proxmox, Jumphost, AdGuard). Base-Playbook für SSH-Hardening, Package-Installation, vim-Config. Später: Rollen für spezifische Dienste (Docker-Setup, Monitoring-Agent).",
+      "security": "Ansible Vault für Secrets (Passwörter, Keys). SSH-Key-Auth für Ansible-Verbindungen (kein Passwort). Ansible-User mit sudo, nicht Root. Playbooks im Git-Repo für Audit-Trail.",
+      "relatedTerms": ["iac", "cicd"],
+      "links": [
+        { "title": "Ansible Galaxy", "url": "https://galaxy.ansible.com/" }
+      ]
+    },
+    {
+      "id": "cicd",
+      "term": "CI/CD (Continuous Integration / Continuous Deployment)",
+      "tags": ["Infrastruktur", "DevOps"],
+      "summary": "Automatisierte Pipelines: Code-Änderungen werden automatisch getestet (CI) und deployed (CD). Kein manuelles Deployment mehr.",
+      "explanation": "• CI (Continuous Integration): bei jedem Git-Push wird automatisch gebaut und getestet. Fehler werden sofort erkannt, nicht erst beim Release.\n  Schritte: Push → Build → Test → Ergebnis (Pass/Fail)\n\n• CD (Continuous Delivery): nach erfolgreichem CI wird automatisch in eine Staging-Umgebung deployed. Production-Deployment mit einem Klick (manuell freigegeben).\n\n• CD (Continuous Deployment): auch Production-Deployment ist automatisch. Jeder erfolgreiche Push geht direkt in Produktion. Braucht sehr gute Tests.\n\nTools:\n• Gitea Actions / GitHub Actions: integriert in Git-Server\n• Jenkins: klassisch, flexibel, komplex\n• GitLab CI: integriert in GitLab\n• Drone CI: leichtgewichtig, Docker-nativ",
+      "howItWorks": "Homelab CI/CD Beispiel (geplant):\n1. Du pushst Ansible-Playbook-Änderung nach Gitea\n2. Gitea Action startet: ansible-lint (Syntax-Check)\n3. Test bestanden → Playbook wird auf Staging-VM ausgeführt\n4. Funktioniert → Notification 'Ready for Production'\n5. Du bestätigst → Playbook auf allen Produktiv-VMs",
+      "homelab": "Geplant: Gitea (p3-git) als Git-Server mit Actions für automatisiertes Testing. Erst CI für Ansible-Playbooks (Lint, Syntax-Check), dann CD für Docker-Deployments.",
+      "security": "CI/CD Pipeline Secrets sicher verwalten (nicht im Repo). Pipeline-Code reviewen (Supply Chain Attacks). Build-Artefakte signieren. Least Privilege für CI/CD Service Accounts.",
+      "relatedTerms": ["iac", "config-management", "git-basics", "docker-compose"],
+      "links": []
+    },
+    {
+      "id": "git-basics",
+      "term": "Git (Branching, Merge, Rebase)",
+      "tags": ["Infrastruktur", "DevOps", "Tools"],
+      "summary": "Verteiltes Versionskontrollsystem. Jede Änderung wird getrackt, Branches ermöglichen paralleles Arbeiten, Merge/Rebase integriert Änderungen.",
+      "explanation": "Git-Grundkonzepte:\n• Repository: Ordner mit .git/ — enthält die gesamte History\n• Commit: ein Snapshot aller Dateien zu einem Zeitpunkt (mit Nachricht)\n• Branch: parallele Entwicklungslinie. main = Hauptlinie, feature/xyz = Experiment\n• Merge: zwei Branches zusammenführen (erstellt Merge-Commit)\n• Rebase: Commits eines Branches auf einen anderen 'umpflanzen' (linearer History)\n• Remote: Server-Kopie des Repos (GitHub, Gitea)\n• Pull/Push: Änderungen vom/zum Remote holen/senden\n\nWorkflow:\n1. git pull (aktuellen Stand holen)\n2. Änderungen machen\n3. git add . (Änderungen stagen)\n4. git commit -m 'Beschreibung' (Commit erstellen)\n5. git push (auf den Server schieben)",
+      "howItWorks": "Dein Homelab-Repo (github.com/kaynethy/homelab):\n• Lokal: Y:/HomeLab/Dokumentation\n• Remote: GitHub\n• Branch: main\n\nTypischer Workflow:\n1. Änderung an homelab-state.json (z.B. Step auf done)\n2. git add homelab-state.json\n3. git commit -m 'p1-linux-vm: Jumphost eingerichtet'\n4. git push origin main",
+      "homelab": "GitHub Repo für alle JSONs und die Website. Später: Gitea als eigener Git-Server (p3-git) für private Repos, Configs, Ansible Playbooks. GitHub bleibt als Public-Facing Repo.",
+      "security": "Keine Secrets in Git (Passwörter, Keys, API-Tokens). .gitignore für: .secrets/, *.ppk, .env. Git History ist permanent — einmal gepushte Secrets können nicht mehr entfernt werden (git filter-branch ist komplex). Pre-commit Hooks für Secret-Detection (gitleaks).",
+      "relatedTerms": ["iac", "cicd"],
+      "links": [
+        { "title": "Git Docs", "url": "https://git-scm.com/doc" },
+        { "title": "GitHub kaynethy/homelab", "url": "https://github.com/kaynethy/homelab" }
+      ]
+    },
+    {
+      "id": "monitoring-metrics-logs-traces",
+      "term": "Monitoring (Metrics vs Logs vs Traces)",
+      "tags": ["Infrastruktur", "Monitoring", "Observability"],
+      "summary": "Drei Säulen der Observability: Metrics (Zahlen über Zeit), Logs (Event-Texte), Traces (Request-Pfade durch Services).",
+      "explanation": "• Metrics: Zahlenwerte über Zeit. CPU 45%, RAM 3.2GB, Disk 60%, HTTP 200 count: 1523. Aggregiert, kompakt. Ideal für Dashboards und Alerting.\n  Tools: Prometheus (Sammlung), Grafana (Visualisierung), Node Exporter (Host-Metriken)\n\n• Logs: Text-Events mit Timestamp. 'Apr 19 15:32:01 sshd: Failed password for root from 10.0.3.5'. Detailliert, viel Daten. Für Debugging und Forensik.\n  Tools: Loki (Sammlung), Grafana (Suche), Promtail/Alloy (Agent)\n\n• Traces: Pfad eines Requests durch mehrere Services. Request → Reverse Proxy → API → Database → zurück. Zeigt Latenzen pro Hop.\n  Tools: Jaeger, Zipkin, Grafana Tempo\n\nFür ein Homelab: Metrics + Logs reichen. Traces erst relevant bei Microservice-Architekturen.",
+      "howItWorks": "Geplanter Monitoring-Stack (Phase 4):\n1. Node Exporter auf jeder VM → exportiert CPU/RAM/Disk/Network Metriken\n2. Prometheus auf MGMT → scraped Metriken alle 15s\n3. Promtail auf jeder VM → sendet Logs nach Loki\n4. Grafana Dashboard → visualisiert alles\n5. Alert Rules: CPU >90% für 5min → Notification via Ntfy",
+      "homelab": "Geplant: Grafana + Prometheus (p4-grafana), Loki (p4-loki), Uptime Kuma (p4-uptime). Monitoring erst wenn genug Dienste laufen — sonst gibt es nichts zu monitoren.",
+      "security": "Monitoring-Daten enthalten sensitive Infos (IPs, Usernamen, Fehler). Zugriff auf Grafana beschränken (Auth + RBAC). Logs mit PII (personenbezogene Daten) maskieren. Retention-Policies: Logs nicht ewig aufheben.",
+      "relatedTerms": ["proxmox-architektur"],
+      "links": [
+        { "title": "Grafana Docs", "url": "https://grafana.com/docs/" },
+        { "title": "Prometheus Docs", "url": "https://prometheus.io/docs/" }
+      ]
+    },
+    {
+      "id": "clustering",
+      "term": "Clustering",
+      "tags": ["Infrastruktur", "HA"],
+      "summary": "Mehrere Server (Nodes) werden zu einem logischen System verbunden. Fällt ein Node aus, übernehmen die anderen. Basis für High Availability.",
+      "explanation": "Cluster-Typen:\n• Active/Passive (Failover): ein Node arbeitet, der andere wartet. Bei Ausfall übernimmt der passive Node. Einfach, aber Ressourcen-Verschwendung.\n• Active/Active: alle Nodes arbeiten gleichzeitig, Load Balancing verteilt Traffic. Bei Ausfall: weniger Kapazität, aber kein Ausfall.\n• Quorum: bei mehreren Nodes wird abgestimmt wer der 'Leader' ist. Mindestens 3 Nodes für korrektes Quorum (Split-Brain verhindern).\n\nProxmox Cluster:\n• Corosync für Cluster-Kommunikation (Heartbeat, Quorum)\n• pmxcfs für verteilte Config (alle Nodes sehen gleiche Config)\n• Live Migration: VM im Betrieb auf anderen Node verschieben\n• HA Manager: bei Node-Ausfall VMs automatisch auf anderem Node starten",
+      "howItWorks": "Proxmox Cluster (geplant, braucht zweiten Node):\n1. Node 1 (pve1): pvecm create mycluster\n2. Node 2 (pve2): pvecm add 10.0.1.2\n3. VMs können zwischen Nodes migriert werden\n4. HA: VM 101 (Jumphost) als 'HA Resource' konfigurieren\n5. Node 1 fällt aus → HA Manager startet VM 101 auf Node 2",
+      "homelab": "Aktuell: Single-Node Proxmox. Cluster erst mit zweitem physischen Server oder zweitem Homelab-PC. Für jetzt: regelmäßige Backups als Ersatz für HA.",
+      "security": "Cluster-Kommunikation verschlüsseln (Corosync mit Encryption). Quorum korrekt konfigurieren (Split-Brain = zwei Nodes glauben beide sie sind der Leader → Datenkorruption). Fencing/STONITH: defekten Node abschießen bevor der andere übernimmt.",
+      "relatedTerms": ["proxmox-architektur", "backup-321"],
+      "links": [
+        { "title": "Proxmox Cluster Docs", "url": "https://pve.proxmox.com/wiki/Cluster_Manager" }
+      ]
+    },
+    {
+      "id": "reverse-dns-ptr",
+      "term": "Reverse DNS (PTR Records)",
+      "tags": ["Infrastruktur", "DNS", "Mail"],
+      "summary": "Das Gegenteil von normalem DNS: löst eine IP-Adresse zu einem Hostnamen auf. Essentiell für Mailserver und Diagnostik.",
+      "explanation": "Normales DNS (Forward): proxmox.homelab.local → 192.168.0.200\nReverse DNS (PTR): 192.168.0.200 → proxmox.homelab.local\n\nReverse DNS nutzt eine spezielle Domain: in-addr.arpa für IPv4.\n200.0.168.192.in-addr.arpa → proxmox.homelab.local (Oktette rückwärts!)\n\nWarum wichtig?\n• Mailserver: empfangende Server prüfen ob die IP des sendenden Servers einen passenden PTR hat. Ohne PTR → Mail landet im Spam oder wird abgelehnt.\n• Diagnostik: traceroute/ping zeigt Hostnamen statt nur IPs\n• Security: Log-Analyse — IPs zu Hostnamen auflösen\n\nPTR Records können nur vom Besitzer des IP-Blocks gesetzt werden — für öffentliche IPs muss dein ISP das machen (oder du bekommst delegierte Reverse-Zone).",
+      "howItWorks": "dig -x 192.168.0.200 → Frage: 200.0.168.192.in-addr.arpa PTR?\nAntwort: proxmox.homelab.local\n\nFür internen Reverse DNS: in AdGuard oder eigenem DNS-Server PTR Records anlegen.\nFür externen Reverse DNS (Mailserver): ISP kontaktieren.",
+      "homelab": "Intern: AdGuard DNS Rewrites können Forward-DNS (A Records) verwalten. Für PTR braucht man eine Reverse-Zone in einem autoritativen DNS (CoreDNS, dnsmasq). Extern (Mailserver, p3-mail): ISP muss PTR für deine öffentliche IP setzen.",
+      "security": "PTR-Check ist ein Anti-Spam-Mechanismus. Ohne korrekte PTR Records kann dein Mailserver keine Mails an Gmail/Outlook senden. FCrDNS (Forward-Confirmed Reverse DNS): PTR zeigt auf hostname, hostname löst zurück auf die gleiche IP → Double-Check.",
+      "relatedTerms": ["proxmox-architektur"],
+      "links": []
+    }
+  ]
+}

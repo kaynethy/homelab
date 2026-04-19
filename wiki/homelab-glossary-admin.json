@@ -1,0 +1,280 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "category": "Admin & Tools",
+    "description": "Linux-Administration, Shell-Tools, Debugging, Dateiformate — das tägliche Handwerkszeug eines Sysadmins"
+  },
+  "entries": [
+    {
+      "id": "ssh-tunneling",
+      "term": "SSH Tunneling (Local, Remote, Dynamic)",
+      "tags": ["Admin", "SSH", "Netzwerk"],
+      "summary": "Beliebige TCP-Verbindungen durch einen verschlüsselten SSH-Tunnel leiten. Drei Modi: Local (-L), Remote (-R), Dynamic (-D).",
+      "explanation": "SSH kann mehr als Shell-Zugriff — es kann beliebige TCP-Ports durch den verschlüsselten Tunnel weiterleiten.\n\n• Local Forwarding (-L): Port auf deinem PC → über SSH → zu einem Ziel hinter dem SSH-Server.\n  ssh -L 8080:192.168.0.200:8006 noob@jumphost\n  → localhost:8080 auf deinem PC erreicht jetzt Proxmox Web-UI durch den Jumphost\n\n• Remote Forwarding (-R): Port auf dem SSH-Server → zurück zu deinem PC.\n  ssh -R 3000:localhost:3000 noob@jumphost\n  → jumphost:3000 erreicht jetzt den Dienst auf deinem lokalen PC (z.B. lokaler Dev-Server)\n\n• Dynamic Forwarding (-D): SOCKS5 Proxy — ALLER Traffic den du über den Proxy schickst geht durch den SSH-Tunnel.\n  ssh -D 1080 noob@jumphost\n  → Browser-Proxy auf localhost:1080 → aller Traffic geht über den Jumphost raus",
+      "howItWorks": "Szenario: Du bist unterwegs und willst Proxmox Web-UI erreichen.\n1. WireGuard VPN ins Homelab (oder SSH zu einem exponierten Port)\n2. ssh -L 8006:192.168.0.200:8006 noob@jumphost\n3. Browser: https://localhost:8006 → Proxmox Web-UI\n4. Traffic: Laptop → SSH-Tunnel → Jumphost → Proxmox\n5. Verschlüsselt von deinem Laptop bis zum Jumphost ✓",
+      "homelab": "Jumphost (192.168.0.204) als SSH-Gateway. Local Forwarding für Proxmox Web-UI wenn kein VPN verfügbar. Dynamic Forwarding als Quick-VPN-Alternative. Später: WireGuard ersetzt die meisten Tunnel-Use-Cases.",
+      "security": "SSH Tunneling kann Firewall-Regeln umgehen — deshalb in sicheren Umgebungen SSH AllowTcpForwarding no setzen für User die es nicht brauchen. Im Homelab: Feature, kein Bug.",
+      "relatedTerms": ["port-forwarding-konzept", "sshd-config"],
+      "links": [
+        { "title": "SSH Tunneling erklärt", "url": "https://www.ssh.com/academy/ssh/tunneling" }
+      ]
+    },
+    {
+      "id": "port-forwarding-konzept",
+      "term": "Port Forwarding",
+      "tags": ["Admin", "Netzwerk"],
+      "summary": "Traffic der an einem bestimmten Port ankommt wird an ein anderes Ziel (IP:Port) weitergeleitet. Auf Router-Ebene (DNAT) oder per SSH-Tunnel.",
+      "explanation": "Zwei Kontexte:\n\n1. Router Port Forwarding (DNAT): Eingehender Traffic aus dem Internet an einer öffentlichen IP:Port wird an eine interne IP:Port weitergeleitet.\n  Beispiel: Internet → 84.123.x.x:51820 → Router leitet an 192.168.0.200:51820 (WireGuard)\n\n2. SSH Port Forwarding: siehe SSH Tunneling — Ports werden durch den SSH-Tunnel weitergeleitet.\n\n3. Docker Port Mapping: Container-Port wird auf Host-Port gemappt.\n  docker run -p 8080:80 nginx → Host:8080 erreicht Container:80\n\nAlle drei haben das gleiche Konzept: Traffic kommt an Port X an, wird an Port Y (auf gleichem oder anderem Host) weitergeleitet.",
+      "howItWorks": "WireGuard VPN erreichbar machen:\n1. TP-Link Router: Port Forwarding Regel\n   External Port: 51820/UDP → Internal 192.168.0.200:51820\n2. OPNsense (später): WAN Interface → Port Forward → WireGuard-VM\n3. Traffic: Internet → öffentliche IP:51820 → Router → Proxmox:51820 → WireGuard",
+      "homelab": "Port Forwarding auf TP-Link Router für WireGuard (p2-wireguard) und DDNS (p2-ddns) geplant. Nach OPNsense-Migration: Port Forwarding auf OPNsense statt TP-Link.",
+      "security": "Nur Ports forwarden die du wirklich brauchst. Jeder geforwardete Port ist eine offene Tür ins Netz. Kein SSH (Port 22) direkt ans Internet — VPN nutzen. Port Forwarding + Fail2Ban + starke Auth kombinieren.",
+      "relatedTerms": ["ssh-tunneling", "nat-konzept"],
+      "links": []
+    },
+    {
+      "id": "systemd",
+      "term": "systemd (Units, Services, Targets, Timers)",
+      "tags": ["Admin", "Linux", "Init"],
+      "summary": "Das Init-System von modernem Linux. Verwaltet Dienste, Mounts, Timer, Sockets, Boot-Reihenfolge — praktisch alles was beim Start passiert.",
+      "explanation": "systemd ersetzt das alte SysVinit. Alles wird als 'Unit' definiert:\n\n• Service (.service): ein Daemon/Dienst (sshd, AdGuardHome, nginx)\n  systemctl start/stop/restart/status sshd\n  systemctl enable/disable sshd (Autostart an/aus)\n\n• Timer (.timer): Cronjob-Alternative, flexibler (OnCalendar, OnBootSec)\n  systemctl list-timers (aktive Timer anzeigen)\n\n• Target (.target): Gruppierung von Units (multi-user.target ≈ Runlevel 3)\n  systemctl get-default → multi-user.target (Server ohne GUI)\n\n• Mount (.mount): Dateisystem-Mounts (statt /etc/fstab)\n\n• Socket (.socket): Socket-Aktivierung — Dienst startet erst wenn jemand den Socket anspricht\n\nWichtige Befehle:\n• journalctl -u sshd -f → Live-Logs eines Service\n• systemctl daemon-reload → nach Unit-File-Änderung\n• systemctl list-units --failed → fehlgeschlagene Dienste",
+      "howItWorks": "AdGuard Service auf dem LXC Container:\n• Unit-File: /etc/systemd/system/AdGuardHome.service\n• systemctl status AdGuardHome → Active: active (running)\n• systemctl restart AdGuardHome → Neustart\n• journalctl -u AdGuardHome → Logs\n\nBeim Neuinstallieren (Session 6) hast du:\n1. systemctl stop AdGuardHome\n2. systemctl disable AdGuardHome\n3. rm /etc/systemd/system/AdGuardHome.service\n4. systemctl daemon-reload\n→ Service komplett entfernt, dann neu installiert.",
+      "homelab": "Alle Dienste auf Proxmox und VMs werden über systemd verwaltet. pct set --onboot nutzt intern systemd-Targets für Container-Autostart.",
+      "security": "Dienste die nicht gebraucht werden: systemctl disable + systemctl mask (verhindert auch manuelles Starten). Service-User statt Root: User=www-data in Unit-Files. ProtectSystem=strict für Filesystem-Isolation.",
+      "relatedTerms": ["cron-crontab", "log-management", "prozesse"],
+      "links": [
+        { "title": "systemd Docs", "url": "https://www.freedesktop.org/software/systemd/man/" }
+      ]
+    },
+    {
+      "id": "cron-crontab",
+      "term": "Cron / Crontab",
+      "tags": ["Admin", "Linux", "Scheduling"],
+      "summary": "Zeitgesteuerte Aufgaben auf Linux. Crontab definiert WANN ein Befehl automatisch ausgeführt wird.",
+      "explanation": "Crontab-Format: Minute Stunde Tag Monat Wochentag Befehl\n\n┌───── Minute (0-59)\n│ ┌──── Stunde (0-23)\n│ │ ┌─── Tag (1-31)\n│ │ │ ┌── Monat (1-12)\n│ │ │ │ ┌─ Wochentag (0-7, 0+7=Sonntag)\n│ │ │ │ │\n* * * * * /pfad/zum/befehl\n\nBeispiele:\n• 0 3 * * * → täglich um 03:00\n• */15 * * * * → alle 15 Minuten\n• 0 0 * * 0 → jeden Sonntag um Mitternacht\n• 30 2 1 * * → am 1. jeden Monats um 02:30\n\nBefehle:\n• crontab -e → Crontab des aktuellen Users bearbeiten (mit vim!)\n• crontab -l → aktuelle Crontab anzeigen\n• /etc/cron.d/ → System-Cronjobs\n• /etc/cron.daily/ → tägliche Scripts",
+      "howItWorks": "Automatisches Proxmox-Backup per Cron:\ncrontab -e  ← vim öffnet sich\n\n# Tägliches Backup aller VMs/CTs um 03:00\n0 3 * * * /usr/bin/vzdump --all --mode snapshot --storage local --quiet\n\n# Wöchentliches apt-Update Sonntag 04:00\n0 4 * * 0 apt-get update && apt-get -y upgrade >> /var/log/auto-update.log 2>&1",
+      "homelab": "Cronjobs geplant für: tägliches Proxmox-Backup (vzdump), wöchentliche Updates (apt), DNS-Statistik-Export, Let's Encrypt Cert-Renewal. systemd Timer sind die modernere Alternative, aber Cron ist universell und einfach.",
+      "security": "Cron-Output geht per Default an den lokalen Mail-User — bei Fehlern bekommt man es nicht mit wenn kein Mailserver läuft. Fix: Output in Logfile umleiten (>> /var/log/cron.log 2>&1). Crontab nur für User die es brauchen (cron.allow/cron.deny).",
+      "relatedTerms": ["systemd", "log-management"],
+      "links": [
+        { "title": "Crontab Guru", "url": "https://crontab.guru/" }
+      ]
+    },
+    {
+      "id": "package-management",
+      "term": "Package Management (apt, yum/dnf, pip)",
+      "tags": ["Admin", "Linux", "Tools"],
+      "summary": "Paketmanager installieren, updaten und entfernen Software aus Repositories. apt für Debian/Ubuntu, dnf für RHEL/Fedora, pip für Python.",
+      "explanation": "• apt (Debian/Ubuntu/Proxmox):\n  apt update → Paketlisten aktualisieren\n  apt upgrade → alle Pakete updaten\n  apt install vim curl git → Pakete installieren\n  apt remove paket → deinstallieren\n  apt autoremove → unbenutzte Dependencies entfernen\n  apt search suchbegriff → Paket suchen\n\n• dnf (RHEL/Fedora/Rocky) [ehemals yum]:\n  dnf install / dnf update / dnf remove\n  Gleiche Konzepte, andere Syntax\n\n• pip (Python):\n  pip install ansible → Python-Paket installieren\n  pip install -r requirements.txt → aus Datei\n  ACHTUNG: pip install --break-system-packages nötig auf modernem Debian\n\nRepositories: Paketquellen die Software bereitstellen. Proxmox hat eigene Repos (No-Subscription, Enterprise). Du hast Enterprise-Repos deaktiviert und No-Sub aktiviert.",
+      "howItWorks": "Neues Paket auf dem Jumphost:\n1. apt update ← Paketlisten aktualisieren (sonst findet er nichts)\n2. apt install htop ← installieren\n3. apt show htop ← Paket-Info anzeigen\n\nSystem komplett updaten:\napt update && apt dist-upgrade -y\n→ dist-upgrade erlaubt auch Kernel-Updates und Dependency-Changes",
+      "homelab": "Proxmox: No-Subscription Repo aktiviert (doc-002). Jumphost: Standard Debian Repos. Immer apt update VOR apt install — sonst findet apt neue Pakete nicht. DNS muss funktionieren (apt braucht Namensauflösung).",
+      "security": "Nur offizielle Repos verwenden. Fremd-Repos nur wenn vertrauenswürdig (GPG-Key prüfen). unattended-upgrades für automatische Security-Patches. apt-key ist deprecated — Repo-GPG-Keys nach /etc/apt/keyrings/ legen.",
+      "relatedTerms": ["systemd", "filesystem-fhs"],
+      "links": [
+        { "title": "Debian Package Management", "url": "https://www.debian.org/doc/manuals/debian-reference/ch02.en.html" }
+      ]
+    },
+    {
+      "id": "log-management",
+      "term": "Log Management (journalctl, syslog)",
+      "tags": ["Admin", "Linux", "Monitoring"],
+      "summary": "Logs sind das Gedächtnis deiner Server. journalctl für systemd-Logs, /var/log/ für traditionelle Logfiles.",
+      "explanation": "Zwei Log-Systeme auf modernem Linux:\n\n1. journald (systemd Journal):\n  • Binäres Format, strukturiert, schnell durchsuchbar\n  • journalctl → alle Logs\n  • journalctl -u sshd → nur SSH-Logs\n  • journalctl -f → Live-Tail (wie tail -f)\n  • journalctl --since '1 hour ago' → letzte Stunde\n  • journalctl -p err → nur Fehler\n  • journalctl -b → nur aktueller Boot\n\n2. rsyslog/syslog (/var/log/):\n  • Textdateien, traditionell, einfach zu parsen\n  • /var/log/syslog → allgemeine System-Logs\n  • /var/log/auth.log → Login-Versuche, sudo, SSH\n  • /var/log/kern.log → Kernel-Meldungen\n  • /var/log/apt/ → Paket-Installation History\n\nBeide existieren parallel. journald ist die primäre Quelle, rsyslog schreibt optional Textdateien.",
+      "howItWorks": "SSH Brute-Force erkennen:\njournalctl -u sshd --since '1 hour ago' | grep 'Failed password'\n\nOder:\ngrep 'Failed password' /var/log/auth.log | tail -20\n\nAdGuard-Logs prüfen:\npct enter 100\njournalctl -u AdGuardHome -f → Live-Logs\n\nProxmox-Tasks:\njournalctl -u pvedaemon -f → Proxmox Daemon-Logs",
+      "homelab": "Logs sind dein bester Freund beim Debugging. auth.log hat dir beim AdGuard-Passwort-Desaster (auth_attempts) und bei SSH-Problemen geholfen. Geplant: zentrales Logging nach Loki (p4-loki).",
+      "security": "Logs regelmäßig prüfen (failed logins, sudo-Nutzung). Log-Rotation konfigurieren (logrotate) damit Disk nicht vollläuft. Logs NICHT auf dem gleichen System wie die zu überwachenden Dienste — ein Angreifer löscht sie. → Zentrales Logging (Loki/Syslog-Server).",
+      "relatedTerms": ["systemd", "netzwerk-debugging", "prozesse"],
+      "links": [
+        { "title": "journalctl Cheatsheet", "url": "https://www.freedesktop.org/software/systemd/man/journalctl.html" }
+      ]
+    },
+    {
+      "id": "filesystem-fhs",
+      "term": "Filesystem-Hierarchie (Linux FHS)",
+      "tags": ["Admin", "Linux", "Grundlagen"],
+      "summary": "Die Standard-Verzeichnisstruktur von Linux. Jeder Ordner hat einen definierten Zweck: /etc für Configs, /var für Daten, /home für User.",
+      "explanation": "• / (Root): Wurzel des gesamten Dateisystems\n• /etc: Konfigurationsdateien (sshd_config, network/interfaces, fstab, resolv.conf)\n• /var: variable Daten (Logs: /var/log, Mail: /var/mail, Datenbanken, Web: /var/www)\n• /home: Home-Verzeichnisse der User (/home/noob)\n• /root: Home des Root-Users\n• /tmp: temporäre Dateien (werden bei Reboot gelöscht)\n• /opt: optionale/Third-Party Software (AdGuard liegt in /opt/AdGuardHome)\n• /usr: User-Programme und Libraries (/usr/bin, /usr/lib, /usr/share)\n• /bin, /sbin: essentielle Binaries (ls, cp, mount, systemctl)\n• /dev: Device-Dateien (Festplatten: /dev/sda, Terminals: /dev/tty)\n• /proc, /sys: virtuelle Dateisysteme (Kernel-Info, Hardware-Info)\n• /mnt, /media: Mount-Points für externe Speicher",
+      "howItWorks": "Wichtige Dateien auf deinem Proxmox:\n• /etc/network/interfaces → Netzwerk-Config (bridge-ports eth0 statt nic0!)\n• /etc/resolv.conf → DNS-Server (192.168.0.201)\n• /etc/ssh/sshd_config → SSH-Konfiguration\n• /etc/apt/sources.list.d/ → Paket-Repositories\n• /var/log/syslog → System-Logs\n• /opt/AdGuardHome/ → AdGuard Installation (CT 100)\n• /root/.vimrc → vim-Konfiguration für Root",
+      "homelab": "Configs ändern = /etc. Logs lesen = /var/log. Software installieren = /opt oder /usr. Dein .vimrc liegt in /root/ (Proxmox) und /home/noob/ (Jumphost).",
+      "security": "Permissions auf /etc strikt setzen (root:root, 644/600). /tmp mit noexec mounten (verhindert Malware-Ausführung). /home mit nodev,nosuid mounten. Separate Partitionen für /var (Logs füllen / nicht voll).",
+      "relatedTerms": ["berechtigungen", "log-management"],
+      "links": [
+        { "title": "Filesystem Hierarchy Standard", "url": "https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html" }
+      ]
+    },
+    {
+      "id": "berechtigungen",
+      "term": "Berechtigungen (chmod, chown, SUID, SGID, Sticky)",
+      "tags": ["Admin", "Linux", "Security"],
+      "summary": "Linux-Dateiberechtigungen: wer darf lesen (r), schreiben (w), ausführen (x). Plus Spezial-Bits: SUID, SGID, Sticky Bit.",
+      "explanation": "Jede Datei hat: Owner, Group, Others. Jeder hat: Read (4), Write (2), Execute (1).\n\nchmod 755 script.sh → rwxr-xr-x (Owner: alles, Group+Others: lesen+ausführen)\nchmod 600 id_rsa → rw------- (nur Owner lesen+schreiben, Private Key!)\nchmod 700 .ssh → rwx------ (nur Owner, SSH-Verzeichnis)\n\nchown user:group datei → Besitzer ändern\nchown -R noob:noob /home/noob → rekursiv\n\nSpezial-Bits:\n• SUID (4xxx): Datei wird mit Rechten des OWNERS ausgeführt (nicht des aufrufenden Users). passwd hat SUID → normaler User kann sein Passwort ändern obwohl /etc/shadow root gehört.\n• SGID (2xxx): Datei wird mit Rechten der GROUP ausgeführt. Auf Verzeichnissen: neue Dateien erben die Gruppe des Verzeichnisses.\n• Sticky Bit (1xxx): auf Verzeichnissen: nur der Owner einer Datei kann sie löschen (auch wenn andere Schreibrechte haben). /tmp hat Sticky Bit → User können nur eigene Dateien löschen.",
+      "howItWorks": "SSH-Key Permissions (MUSS stimmen, sonst verweigert SSH):\nchmod 700 ~/.ssh              → drwx------\nchmod 600 ~/.ssh/authorized_keys → -rw-------\nchmod 600 ~/.ssh/id_ed25519    → -rw------- (Private Key)\nchmod 644 ~/.ssh/id_ed25519.pub → -rw-r--r-- (Public Key)\n\nWenn Permissions falsch: SSH ignoriert den Key stillschweigend und fällt auf Passwort-Auth zurück.",
+      "homelab": "Du hast chmod 700/600 für SSH-Keys gesetzt (Session 7). AdGuard Key-Auth 'Access Denied' könnte an falschen Permissions auf authorized_keys gelegen haben (p1-ssh-remaining).",
+      "security": "SUID-Binaries sind ein Sicherheitsrisiko — sie laufen als Root. find / -perm -4000 zeigt alle SUID-Binaries. Unbekannte SUID-Dateien = Verdächtig. Keine SUID auf World-Writable Directories.",
+      "relatedTerms": ["filesystem-fhs", "sudoers-pam", "service-accounts"],
+      "links": []
+    },
+    {
+      "id": "prozesse",
+      "term": "Prozesse (PID, Signals, Zombie, Orphan)",
+      "tags": ["Admin", "Linux", "Grundlagen"],
+      "summary": "Jedes laufende Programm ist ein Prozess mit einer PID. Signals steuern Prozesse (SIGTERM, SIGKILL). Zombies und Orphans sind Sonderfälle.",
+      "explanation": "• PID (Process ID): eindeutige Nummer pro Prozess. PID 1 = systemd (Init-Prozess).\n• PPID (Parent PID): welcher Prozess hat diesen gestartet.\n\nWichtige Befehle:\n• ps aux → alle Prozesse\n• top / htop → interaktive Prozess-Übersicht\n• kill PID → sendet SIGTERM (sauberes Beenden)\n• kill -9 PID → sendet SIGKILL (sofort töten, keine Cleanup-Chance)\n• killall nginx → alle Prozesse mit dem Namen\n\nSignals:\n• SIGTERM (15): 'Bitte beende dich sauber' (Standard bei kill)\n• SIGKILL (9): 'Stirb jetzt' (kann nicht abgefangen werden)\n• SIGHUP (1): 'Config neu laden' (bei vielen Daemons)\n• SIGINT (2): Ctrl+C im Terminal\n\nZombie: Prozess ist fertig, aber Parent hat Exit-Status nicht abgeholt. Belegt PID aber keine Ressourcen. Zeigt [defunct] in ps.\nOrphan: Parent-Prozess ist gestorben. Waise wird von PID 1 (systemd) adoptiert.",
+      "howItWorks": "AdGuard hängt? Debugging:\n1. pct enter 100 → in den Container\n2. ps aux | grep AdGuard → PID finden\n3. kill PID → sauberes Beenden versuchen\n4. Wenn keine Reaktion: kill -9 PID → Zwangstöten\n5. systemctl start AdGuardHome → neu starten\n6. journalctl -u AdGuardHome → Logs prüfen warum es hing",
+      "homelab": "htop auf Proxmox zeigt alle VMs/Container-Prozesse (qemu, lxc). Auf dem Jumphost: eigene Prozesse überwachen. Speicherfresser finden: ps aux --sort=-%mem | head",
+      "security": "Unbekannte Prozesse = potentielle Malware. Regelmäßig prüfen was läuft. Prozesse die als Root laufen aber es nicht müssten → mit eigenen Service-Accounts starten.",
+      "relatedTerms": ["systemd", "log-management"],
+      "links": []
+    },
+    {
+      "id": "netzwerk-debugging",
+      "term": "Netzwerk-Debugging Tools",
+      "tags": ["Admin", "Netzwerk", "Troubleshooting"],
+      "summary": "Die wichtigsten CLI-Tools für Netzwerk-Diagnose: ip, ss, ping, traceroute, dig, nmap, tcpdump, curl.",
+      "explanation": "Schicht für Schicht debuggen:\n\n• Layer 1 (Kabel/Link): ip link show → Interface UP/DOWN?\n• Layer 2 (MAC/Switch): ip neigh show (ARP-Cache), bridge fdb show\n• Layer 3 (IP/Routing): ip addr show (IPs), ip route show (Routing-Tabelle), ping IP (Erreichbarkeit), traceroute IP (Pfad)\n• Layer 4 (TCP/UDP): ss -tlnp (offene Ports), netstat -tlnp (alt), nmap IP (Port-Scan)\n• Layer 7 (DNS/HTTP): dig domain (DNS), nslookup domain (DNS alt), curl URL (HTTP)\n• Paket-Analyse: tcpdump -i eth0 (Live-Traffic mitschneiden), wireshark (GUI)\n\nDebug-Reihenfolge bei 'Netzwerk geht nicht':\n1. ip link show → Interface UP? Kabel drin?\n2. ip addr show → IP vorhanden? APIPA (169.254)?\n3. ping Gateway → Layer 3 erreichbar?\n4. ping 8.8.8.8 → Internet erreichbar?\n5. ping google.com → DNS funktioniert?\n6. dig google.com → DNS-Details\n7. curl -v https://google.com → HTTP-Level Debug",
+      "howItWorks": "Dein Interface-Bug (Session 5) per Debug-Kette:\n1. ip link show → eth0 vorhanden ✓, nic0 NICHT vorhanden ✗\n2. systemctl status networking → 'bridge port nic0 does not exist'\n3. cat /etc/network/interfaces → bridge-ports nic0 (falsch!)\n4. MAC-Cross-Check: eth0 MAC = Hyper-V MAC → eth0 ist der richtige Name\n5. vim /etc/network/interfaces → :%s/nic0/eth0/g → Fix ✓",
+      "homelab": "Diese Tools sind dein tägliches Werkzeug. Auf dem Jumphost: net-tools installiert (ifconfig, netstat). Modern: iproute2 (ip, ss) bevorzugen. tcpdump für Paket-Analyse wenn DNS/Firewall-Probleme unklar sind.",
+      "security": "nmap nur auf eigenen Systemen verwenden (Port-Scanning fremder Systeme kann illegal sein). tcpdump Captures können Passwörter enthalten (HTTP Basic Auth, FTP) → sicher aufbewahren oder löschen.",
+      "relatedTerms": ["log-management", "prozesse"],
+      "links": [
+        { "title": "iproute2 Cheatsheet", "url": "https://baturin.org/docs/iproute2/" }
+      ]
+    },
+    {
+      "id": "vim-referenz",
+      "term": "vim (Modi & Befehle)",
+      "tags": ["Admin", "Linux", "Editor"],
+      "summary": "Der Editor den du im Homelab verwendest. Drei Modi: Normal (navigieren), Insert (tippen), Command (Befehle). Verweis auf Wiki doc-007.",
+      "explanation": "Modi:\n• Normal (Esc): navigieren, kopieren, löschen, suchen\n• Insert (i, a, o): Text eingeben\n• Command (:): Befehle wie Speichern, Suchen/Ersetzen, Beenden\n• Visual (v, V, Ctrl+v): Text markieren\n\nEssentielle Befehle:\n• :w → speichern | :q → beenden | :wq oder ZZ → speichern+beenden\n• :q! → beenden ohne speichern\n• i → Insert vor Cursor | a → Insert nach Cursor | o → neue Zeile darunter\n• dd → Zeile löschen | yy → Zeile kopieren | p → einfügen\n• u → Undo | Ctrl+r → Redo\n• /text → suchen | n → nächster Treffer | N → vorheriger\n• :%s/alt/neu/g → suchen+ersetzen in ganzer Datei\n• gg → Dateianfang | G → Dateiende\n• :set number → Zeilennummern | :syntax on → Syntax-Highlighting\n\n.vimrc (deine Config auf Proxmox + Jumphost):\nsyntax on\nset number\nset hlsearch\nset expandtab\nset tabstop=4\nset shiftwidth=4",
+      "howItWorks": "sshd_config bearbeiten:\n1. vim /etc/ssh/sshd_config ← nicht nano!\n2. /PasswordAuth → springt zur Zeile\n3. i → Insert-Modus\n4. Zeile ändern: PasswordAuthentication no\n5. Esc → zurück in Normal-Modus\n6. :wq → speichern und beenden\n7. systemctl restart sshd → Änderung anwenden",
+      "homelab": "vim ist dein Standard-Editor (Memory-Eintrag: immer vim statt nano). .vimrc auf Proxmox und Jumphost angelegt. vim hat dir beim Interface-Bug das Leben gerettet (:%s/nic0/eth0/g). Wiki-Artikel: doc-007.",
+      "security": "vim -x datei → Datei verschlüsselt speichern (Blowfish). Nützlich für lokale Notizen mit Credentials. Aber: besser KeePass für Passwörter, vim -x nur als Notlösung.",
+      "relatedTerms": ["berechtigungen", "filesystem-fhs"],
+      "links": [
+        { "title": "Vim Cheatsheet", "url": "https://vim.rtorr.com/" }
+      ]
+    },
+    {
+      "id": "shell-scripting",
+      "term": "Shell Scripting (Bash Basics)",
+      "tags": ["Admin", "Linux", "Scripting"],
+      "summary": "Bash-Skripte automatisieren wiederkehrende Aufgaben. Variables, Loops, Conditionals, Exit Codes — das Einmaleins der Automation.",
+      "explanation": "Bash-Script Grundstruktur:\n```bash\n#!/bin/bash\n# Shebang-Zeile sagt: mit Bash ausführen\n\n# Variablen (kein Leerzeichen um =)\nNAME=\"proxmox\"\nIP=\"192.168.0.200\"\n\n# Conditionals\nif ping -c1 $IP &>/dev/null; then\n  echo \"$NAME ist erreichbar\"\nelse\n  echo \"ALARM: $NAME nicht erreichbar!\"\nfi\n\n# Loops\nfor host in 200 201 204; do\n  ping -c1 192.168.0.$host &>/dev/null && echo \".${host} OK\" || echo \".${host} DOWN\"\ndone\n\n# Exit Codes\n# 0 = Erfolg, 1+ = Fehler\nexit 0\n```\n\nAusführbar machen: chmod +x script.sh\nAusführen: ./script.sh oder bash script.sh",
+      "howItWorks": "Health-Check Script für dein Homelab:\n```bash\n#!/bin/bash\nHOSTS=(\"192.168.0.200:Proxmox\" \"192.168.0.201:AdGuard\" \"192.168.0.204:Jumphost\")\nfor entry in \"${HOSTS[@]}\"; do\n  IP=\"${entry%%:*}\"\n  NAME=\"${entry##*:}\"\n  if ping -c1 -W2 $IP &>/dev/null; then\n    echo \"[OK] $NAME ($IP)\"\n  else\n    echo \"[DOWN] $NAME ($IP) ← PRÜFEN!\"\n  fi\ndone\n```\nAls Cronjob alle 5 Minuten: */5 * * * * /opt/scripts/healthcheck.sh >> /var/log/healthcheck.log",
+      "homelab": "Bash-Scripts für: Health-Checks, Backup-Automation, VM-Snapshots, DNS-Test, Update-Skripte. Auf dem Jumphost: /opt/scripts/ als Script-Verzeichnis. Später: Ansible ersetzt viele Bash-Scripts.",
+      "security": "Scripts nicht als Root ausführen wenn nicht nötig. Variablen immer in Anführungszeichen (\"$VAR\") — sonst Injection-Risiko. shellcheck für statische Analyse von Bash-Scripts. set -euo pipefail am Anfang für strikte Fehlerbehandlung.",
+      "relatedTerms": ["cron-crontab", "environment-vars"],
+      "links": [
+        { "title": "ShellCheck", "url": "https://www.shellcheck.net/" },
+        { "title": "Bash Guide", "url": "https://mywiki.wooledge.org/BashGuide" }
+      ]
+    },
+    {
+      "id": "environment-vars",
+      "term": "Environment Variables",
+      "tags": ["Admin", "Linux", "Grundlagen"],
+      "summary": "Variablen die für alle Prozesse einer Shell-Session gelten. Für Konfiguration, Pfade, Credentials, Locale.",
+      "explanation": "Wichtige Environment Variables:\n• PATH: wo sucht das OS nach Programmen (/usr/bin:/usr/local/bin:...)\n• HOME: Home-Verzeichnis des aktuellen Users (/home/noob, /root)\n• USER: aktueller Username\n• SHELL: aktuelle Shell (/bin/bash)\n• LANG/LC_ALL: Sprache und Locale (de_DE.UTF-8)\n• EDITOR: Standard-Editor (vim!)\n• SSH_AUTH_SOCK: Pfad zum SSH-Agent Socket\n\nSetzen:\n• export VAR=wert → für aktuelle Session + Kind-Prozesse\n• echo $VAR → Wert anzeigen\n• env → alle Environment Variables\n• /etc/environment → system-weite persistente Vars\n• ~/.bashrc → user-spezifische persistente Vars (export EDITOR=vim)\n\nDocker: Environment Variables sind der Standard-Weg um Container zu konfigurieren:\n  docker run -e DB_HOST=postgres -e DB_PASS=secret nginx",
+      "howItWorks": "vim als Standard-Editor setzen (persistent):\necho 'export EDITOR=vim' >> ~/.bashrc\necho 'export VISUAL=vim' >> ~/.bashrc\nsource ~/.bashrc\n\nDanach: crontab -e öffnet vim statt nano. git commit öffnet vim für die Message.",
+      "homelab": "EDITOR=vim auf Proxmox und Jumphost setzen. Docker-Container konfigurieren über -e Flags oder .env Dateien. Ansible kann Environment Variables auf allen VMs gleichzeitig setzen.",
+      "security": "Credentials NIEMALS in Environment Variables wenn sie in /proc/PID/environ lesbar sind (von jedem User auf dem System). Besser: Docker Secrets, Ansible Vault, HashiCorp Vault. .env Dateien: in .gitignore, chmod 600.",
+      "relatedTerms": ["shell-scripting", "filesystem-fhs"],
+      "links": []
+    },
+    {
+      "id": "sudoers-pam",
+      "term": "sudoers & PAM",
+      "tags": ["Admin", "Linux", "Security"],
+      "summary": "sudo: temporär Root-Rechte bekommen. sudoers: wer darf was mit sudo. PAM: das Authentifizierungs-Framework von Linux.",
+      "explanation": "sudo (Substitute User DO):\n• sudo befehl → als Root ausführen (mit eigenem Passwort bestätigen)\n• sudo -u user befehl → als anderer User ausführen\n• sudo -i → Root-Shell öffnen (wie su -)\n\nsudoers (/etc/sudoers, IMMER mit visudo bearbeiten!):\n• noob ALL=(ALL:ALL) ALL → noob darf alles mit sudo\n• noob ALL=(ALL) NOPASSWD: /usr/bin/apt → apt ohne Passwort\n• %admin ALL=(ALL) ALL → Gruppe 'admin' darf alles\n\nPAM (Pluggable Authentication Modules):\n• Framework für Authentifizierung auf Linux\n• Module: pam_unix (Passwort), pam_ssh (SSH-Key), pam_google_authenticator (TOTP)\n• Config: /etc/pam.d/ (pro Dienst eine Config: sshd, sudo, login)\n• Stack: auth → account → password → session\n\nPAM ermöglicht z.B. 2FA für SSH: erst Key, dann TOTP-Code.",
+      "howItWorks": "Jumphost-Setup:\n1. User 'noob' erstellt bei Debian-Installation\n2. usermod -aG sudo noob → zur sudo-Gruppe hinzufügen\n3. sudo apt install vim → funktioniert mit Passwort-Bestätigung\n\nSpäter einschränken:\nvisudo ← IMMER visudo, nie vim /etc/sudoers (Syntax-Check!)\nnoob ALL=(ALL) /usr/bin/apt, /usr/bin/systemctl, /usr/bin/vim",
+      "homelab": "noob-User mit sudo auf dem Jumphost. Root-Login per SSH deaktiviert (prohibit-password). Für Automation (Ansible): NOPASSWD für bestimmte Befehle oder SSH-Key mit forced command.",
+      "security": "NOPASSWD sparsam verwenden — nur für Automation. visudo prüft Syntax bevor gespeichert wird (Typo in sudoers = kein sudo mehr, kein Root-Zugang → Lock-Out). Backup von /etc/sudoers machen.",
+      "relatedTerms": ["berechtigungen", "service-accounts"],
+      "links": []
+    },
+    {
+      "id": "service-accounts",
+      "term": "Service Accounts",
+      "tags": ["Admin", "Security", "Grundlagen"],
+      "summary": "Dedizierte User-Accounts für Dienste statt Root. Jeder Dienst läuft unter eigenem Account mit minimalen Rechten.",
+      "explanation": "Warum nicht alles als Root?\n• Root kann ALLES — ein Exploit in einem Root-Dienst = vollständige Kompromittierung\n• Service Accounts begrenzen den Schaden: wenn nginx als www-data kompromittiert wird, kann der Angreifer nur Web-Dateien lesen, nicht /etc/shadow\n\nService Account erstellen:\nuseradd --system --no-create-home --shell /usr/sbin/nologin gitea\n→ System-User (keine UID aus dem normalen Bereich)\n→ Kein Home-Verzeichnis (braucht keins)\n→ Shell: nologin (kann sich nicht einloggen)\n\nsystemd Service Unit:\n```ini\n[Service]\nUser=gitea\nGroup=gitea\nExecStart=/opt/gitea/gitea web\nProtectSystem=strict\nReadWritePaths=/opt/gitea/data\n```\n→ Gitea läuft als User 'gitea', kann nur /opt/gitea/data schreiben, Rest ist read-only.",
+      "howItWorks": "Best Practice für jeden Dienst im Homelab:\n• AdGuard: läuft aktuell als root im LXC → akzeptabel weil Container isoliert\n• Gitea (geplant): eigener User 'gitea', eigenes Verzeichnis, nologin Shell\n• n8n (geplant): eigener User 'n8n' oder Docker-Container (eigener User im Container)\n• Nginx: läuft als www-data (Standard in Debian)",
+      "homelab": "Für den Anfang: Root-Dienste in LXC Containern sind OK (Container-Isolation). Für VMs und Docker: immer eigene Service Accounts. Ansible-Playbook idea-022 kann Service Accounts auf allen VMs einheitlich anlegen.",
+      "security": "Shell auf /usr/sbin/nologin → Account kann nicht für SSH-Login missbraucht werden. Minimale File-Permissions: Dienst-User darf nur seine eigenen Dateien lesen/schreiben. systemd ProtectSystem/ProtectHome für zusätzliche Isolation.",
+      "relatedTerms": ["sudoers-pam", "berechtigungen", "least-privilege"],
+      "links": []
+    },
+    {
+      "id": "cert-dateiformate",
+      "term": "Zertifikat-Dateiformate (.pem, .crt, .key, .pfx, .p12)",
+      "tags": ["Admin", "Security", "Zertifikate"],
+      "summary": "Verschiedene Dateiformate für Zertifikate und Private Keys. PEM ist der Linux-Standard, PFX/P12 für Windows/Java.",
+      "explanation": "• PEM (.pem, .crt, .key): Base64-kodiert, Text-Format. Beginnt mit -----BEGIN CERTIFICATE-----. Standard auf Linux/Unix.\n  .crt = Zertifikat (Public), .key = Private Key, .pem = beides möglich\n\n• DER (.der, .cer): Binär-Format. Gleicher Inhalt wie PEM, nur nicht Base64-kodiert. Standard bei Java (keytool).\n\n• PFX/PKCS#12 (.pfx, .p12): Container-Format. Enthält Zertifikat + Private Key + ggf. Chain in EINER Datei. Passwort-geschützt. Standard auf Windows (IIS).\n\n• CSR (.csr): Certificate Signing Request. Wird an die CA geschickt. Enthält Public Key + Domain-Info, aber KEIN Zertifikat.\n\nKonvertierungen mit OpenSSL:\n• PEM → PFX: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem\n• PFX → PEM: openssl pkcs12 -in cert.pfx -out cert.pem -nodes\n• DER → PEM: openssl x509 -inform DER -in cert.der -out cert.pem\n• Cert anzeigen: openssl x509 -in cert.pem -text -noout",
+      "howItWorks": "Let's Encrypt liefert PEM-Dateien:\n• cert.pem → Server-Zertifikat\n• chain.pem → Intermediate CA Zertifikat\n• fullchain.pem → cert.pem + chain.pem (für Nginx/Traefik)\n• privkey.pem → Private Key\n\nNginx Config:\nssl_certificate /etc/letsencrypt/live/homelab.local/fullchain.pem;\nssl_certificate_key /etc/letsencrypt/live/homelab.local/privkey.pem;",
+      "homelab": "Proxmox: selbstsigniertes PEM-Cert unter /etc/pve/local/. Reverse Proxy (geplant): Let's Encrypt fullchain.pem + privkey.pem. Eigene CA (p4-ca): Step-CA generiert PEM-Zertifikate.",
+      "security": "Private Key (.key, privkey.pem) NIEMALS teilen, in Git committen oder unverschlüsselt übertragen. chmod 600 auf Key-Dateien. PFX mit starkem Passwort schützen. Zertifikate (.crt) sind öffentlich — kein Geheimnis.",
+      "relatedTerms": ["pki", "ca-root-intermediate"],
+      "links": [
+        { "title": "OpenSSL Cookbook", "url": "https://www.feistyduck.com/library/openssl-cookbook/" }
+      ]
+    },
+    {
+      "id": "base64-encoding",
+      "term": "Base64 Encoding",
+      "tags": ["Admin", "Grundlagen"],
+      "summary": "Kodierung die Binärdaten als ASCII-Text darstellt. KEINE Verschlüsselung — nur Formatumwandlung. Wird für Zertifikate, E-Mail-Anhänge, API-Auth verwendet.",
+      "explanation": "Base64 nimmt je 3 Bytes (24 Bit) und kodiert sie als 4 ASCII-Zeichen (je 6 Bit → 64 mögliche Zeichen: A-Z, a-z, 0-9, +, /).\n\nWarum? Manche Systeme können nur ASCII-Text verarbeiten (E-Mail, JSON, XML). Binärdaten (Bilder, Zertifikate) müssen als Text transportiert werden.\n\nWICHTIG: Base64 ist KEINE Verschlüsselung! Jeder kann Base64 dekodieren. Es ist nur eine Formatumwandlung.\n\nBeispiel:\n• echo 'Hello World' | base64 → SGVsbG8gV29ybGQK\n• echo 'SGVsbG8gV29ybGQK' | base64 -d → Hello World\n\nÜberall wo du -----BEGIN CERTIFICATE----- siehst: der Inhalt dazwischen ist Base64-kodierte Binärdaten (DER-Format).",
+      "howItWorks": "PEM-Zertifikat = Base64-kodiertes DER-Zertifikat:\n-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJALRiMLAh... ← das ist Base64\n-----END CERTIFICATE-----\n\nHTTP Basic Auth:\nAuthorization: Basic dXNlcjpwYXNz ← Base64 von 'user:pass'\necho 'dXNlcjpwYXNz' | base64 -d → user:pass\n→ Deshalb IMMER HTTPS verwenden: HTTP Basic Auth ist nur Base64, kein Schutz!",
+      "homelab": "PEM-Zertifikate auf Proxmox sind Base64. SSH Public Keys sind Base64 (ssh-ed25519 AAAA... der Teil nach dem Algorithmus). Kubernetes Secrets sind Base64-kodiert (kubectl get secret -o yaml).",
+      "security": "Base64 ≠ Verschlüsselung. Wenn jemand sagt 'die Daten sind Base64-verschlüsselt' → FALSCH. Base64 kann jeder dekodieren. Für echte Verschlüsselung: AES, age, GPG.",
+      "relatedTerms": ["cert-dateiformate", "encryption-sym-asym"],
+      "links": []
+    },
+    {
+      "id": "regex-basics",
+      "term": "Regex (Regular Expressions)",
+      "tags": ["Admin", "Tools", "Scripting"],
+      "summary": "Suchmuster für Textverarbeitung. Findet, matcht und ersetzt Text nach Mustern. Essentiell für grep, sed, vim, Log-Analyse.",
+      "explanation": "Grundbausteine:\n• . → ein beliebiges Zeichen\n• * → 0 oder mehr vom vorherigen\n• + → 1 oder mehr vom vorherigen\n• ? → 0 oder 1 vom vorherigen\n• ^ → Zeilenanfang | $ → Zeilenende\n• [abc] → a oder b oder c | [0-9] → Ziffer | [a-zA-Z] → Buchstabe\n• \\d → Ziffer | \\w → Wort-Zeichen | \\s → Whitespace\n• () → Gruppe | | → oder\n• {3} → genau 3 mal | {1,5} → 1 bis 5 mal\n\nBeispiele:\n• ^Failed → Zeilen die mit 'Failed' beginnen\n• [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} → IPv4-Adresse (grob)\n• ^#.*$ → auskommentierte Zeilen\n• \\broot\\b → exakt das Wort 'root' (nicht 'rooted')",
+      "howItWorks": "Fehlgeschlagene SSH-Logins mit IPs extrahieren:\ngrep -oP 'Failed password.*from \\K[0-9.]+' /var/log/auth.log | sort | uniq -c | sort -rn\n→ zeigt häufigste Angreifer-IPs\n\nvim Search & Replace:\n:%s/192\\.168\\.0/10.0.1/g → alle alten IPs ersetzen\n\nNginx-Logs analysieren:\ngrep -E '^[0-9.]+ .* 404' access.log → alle 404-Fehler",
+      "homelab": "Regex in grep für Log-Analyse (auth.log, syslog). In vim für Search & Replace. In Suricata-Rules für Pattern-Matching. In Ansible für lineinfile/replace.",
+      "security": "Regex kann für ReDoS (Regular Expression Denial of Service) missbraucht werden — ein crafted Input lässt die Regex-Engine ewig laufen. In eigenen Anwendungen: Regex mit Timeout oder eingeschränkte Komplexität.",
+      "relatedTerms": ["shell-scripting", "vim-referenz", "log-management"],
+      "links": [
+        { "title": "Regex101 (Online-Tester)", "url": "https://regex101.com/" },
+        { "title": "RegexOne (Tutorial)", "url": "https://regexone.com/" }
+      ]
+    },
+    {
+      "id": "json-yaml-toml",
+      "term": "JSON / YAML / TOML (Vergleich)",
+      "tags": ["Admin", "Formate", "DevOps"],
+      "summary": "Drei Datenformate für Konfigurationsdateien und APIs. JSON für APIs, YAML für DevOps/K8s/Ansible, TOML für einfache Configs.",
+      "explanation": "• JSON (JavaScript Object Notation):\n  {\"name\": \"proxmox\", \"ip\": \"192.168.0.200\", \"ports\": [8006, 22]}\n  + Universell, jede Sprache kann JSON. Standard für APIs.\n  - Keine Kommentare möglich. Trailing Commas verboten. Verbose.\n\n• YAML (YAML Ain't Markup Language):\n  name: proxmox\n  ip: 192.168.0.200\n  ports:\n    - 8006\n    - 22\n  + Lesbar, kompakt, Kommentare (#). Standard für Ansible, Docker Compose, Kubernetes.\n  - Indentation-sensitiv (Spaces, keine Tabs!). Implizite Typen (yes → Boolean true, 3.10 → Float).\n\n• TOML (Tom's Obvious Minimal Language):\n  [server]\n  name = \"proxmox\"\n  ip = \"192.168.0.200\"\n  ports = [8006, 22]\n  + Einfach, explizite Typen, Kommentare (#). Gut für Configs.\n  - Weniger verbreitet als JSON/YAML. Verschachtelte Strukturen umständlich.",
+      "howItWorks": "Dein Homelab verwendet:\n• JSON: homelab-state.json, homelab-ideas.json, homelab-wiki.json, alle Glossare → API-artige Datenstrukturen\n• YAML: AdGuard Config (AdGuardHome.yaml), Docker Compose (docker-compose.yml), Ansible Playbooks → DevOps-Tools\n• TOML: weniger verbreitet, aber z.B. Cargo.toml (Rust), pyproject.toml (Python)",
+      "homelab": "JSON für deine Dokumentations-Website (alle JSONs). YAML für alles was Ansible, Docker, K8s betrifft. Tipp: yamllint und jsonlint verwenden um Syntax-Fehler zu finden bevor sie Probleme machen.",
+      "security": "YAML-Injection: manche YAML-Parser führen eingebetteten Code aus (!!python/object). Nur sichere YAML-Parser verwenden (yaml.safe_load in Python). JSON ist sicherer weil es keinen Code-Execution Mechanismus hat.",
+      "relatedTerms": ["shell-scripting", "iac"],
+      "links": [
+        { "title": "YAML Spec", "url": "https://yaml.org/spec/" },
+        { "title": "JSON Spec", "url": "https://www.json.org/" }
+      ]
+    },
+    {
+      "id": "api-basics",
+      "term": "API Basics (REST, Endpoints, Methods)",
+      "tags": ["Admin", "DevOps", "Web"],
+      "summary": "APIs ermöglichen Programm-zu-Programm Kommunikation. REST ist der Standard: HTTP-Methoden (GET/POST/PUT/DELETE) auf Endpoints.",
+      "explanation": "REST (Representational State Transfer):\n• Endpoint: eine URL die eine Ressource repräsentiert. /api/v1/nodes = alle Proxmox Nodes.\n• HTTP Methods:\n  GET → Lesen (GET /api/v1/nodes → Liste aller Nodes)\n  POST → Erstellen (POST /api/v1/nodes/pve/qemu → neue VM erstellen)\n  PUT → Ersetzen (PUT /api/v1/nodes/pve/qemu/101/config → VM-Config ersetzen)\n  DELETE → Löschen (DELETE /api/v1/nodes/pve/qemu/101 → VM löschen)\n• Status Codes: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error\n• Auth: API-Token, Bearer Token, Basic Auth, OAuth2\n• Format: JSON Request/Response Body\n\ncurl ist das Schweizer Taschenmesser für API-Tests:\ncurl -k -H 'Authorization: PVEAPIToken=user@pam!token=UUID' https://192.168.0.200:8006/api2/json/nodes",
+      "howItWorks": "Proxmox API:\n# Ticket holen (Login)\ncurl -k -d 'username=root@pam&password=PASS' https://192.168.0.200:8006/api2/json/access/ticket\n\n# VMs auflisten\ncurl -k -H 'Cookie: PVEAuthCookie=TICKET' https://192.168.0.200:8006/api2/json/nodes/pve/qemu\n\n# VM starten\ncurl -k -X POST -H 'Cookie: ...' -H 'CSRFPreventionToken: ...' https://192.168.0.200:8006/api2/json/nodes/pve/qemu/101/status/start",
+      "homelab": "Proxmox API für Automation (Terraform, Ansible proxmox Module). AdGuard hat auch eine API. Gitea REST-API. n8n ist komplett API-basiert (Webhooks). Fast jeder moderne Dienst hat eine API.",
+      "security": "API-Keys/Tokens wie Passwörter behandeln (nicht in Git, nicht in Logs). Rate Limiting gegen Brute-Force. HTTPS für alle API-Calls. API-Tokens mit minimalen Berechtigungen (Least Privilege). Token-Rotation.",
+      "relatedTerms": ["json-yaml-toml", "shell-scripting"],
+      "links": [
+        { "title": "Proxmox API Docs", "url": "https://pve.proxmox.com/wiki/Proxmox_VE_API" },
+        { "title": "curl Docs", "url": "https://curl.se/docs/manpage.html" }
+      ]
+    }
+  ]
+}
