@@ -502,26 +502,36 @@
     // OPNsense (id 2) in center
     positions[2] = { x: centerX, y: centerY };
     // Internet above
-    positions[1] = { x: centerX, y: centerY - 200 };
+    positions[1] = { x: centerX, y: centerY - 400 };
     // TP-Link off to the side
-    positions[3] = { x: centerX + 250, y: centerY - 100 };
-    // Subnets in circle around center
-    var subR = 300;
-    subnetNodes.forEach(function(sn, i) {
-      var angle = -Math.PI / 2 + (2 * Math.PI * i / subnetNodes.length);
-      var sx = centerX + subR * Math.cos(angle);
-      var sy = centerY + subR * Math.sin(angle);
+    positions[3] = { x: centerX + 200, y: centerY - 400 };
+    // Fixed subnet quadrant positions (far from center)
+    var SUBNET_POS = { mgmt: { x: -350, y: -250 }, svc: { x: 350, y: -250 }, lab: { x: 350, y: 250 }, dmz: { x: -350, y: 250 } };
+    subnetNodes.forEach(function(sn) {
+      var pos = SUBNET_POS[sn._subnetId] || { x: 0, y: 0 };
+      var sx = centerX + pos.x;
+      var sy = centerY + pos.y;
       positions[sn.id] = { x: Math.round(sx), y: Math.round(sy) };
-      // Hosts in small circle around their subnet
+      // Hosts in arc facing outward (away from OPNsense)
       var hosts = hostsBySubnet[sn._subnetId] || [];
-      var hR = 120 + hosts.length * 8;
-      hosts.forEach(function(h, j) {
-        var hAngle = -Math.PI / 2 + (2 * Math.PI * j / hosts.length);
-        positions[h.id] = {
-          x: Math.round(sx + hR * Math.cos(hAngle)),
-          y: Math.round(sy + hR * Math.sin(hAngle))
+      var hR = 180;
+      var centerAngle = Math.atan2(sy - centerY, sx - centerX);
+      if (hosts.length === 1) {
+        positions[hosts[0].id] = {
+          x: Math.round(sx + hR * Math.cos(centerAngle)),
+          y: Math.round(sy + hR * Math.sin(centerAngle))
         };
-      });
+      } else {
+        var startAngle = centerAngle - Math.PI / 2;
+        var angleStep = Math.PI / (hosts.length - 1);
+        hosts.forEach(function(h, j) {
+          var angle = startAngle + angleStep * j;
+          positions[h.id] = {
+            x: Math.round(sx + hR * Math.cos(angle)),
+            y: Math.round(sy + hR * Math.sin(angle))
+          };
+        });
+      }
     });
     return positions;
   }
@@ -746,6 +756,7 @@
         color: { color: c.stroke, opacity: 0.5, highlight: c.text },
         width: 1.5,
         arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+        smooth: { type: 'curvedCW', roundness: 0.2 },
         _edgeType: 'infra'
       });
     });
@@ -795,6 +806,8 @@
           _subnetId: sn.id,
           _baseLabel: baseLabel,
           _currentIp: h.current_ip || null,
+          _origColor: { background: bgColor, border: hostColor, highlight: { background: bgColor, border: c.text } },
+          _origBorderWidth: borderW,
           _hostStatus: h.status || 'planned',
           _isHost: true
         });
@@ -1056,14 +1069,26 @@
         });
       }
 
-      // Toggle migration info in host labels
+      // Toggle migration info in host labels + highlight (no size change)
       if (ds) {
         ds.forEach(function(node) {
           if (!node._currentIp || !node._baseLabel) return;
           if (migrationVisible) {
-            ds.update({ id: node.id, label: node._baseLabel + '\n(aktuell: ' + node._currentIp + ')' });
+            ds.update({
+              id: node.id,
+              label: node._baseLabel + '\n(aktuell: ' + node._currentIp + ')',
+              color: { background: node.color.background, border: '#eab308', highlight: node.color.highlight },
+              borderWidth: 3,
+              shadow: { enabled: true, color: 'rgba(234,179,8,0.3)', size: 10, x: 0, y: 0 }
+            });
           } else {
-            ds.update({ id: node.id, label: node._baseLabel });
+            ds.update({
+              id: node.id,
+              label: node._baseLabel,
+              color: node._origColor || node.color,
+              borderWidth: node._origBorderWidth || 1.5,
+              shadow: { enabled: false }
+            });
           }
         });
       }

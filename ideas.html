@@ -1492,9 +1492,11 @@
       '<span class="cmd-header-stat"><b>' + esc(phaseLabel) + '</b></span>' +
       '<span class="cmd-header-stat">' + filtered.length + ' Ideen' + prioLabel + tagLabel + '</span>' +
       (highCount > 0 ? '<span class="cmd-header-stat" style="color:var(--phase4)"><b>' + highCount + '</b> high</span>' : '') +
-      '<button class="cmd-header-export" id="btn-export-ideas" title="Ideas JSON exportieren">↓ Export Ideas JSON</button>';
+      '<button class="cmd-header-export" id="btn-export-ideas" title="Ideas JSON exportieren">↓ Export Ideas JSON</button>' +
+      '<button class="cmd-header-export" id="btn-clear-cache" title="localStorage-Cache leeren und Seite neu laden" style="margin-left:6px;font-size:9px;opacity:0.5">↻ Cache leeren</button>';
 
     document.getElementById('btn-export-ideas').addEventListener('click', exportIdeasJSON);
+    document.getElementById('btn-clear-cache').addEventListener('click', clearIdeasCache);
   }
 
   // ---- HELPERS ----
@@ -2092,6 +2094,14 @@
       bindCardTagACs();
     }, 800);
   };
+
+  // ---- CLEAR CACHE ----
+  function clearIdeasCache() {
+    if (!confirm('LocalStorage-Cache leeren und Seite neu laden?\nNicht-exportierte Änderungen gehen verloren.')) return;
+    localStorage.removeItem('homelab_ideas_data');
+    localStorage.removeItem('homelab_user_changes');
+    location.reload();
+  }
 
   // ---- EXPORT IDEAS JSON ----
   function exportIdeasJSON() {
