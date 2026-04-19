@@ -2,7 +2,7 @@
   "meta": {
     "version": "1.0",
     "updated": "2026-04-19",
-    "progress_pct": 29,
+    "progress_pct": 31,
     "description": "Homelab Roadmap – Skalierender Infrastruktur- & Lernplan",
     "backlog_migrated": true,
     "network": {
@@ -242,16 +242,57 @@
         },
         {
           "id": "p1-linux-vm",
-          "title": "Erste Linux VM",
-          "status": "todo",
+          "title": "Jumphost einrichten",
+          "status": "done",
           "tags": [
             "Linux",
             "Ubuntu",
             "SSH"
           ],
-          "desc": "Ubuntu Server 24.04 LTS in Proxmox. SSH einrichten, Grundkonfiguration, Updates.",
-          "log": [],
-          "notes": "",
+          "desc": "Debian 13 (Trixie) VM in Proxmox als Admin-Jumphost. SSH eingerichtet, statische IP, vim konfiguriert, sudo eingerichtet. Ziel-IP: 10.0.1.4 (nach OPNsense Migration).",
+          "log": [
+            {
+              "date": "2026-04-19",
+              "entry": "Debian 13.4 netinst ISO heruntergeladen (debian-13.4.0-amd64-netinst.iso)."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "VM 101 erstellt: 1 Core, 1024 MB RAM, 10 GB VirtIO Disk, vmbr0, Debian 13 installiert."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Installation: Hostname jumphost, Domain homelab.local, Root-PW + User noob, ext4 eine Partition, SSH Server + standard utilities."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "DNS-Fix: resolv.conf auf 192.168.0.201 (AdGuard) gesetzt — apt konnte ohne DNS keine Pakete auflösen."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "sudo + vim + curl + git installiert, User noob zur sudo-Gruppe hinzugefügt."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": ".vimrc auf root und noob angelegt (syntax on, set number, hlsearch, expandtab etc.)."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Statische IP 192.168.0.204 in /etc/network/interfaces konfiguriert (Übergangsphase, Ziel: 10.0.1.4)."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "SSH-Key von Proxmox auf Jumphost kopiert via ssh-copy. PuTTY Key-Login funktioniert."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "KeePassXC Eintrag: cmd:// URL für PuTTY-Zugang zu noob@192.168.0.204."
+            },
+            {
+              "date": "2026-04-19",
+              "entry": "Proxmox VM Ressourcen erweitert: RAM 16 GB → 20 GB, Disk 120 GB → 250 GB."
+            }
+          ],
+          "notes": "VM 101 (jumphost): Debian 13.4, 1 Core, 1 GB RAM, 10 GB Disk. Statische IP 192.168.0.204 (Übergangsphase). User noob mit sudo. SSH-Key von Proxmox kopiert. KeePassXC cmd:// Eintrag für PuTTY-Zugang. vim + .vimrc installiert.",
           "deferred_reason": ""
         },
         {
@@ -461,6 +502,89 @@
             {
               "date": "2026-04-17",
               "entry": "System auf 9.1.7 aktualisiert. Kernel-Update + Reboot. No-Subscription Popup deaktiviert."
+            }
+          ],
+          "deferred_reason": ""
+        },
+        {
+          "id": "p1-recovery",
+          "title": "Recovery & Troubleshooting – Lessons Learned",
+          "status": "done",
+          "tags": [
+            "Recovery",
+            "GRUB",
+            "Troubleshooting",
+            "vim",
+            "Netzwerk"
+          ],
+          "desc": "Ungeplanter Recovery-Lauf nach verlorenem Root-Passwort und defekter /etc/network/interfaces. GRUB Single-User-Mode, Passwort-Reset, Interface-Naming-Bug gefixt, vim gelernt.",
+          "notes": "Zwei Probleme gleichzeitig aufgedeckt: (1) Root-Passwort verloren → via GRUB init=/bin/bash in Root-Shell, passwd root. (2) Bridge vmbr0 referenzierte 'nic0' obwohl Interface 'eth0' heißt → systemctl networking error, keine Connectivity trotz IP.",
+          "details": {
+            "password_recovery": {
+              "method": "GRUB → 'e' beim Boot-Menü → linux-Zeile: 'ro' zu 'rw', '+ init=/bin/bash' → Strg+X → passwd root",
+              "remount_fix": "Falls root-fs trotz rw-Parameter read-only: mount -o remount,rw /",
+              "keyboard_gotcha": "Single-User-Mode hat US-Layout. Y/Z vertauscht, Sonderzeichen anders. Temporäres Passwort nur aus Kleinbuchstaben+Zahlen wählen.",
+              "clean_reboot": "sync → mount -o remount,ro / → Restart-VM -Force (OK weil fs clean)"
+            },
+            "interface_naming_bug": {
+              "symptom": "Proxmox-VM läuft (Get-VM: Running), aber 192.168.0.200 nicht erreichbar. Ping Gateway von innen: 100% packet loss. Hyper-V zeigt IPAddresses: {} am VM-NIC.",
+              "root_cause": "/etc/network/interfaces referenzierte 'nic0' als bridge-port, Interface heißt aber 'eth0' (Hyper-V synthetic NIC via hv_netvsc). Bridge vmbr0 existierte mit IP, war aber ohne Uplink.",
+              "diagnostic_chain": [
+                "ip link show → listet echte Interfaces (lo, eth0, vmbr0), KEIN nic0",
+                "MAC-Cross-Check: eth0 link/ether 00:15:5d:00:9b:01 === Hyper-V MacAddress 00155D009B01 → eth0 ist die Hyper-V NIC",
+                "systemctl status networking → 'error: vmbr0: bridge port nic0 does not exist'",
+                "Gegenprobe: ip link show nic0 → 'Device nic0 does not exist'"
+              ],
+              "fix": "vim /etc/network/interfaces → :%s/nic0/eth0/g → :wq → systemctl restart networking",
+              "verify": "ping -c 3 192.168.0.1 → 0% loss, https://192.168.0.200:8006 erreichbar"
+            },
+            "vim_basics_learned": {
+              "search_replace": ":%s/alt/neu/g – global in ganzer Datei",
+              "modes": "Normal (Esc) / Insert (i) / Command (:)",
+              "save_quit": ":wq speichern+beenden, :q! abbrechen ohne speichern, ZZ = :wq",
+              "essentials": "dd Zeile löschen, yy kopieren, p einfügen, u undo, /text suchen, gg Anfang, G Ende"
+            }
+          },
+          "log": [
+            {
+              "date": "2026-04-18",
+              "entry": "Nach Autostart-Versuch Proxmox unerreichbar. Ping 192.168.0.200: Zielhost nicht erreichbar."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "VM-Konsole geöffnet via Hyper-V Manager – Login fehlgeschlagen: Root-Passwort nicht mehr bekannt."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "GRUB Recovery: 'e' im Boot-Menü, linux-Zeile editiert (ro→rw, init=/bin/bash angehängt), Strg+X."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "Root-FS trotzdem read-only gebootet → mount -o remount,rw / → passwd root erfolgreich."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "Nach Reboot mit neuem Passwort: Proxmox immer noch offline. Debugging gestartet."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "ip a zeigt: vmbr0 hat IP 192.168.0.200, aber eth0 state DOWN. Config hat bridge-ports nic0."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "systemctl status networking: error 'vmbr0: bridge port nic0 does not exist'. Interface-Naming-Mismatch identifiziert."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "MAC-Cross-Check bestätigt: eth0 (00:15:5d:00:9b:01) ist die echte Hyper-V NIC. nic0 existiert nicht."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "Fix via vim: :%s/nic0/eth0/g, :wq. systemctl restart networking → keine Fehler. Ping Gateway OK. Web-UI wieder erreichbar."
+            },
+            {
+              "date": "2026-04-18",
+              "entry": "vim-Grundlagen gelernt: Modi, Search&Replace, Speichern. Präferenz ab jetzt: vim statt nano."
             }
           ],
           "deferred_reason": ""

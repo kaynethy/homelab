@@ -1,0 +1,757 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "description": "Protokoll-Referenz für OSI-Modell — Wissensdatenbank zu allen Netzwerk-Protokollen, Technologien und Konzepten",
+    "note": "Wird von osi-reference.html geladen. Extern gepflegt, Opus fasst sie nicht an."
+  },
+  "protocols": [
+    {
+      "id": "http",
+      "name": "HTTP/HTTPS",
+      "fullName": "Hypertext Transfer Protocol (Secure)",
+      "layers": [7],
+      "category": "Web",
+      "summary": "Zustandsloses Request-Response Protokoll für Web-Kommunikation. HTTPS = HTTP + TLS.",
+      "keyFacts": [
+        "Methoden: GET (lesen), POST (erstellen), PUT (ersetzen), DELETE (löschen), PATCH (teilweise ändern), HEAD, OPTIONS",
+        "Status-Codes: 2xx Erfolg, 3xx Redirect, 4xx Client-Fehler (403 Forbidden, 404 Not Found), 5xx Server-Fehler",
+        "HTTP/1.1: persistent connections, aber nur ein Request pro Connection gleichzeitig",
+        "HTTP/2: Multiplexing (mehrere Requests parallel über eine Connection), Header-Kompression (HPACK), Server Push",
+        "HTTP/3: basiert auf QUIC (UDP statt TCP), kein Head-of-Line Blocking mehr"
+      ],
+      "useCases": ["Websites", "REST APIs", "WebSockets", "Webhooks", "Proxmox API"],
+      "homelab": "Proxmox Web-UI (Port 8006/HTTPS), AdGuard Admin (Port 80/HTTP), n8n Webhooks",
+      "securityRelevance": "CORS (Cross-Origin Resource Sharing), CSP Headers (Content Security Policy), HSTS (HTTP Strict Transport Security), Cookie Security (HttpOnly, Secure, SameSite). Immer HTTPS verwenden — HTTP ist Klartext.",
+      "links": [
+        { "title": "MDN HTTP Guide", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP" },
+        { "title": "HTTP Status Codes", "url": "https://httpstatuses.com/" }
+      ],
+      "relatedProtocols": ["tls", "dns", "quic"]
+    },
+    {
+      "id": "ftp",
+      "name": "FTP",
+      "fullName": "File Transfer Protocol",
+      "layers": [7],
+      "category": "File Transfer",
+      "summary": "Dateitransfer-Protokoll. Veraltet und unsicher — Passwörter werden im Klartext übertragen. SFTP (über SSH) oder SCP bevorzugen.",
+      "keyFacts": [
+        "Port 21 (Steuerkanal) + Port 20 (Datenkanal) — zwei Verbindungen gleichzeitig",
+        "Active Mode: Server verbindet sich zurück zum Client (Firewall-Problem)",
+        "Passive Mode: Client initiiert beide Verbindungen (Firewall-freundlicher)",
+        "Keine Verschlüsselung — Passwörter und Daten im Klartext",
+        "FTPS = FTP + TLS (verschlüsselt), SFTP = komplett anderes Protokoll (SSH-basiert)"
+      ],
+      "useCases": ["Legacy-Dateitransfer", "Firmware-Updates auf Netzwerkgeräten"],
+      "homelab": "Nicht empfohlen — SFTP über SSH (Port 22) nutzen. PuTTY/WinSCP für Dateitransfer.",
+      "securityRelevance": "FTP ist inhärent unsicher. Niemals über ungesicherte Netze nutzen. SFTP oder SCP sind die sicheren Alternativen. Security by Design: FTP auf Firewalls blocken.",
+      "links": [
+        { "title": "RFC 959 – FTP", "url": "https://datatracker.ietf.org/doc/html/rfc959" }
+      ],
+      "relatedProtocols": ["ssh", "sftp"]
+    },
+    {
+      "id": "smtp",
+      "name": "SMTP",
+      "fullName": "Simple Mail Transfer Protocol",
+      "layers": [7],
+      "category": "Mail",
+      "summary": "Protokoll zum Versenden von E-Mails. Nur für den Versand — Empfang über IMAP/POP3.",
+      "keyFacts": [
+        "Port 25 (unverschlüsselt, Server-zu-Server), Port 587 (Submission, Client-zu-Server mit STARTTLS), Port 465 (SMTPS, implizites TLS)",
+        "Ablauf: HELO/EHLO → MAIL FROM → RCPT TO → DATA → QUIT",
+        "Keine eingebaute Authentifizierung — SPF, DKIM, DMARC sind nachträglich ergänzt",
+        "STARTTLS: upgradet bestehende Verbindung auf TLS (opportunistisch, kann umgangen werden)"
+      ],
+      "useCases": ["E-Mail-Versand", "System-Benachrichtigungen", "Alerting"],
+      "homelab": "Geplant: Mailcow/Maddy (p3-mail). Für jetzt: kein eigener Mailserver. Proxmox kann über externen SMTP Alerts senden.",
+      "securityRelevance": "SPF (Sender Policy Framework): welche Server dürfen für deine Domain senden. DKIM (DomainKeys): digitale Signatur auf E-Mails. DMARC: Policy was bei SPF/DKIM-Fehlschlag passiert. Ohne diese drei: deine Mails landen im Spam.",
+      "links": [
+        { "title": "RFC 5321 – SMTP", "url": "https://datatracker.ietf.org/doc/html/rfc5321" },
+        { "title": "Mailcow Docs", "url": "https://docs.mailcow.email/" }
+      ],
+      "relatedProtocols": ["tls", "dns"]
+    },
+    {
+      "id": "dns",
+      "name": "DNS",
+      "fullName": "Domain Name System",
+      "layers": [7],
+      "category": "Naming",
+      "summary": "Löst Domainnamen zu IP-Adressen auf. Hierarchisches System mit Root → TLD → Authoritative Servern.",
+      "keyFacts": [
+        "Nutzt primär UDP Port 53 (TCP als Fallback wenn Antwort >512 Bytes)",
+        "Hierarchie: Root (.) → TLD (.com, .de) → Authoritative (google.com) → Subdomain (mail.google.com)",
+        "Record-Typen: A (IPv4), AAAA (IPv6), CNAME (Alias), MX (Mail), TXT (SPF/DKIM/DMARC), NS (Nameserver), SOA (Zone Authority), PTR (Reverse DNS), SRV (Service Discovery)",
+        "TTL (Time To Live): wie lange ein DNS-Eintrag gecacht wird",
+        "DNS-over-HTTPS (DoH) und DNS-over-TLS (DoT) verschlüsseln DNS-Anfragen"
+      ],
+      "useCases": ["Namensauflösung", "Service Discovery", "Load Balancing (DNS Round Robin)", "Mail Routing (MX)", "Domain Verification (TXT)"],
+      "homelab": "AdGuard Home auf 192.168.0.201, DoH Upstream via Cloudflare 1.1.1.1, Router DHCP verteilt AdGuard als DNS. Browser-DoH umgeht AdGuard (doc-006).",
+      "securityRelevance": "DNS Spoofing/Poisoning, DNS Amplification DDoS, DNS Tunneling (Datenexfiltration). DNSSEC schützt gegen Manipulation. DoH/DoT gegen Abhören. Aber: DoH umgeht lokale DNS-Filter (Chrome macht das automatisch!).",
+      "links": [
+        { "title": "RFC 1035 – DNS", "url": "https://datatracker.ietf.org/doc/html/rfc1035" },
+        { "title": "Cloudflare DNS Learning", "url": "https://www.cloudflare.com/learning/dns/what-is-dns/" },
+        { "title": "DNS Record Types erklärt", "url": "https://www.nslookup.io/learning/" }
+      ],
+      "relatedProtocols": ["dhcp", "doh", "udp", "tcp"]
+    },
+    {
+      "id": "ssh",
+      "name": "SSH",
+      "fullName": "Secure Shell",
+      "layers": [7],
+      "category": "Remote Access",
+      "summary": "Verschlüsselter Fernzugriff auf Systeme. Ersetzt Telnet. Unterstützt Key-Auth, Port-Forwarding, SFTP.",
+      "keyFacts": [
+        "Port 22 (Standard), änderbar für Security-by-Obscurity (bringt wenig, aber schadet nicht)",
+        "Auth-Methoden: Passwort, Public Key (Ed25519 bevorzugt, RSA als Fallback), Certificate-based",
+        "SSH-Agent (Pageant/ssh-agent) hält entschlüsselte Keys im RAM",
+        "Port Forwarding: Local (-L), Remote (-R), Dynamic (-D = SOCKS Proxy)",
+        "SSH Tunneling: beliebige Protokolle durch SSH verschlüsselt tunneln"
+      ],
+      "useCases": ["Server-Administration", "SCP/SFTP Dateitransfer", "Git über SSH", "Tunneling/Port-Forwarding", "Jump Hosts / Bastion Hosts"],
+      "homelab": "PuTTY + Pageant + KeePassXC cmd:// Integration. Ed25519 Key auf Proxmox. sshd_config Hardening steht noch aus (p1-ssh-remaining). Geplant: Jump Host auf 10.0.1.4.",
+      "securityRelevance": "PasswordAuthentication no, PermitRootLogin prohibit-password, MaxAuthTries 3, AllowUsers/AllowGroups. Fail2Ban gegen Brute-Force. Key-Rotation alle 6-12 Monate. Jump Host als einziger SSH-Eingang ins Netz.",
+      "links": [
+        { "title": "OpenSSH Manual", "url": "https://www.openssh.com/manual.html" },
+        { "title": "SSH Audit Tool", "url": "https://www.sshaudit.com/" },
+        { "title": "SSH Hardening Guide", "url": "https://infosec.mozilla.org/guidelines/openssh" }
+      ],
+      "relatedProtocols": ["tls", "sftp"]
+    },
+    {
+      "id": "snmp",
+      "name": "SNMP",
+      "fullName": "Simple Network Management Protocol",
+      "layers": [7],
+      "category": "Network Management",
+      "summary": "Protokoll zur Überwachung und Verwaltung von Netzwerkgeräten. Liest Metriken (CPU, RAM, Interface-Status) und kann Konfigurationen ändern.",
+      "keyFacts": [
+        "UDP Port 161 (Agent) und Port 162 (Trap Receiver)",
+        "Versionen: v1 (unsicher, Community String im Klartext), v2c (etwas besser), v3 (Authentifizierung + Verschlüsselung)",
+        "OIDs (Object Identifiers): hierarchischer Namensraum für alle Metriken (z.B. 1.3.6.1.2.1.1.1 = sysDescr)",
+        "MIB (Management Information Base): definiert welche OIDs ein Gerät unterstützt",
+        "Operations: GET (lesen), SET (schreiben), GETNEXT (nächstes OID), TRAP (Event-Benachrichtigung)"
+      ],
+      "useCases": ["Switch/Router-Monitoring", "Server-Überwachung", "Drucker-Status", "USV-Monitoring"],
+      "homelab": "Geplant: Prometheus + Node Exporter ist moderner, aber SNMP wird für Netzwerkgeräte (Router, Switches) gebraucht. OPNsense hat SNMP-Support.",
+      "securityRelevance": "SNMPv1/v2c Community Strings sind wie Passwörter im Klartext. Immer SNMPv3 mit Auth + Encryption verwenden. Community String 'public' NIEMALS im Produktiv-Netz lassen.",
+      "links": [
+        { "title": "RFC 3411 – SNMP Architecture", "url": "https://datatracker.ietf.org/doc/html/rfc3411" }
+      ],
+      "relatedProtocols": ["udp"]
+    },
+    {
+      "id": "dhcp",
+      "name": "DHCP",
+      "fullName": "Dynamic Host Configuration Protocol",
+      "layers": [7],
+      "category": "Network Management",
+      "summary": "Automatische IP-Vergabe an Clients. DORA: Discover → Offer → Request → Acknowledge.",
+      "keyFacts": [
+        "UDP Port 67 (Server) und Port 68 (Client)",
+        "DORA-Prozess: Client broadcastet Discover → Server bietet Offer → Client wählt und sendet Request → Server bestätigt mit Acknowledge",
+        "Lease-Time: wie lange die zugewiesene IP gültig ist (danach Renewal bei 50% und 87.5%)",
+        "Optionen: DNS-Server, Gateway, NTP-Server, Domain-Name, Boot-Server (PXE)",
+        "DHCP Relay: leitet DHCP-Broadcasts über Router-Grenzen (nötig bei VLANs)"
+      ],
+      "useCases": ["IP-Vergabe im LAN", "PXE Boot", "VLAN-spezifische IP-Ranges", "Hotspot/Guest-Netze"],
+      "homelab": "TP-Link Archer C80 DHCP vergibt IPs + DNS (192.168.0.201). Später: OPNsense oder Kea DHCP mit Scopes pro VLAN. DHCP-Relay auf OPNsense für VLANs.",
+      "securityRelevance": "DHCP Starvation Attack (alle IPs belegen), Rogue DHCP Server (falscher Gateway/DNS). Fix: DHCP Snooping auf Switches, 802.1X Port-Auth, Rate Limiting.",
+      "links": [
+        { "title": "RFC 2131 – DHCP", "url": "https://datatracker.ietf.org/doc/html/rfc2131" },
+        { "title": "Kea DHCP", "url": "https://www.isc.org/kea/" }
+      ],
+      "relatedProtocols": ["dns", "ipv4", "udp"]
+    },
+    {
+      "id": "ldap",
+      "name": "LDAP",
+      "fullName": "Lightweight Directory Access Protocol",
+      "layers": [7],
+      "category": "Directory",
+      "summary": "Zugriff auf Verzeichnisdienste (Active Directory, OpenLDAP). Speichert User, Gruppen, Berechtigungen in einer Baumstruktur.",
+      "keyFacts": [
+        "Port 389 (unverschlüsselt/STARTTLS) und Port 636 (LDAPS, implizites TLS)",
+        "Baumstruktur: DC (Domain Component) → OU (Organizational Unit) → CN (Common Name)",
+        "Beispiel DN: cn=admin,ou=users,dc=homelab,dc=local",
+        "Operations: Bind (Auth), Search, Add, Modify, Delete, Compare",
+        "Basis für Active Directory, FreeIPA, Authentik/Keycloak Backend"
+      ],
+      "useCases": ["Zentrale Benutzerverwaltung", "Single Sign-On Backend", "Adressbücher", "Zertifikat-Lookup"],
+      "homelab": "Geplant: Authentik oder Keycloak als Identity Provider (p4-sso). LDAP als Backend für zentrale User-Verwaltung aller Homelab-Dienste.",
+      "securityRelevance": "LDAP Injection (wie SQL Injection), Klartext-Bind über Port 389 (immer LDAPS oder STARTTLS). Bind-Accounts mit minimalen Rechten. Service Accounts für Anwendungen.",
+      "links": [
+        { "title": "RFC 4511 – LDAP", "url": "https://datatracker.ietf.org/doc/html/rfc4511" },
+        { "title": "Authentik Docs", "url": "https://goauthentik.io/docs/" }
+      ],
+      "relatedProtocols": ["tls", "kerberos"]
+    },
+    {
+      "id": "ntp",
+      "name": "NTP",
+      "fullName": "Network Time Protocol",
+      "layers": [7],
+      "category": "Time Sync",
+      "summary": "Synchronisiert die Systemuhr über das Netzwerk. Kritisch für Logs, Zertifikate, Kerberos, Korrelation.",
+      "keyFacts": [
+        "UDP Port 123",
+        "Stratum-Hierarchie: 0 = Atomuhr, 1 = direkt an Atomuhr, 2 = synchronisiert mit Stratum 1, etc.",
+        "Genauigkeit: LAN ~1ms, Internet ~10-100ms",
+        "Chrony ist der moderne NTP-Client/Server (ersetzt ntpd), schnellere Synchronisation",
+        "NTS (Network Time Security): TLS-basierte Authentifizierung für NTP (gegen Manipulation)"
+      ],
+      "useCases": ["Zeitsynchronisation aller Server", "Log-Korrelation", "Kerberos Auth (max 5min Abweichung)", "Zertifikat-Validierung (Ablaufdatum)"],
+      "homelab": "Geplant: Chrony als interner NTP-Server auf 10.0.1.5 (idea-012). Alle VMs synchronisieren gegen diesen einen Server. Upstream: pool.ntp.org.",
+      "securityRelevance": "NTP Amplification DDoS, NTP Spoofing (falsche Zeit → Zertifikate ungültig, Kerberos kaputt). Fix: NTS verwenden, NTP-Traffic auf Firewall kontrollieren (SVC → MGMT nur Port 123).",
+      "links": [
+        { "title": "Chrony Docs", "url": "https://chrony.tuxfamily.org/documentation.html" },
+        { "title": "NTP Pool Project", "url": "https://www.ntppool.org/" }
+      ],
+      "relatedProtocols": ["udp"]
+    },
+    {
+      "id": "tls",
+      "name": "SSL/TLS",
+      "fullName": "Transport Layer Security",
+      "layers": [6, 5],
+      "category": "Security",
+      "summary": "Verschlüsselungsprotokoll für sichere Kommunikation. SSL ist veraltet (unsicher), TLS 1.2/1.3 ist Standard.",
+      "keyFacts": [
+        "TLS 1.3 Handshake: Client Hello (mit Key Share) → Server Hello + Cert + Finished → Client Finished — nur 1 Round Trip (1-RTT)",
+        "TLS 1.2: 2 Round Trips, mehr Cipher Suites (manche unsicher), langsamer",
+        "Asymmetrische Krypto für Key Exchange: ECDHE (Elliptic Curve Diffie-Hellman Ephemeral) — Perfect Forward Secrecy",
+        "Symmetrische Krypto für Daten: AES-128-GCM oder AES-256-GCM (AEAD)",
+        "Zertifikate: X.509 Standard, Chain of Trust (Root CA → Intermediate → Server Cert)",
+        "OCSP Stapling: Server liefert Zertifikat-Gültigkeitsnachweis gleich mit (schneller als CRL-Check)"
+      ],
+      "useCases": ["HTTPS", "SMTPS/IMAPS", "LDAPS", "VPN (OpenVPN)", "Database Connections"],
+      "homelab": "Let's Encrypt Wildcard-Zertifikate (geplant), Reverse Proxy TLS-Terminierung, Proxmox Web-UI (selbstsigniert). Später: eigene CA mit Step-CA (p4-ca).",
+      "securityRelevance": "SSL 2.0/3.0 und TLS 1.0/1.1 sind unsicher — deaktivieren. Certificate Transparency Logs, HSTS Preloading. Selbstsignierte Certs im Homelab OK aber Browser warnen. PFS (Perfect Forward Secrecy) immer aktivieren.",
+      "links": [
+        { "title": "RFC 8446 – TLS 1.3", "url": "https://datatracker.ietf.org/doc/html/rfc8446" },
+        { "title": "Let's Encrypt Docs", "url": "https://letsencrypt.org/docs/" },
+        { "title": "SSL Labs Test", "url": "https://www.ssllabs.com/ssltest/" }
+      ],
+      "relatedProtocols": ["http", "ssh", "x509"]
+    },
+    {
+      "id": "x509",
+      "name": "Zertifikate (X.509)",
+      "fullName": "X.509 Public Key Infrastructure",
+      "layers": [6],
+      "category": "PKI",
+      "summary": "Standard für digitale Zertifikate. Bindet einen Public Key an eine Identität (Domain, Organisation). Basis für HTTPS, S/MIME, Code Signing.",
+      "keyFacts": [
+        "Felder: Subject (CN, O, C), Issuer, Serial Number, Validity (Not Before/After), Public Key, Signature",
+        "SAN (Subject Alternative Names): mehrere Domains in einem Cert (*.homelab.local)",
+        "Chain of Trust: Root CA → Intermediate CA → Server Certificate",
+        "Let's Encrypt: kostenlose Certs, 90 Tage gültig, automatische Renewal via ACME",
+        "Formate: PEM (.pem, .crt — Base64), DER (.der — binär), PKCS#12 (.pfx, .p12 — mit Private Key)"
+      ],
+      "useCases": ["HTTPS Zertifikate", "Client-Zertifikate (mTLS)", "S/MIME E-Mail-Verschlüsselung", "Code Signing"],
+      "homelab": "Proxmox nutzt selbstsigniertes Cert. Geplant: Let's Encrypt via Reverse Proxy (p2-reverseproxy) und eigene interne CA mit Step-CA (p4-ca).",
+      "securityRelevance": "Cert Pinning, Certificate Transparency, Wildcard vs SAN Certs. Private Key NIEMALS teilen oder in Git committen. Rotation: Let's Encrypt alle 90 Tage (automatisch), interne CA nach Bedarf.",
+      "links": [
+        { "title": "Let's Encrypt – How It Works", "url": "https://letsencrypt.org/how-it-works/" },
+        { "title": "Step-CA (eigene CA)", "url": "https://smallstep.com/docs/step-ca/" }
+      ],
+      "relatedProtocols": ["tls"]
+    },
+    {
+      "id": "netbios",
+      "name": "NetBIOS",
+      "fullName": "Network Basic Input/Output System",
+      "layers": [5],
+      "category": "Legacy",
+      "summary": "Altes Windows-Netzwerkprotokoll für Namensauflösung und Dateifreigabe. Sollte in modernen Netzen deaktiviert werden.",
+      "keyFacts": [
+        "Ports: 137 (Name Service), 138 (Datagram), 139 (Session Service)",
+        "NetBIOS über TCP/IP (NBT) erlaubt NetBIOS-Kommunikation über IP-Netze",
+        "Wurde großteils durch DNS und SMB Direct (Port 445) ersetzt",
+        "Broadcasts: NetBIOS sendet Broadcasts zur Namensauflösung — erzeugt unnötigen Traffic"
+      ],
+      "useCases": ["Legacy Windows-Netzwerke", "SMB-Freigaben (alte Variante)"],
+      "homelab": "Sollte deaktiviert werden — erzeugt Broadcasts und ist ein Sicherheitsrisiko. Moderne SMB-Freigaben laufen direkt über Port 445.",
+      "securityRelevance": "NetBIOS Name Spoofing (NBNS Poisoning), Informationsleck (Computername, Workgroup, User-Liste). In OPNsense: Ports 137-139 blocken zwischen VLANs.",
+      "links": [
+        { "title": "Microsoft – NetBIOS over TCP/IP", "url": "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2003/cc940063(v=ws.10)" }
+      ],
+      "relatedProtocols": ["smb"]
+    },
+    {
+      "id": "rpc",
+      "name": "RPC",
+      "fullName": "Remote Procedure Call",
+      "layers": [5],
+      "category": "IPC",
+      "summary": "Ermöglicht einem Programm, Funktionen auf einem entfernten System aufzurufen als wären sie lokal.",
+      "keyFacts": [
+        "Verschiedene Implementierungen: ONC RPC (Sun/Unix), DCE RPC (Microsoft), gRPC (Google/modern)",
+        "JSON-RPC und XML-RPC: einfache RPC über HTTP",
+        "Proxmox API nutzt JSON-RPC über HTTPS",
+        "gRPC: modernes RPC mit Protocol Buffers (binär, schnell), HTTP/2 Transport"
+      ],
+      "useCases": ["Proxmox API", "Windows Active Directory", "NFS", "Microservices (gRPC)"],
+      "homelab": "Proxmox API ist REST/JSON über HTTPS. Für Automation via Ansible/Terraform wird die API direkt angesprochen.",
+      "securityRelevance": "RPC-Endpoints nur über authentifizierte, verschlüsselte Verbindungen exponieren. Proxmox API: Token-Auth statt Passwort-Auth.",
+      "links": [
+        { "title": "Proxmox API Docs", "url": "https://pve.proxmox.com/wiki/Proxmox_VE_API" }
+      ],
+      "relatedProtocols": ["http", "tls"]
+    },
+    {
+      "id": "socks",
+      "name": "SOCKS",
+      "fullName": "Socket Secure",
+      "layers": [5],
+      "category": "Proxy",
+      "summary": "Proxy-Protokoll das beliebigen TCP/UDP-Traffic durch einen Proxy tunnelt. SOCKS5 unterstützt Authentifizierung und UDP.",
+      "keyFacts": [
+        "SOCKS4: nur TCP, keine Auth",
+        "SOCKS5: TCP + UDP, Username/Password Auth, DNS-Auflösung über Proxy",
+        "SSH Dynamic Port Forwarding (-D) erstellt einen SOCKS5 Proxy",
+        "Tor Browser nutzt SOCKS5 für die Verbindung zum Tor-Netzwerk"
+      ],
+      "useCases": ["SSH Tunneling", "Tor", "Proxy-Chains", "Umgehung von Geo-Blocking"],
+      "homelab": "SSH Dynamic Forwarding: ssh -D 1080 user@proxmox → localhost:1080 als SOCKS5 Proxy für den Browser.",
+      "securityRelevance": "SOCKS proxied nur — keine Verschlüsselung! Immer in Kombination mit SSH oder TLS verwenden.",
+      "links": [
+        { "title": "RFC 1928 – SOCKS5", "url": "https://datatracker.ietf.org/doc/html/rfc1928" }
+      ],
+      "relatedProtocols": ["ssh"]
+    },
+    {
+      "id": "tcp",
+      "name": "TCP",
+      "fullName": "Transmission Control Protocol",
+      "layers": [4],
+      "category": "Transport",
+      "summary": "Verbindungsorientiertes Protokoll mit garantierter Zustellung, Reihenfolge und Fehlerkorrektur.",
+      "keyFacts": [
+        "3-Way Handshake: SYN → SYN-ACK → ACK (Verbindungsaufbau)",
+        "4-Way Teardown: FIN → ACK → FIN → ACK (Verbindungsabbau)",
+        "Sequence Numbers: jedes Byte wird nummeriert für Reihenfolge und Retransmission",
+        "Flow Control: Sliding Window — Empfänger sagt wie viel er aufnehmen kann (Window Size)",
+        "Congestion Control: Slow Start → Congestion Avoidance → Fast Retransmit → Fast Recovery",
+        "Header: 20-60 Bytes mit Source Port, Dest Port, Seq, Ack, Flags (SYN/ACK/FIN/RST/PSH/URG), Window, Checksum"
+      ],
+      "useCases": ["HTTP/HTTPS", "SSH", "SMTP/IMAP", "FTP", "Datenbanken", "SMB"],
+      "homelab": "Proxmox Web-UI (TCP/8006), PuTTY SSH (TCP/22), AdGuard Admin (TCP/80). OPNsense Stateful Firewall trackt TCP-Verbindungsstatus.",
+      "securityRelevance": "SYN Flood (DoS), TCP Reset Attack, Session Hijacking, Port Scanning (SYN Scan, Connect Scan). Stateful Firewalls erkennen ungültige TCP-Flags (XMAS Scan, NULL Scan).",
+      "links": [
+        { "title": "RFC 793 – TCP", "url": "https://datatracker.ietf.org/doc/html/rfc793" },
+        { "title": "TCP Congestion Control visualisiert", "url": "https://hpbn.co/building-blocks-of-tcp/" }
+      ],
+      "relatedProtocols": ["udp", "quic", "ip"]
+    },
+    {
+      "id": "udp",
+      "name": "UDP",
+      "fullName": "User Datagram Protocol",
+      "layers": [4],
+      "category": "Transport",
+      "summary": "Verbindungsloses Protokoll ohne Handshake, ohne Garantien — schnell, leichtgewichtig, aber unzuverlässig.",
+      "keyFacts": [
+        "Kein Handshake, kein Ack, kein Flow Control, kein Congestion Control",
+        "Header nur 8 Bytes: Source Port (16bit), Dest Port (16bit), Length (16bit), Checksum (16bit)",
+        "Best Effort Delivery — Pakete können verloren gehen, doppelt ankommen oder in falscher Reihenfolge",
+        "Multicast und Broadcast nur über UDP möglich (TCP ist immer Unicast)",
+        "QUIC baut auf UDP auf und fügt eigenes Reliability/Encryption Layer hinzu"
+      ],
+      "useCases": ["DNS (Port 53)", "NTP (Port 123)", "DHCP (Port 67/68)", "VoIP/SIP", "Gaming", "Video-Streaming", "WireGuard VPN", "QUIC/HTTP3"],
+      "homelab": "AdGuard DNS (UDP/53), Chrony NTP (UDP/123), WireGuard VPN (UDP/51820). DHCP auf dem Router (UDP/67-68).",
+      "securityRelevance": "UDP Amplification Attacks (DNS, NTP, SSDP), UDP Flood. Kein Verbindungsstatus → Firewalls können nur Port-basiert filtern (nicht stateful). IP Spoofing einfacher als bei TCP.",
+      "links": [
+        { "title": "RFC 768 – UDP", "url": "https://datatracker.ietf.org/doc/html/rfc768" }
+      ],
+      "relatedProtocols": ["tcp", "quic", "dns", "ntp"]
+    },
+    {
+      "id": "quic",
+      "name": "QUIC",
+      "fullName": "Quick UDP Internet Connections",
+      "layers": [4],
+      "category": "Transport",
+      "summary": "Modernes Transport-Protokoll von Google. Baut auf UDP auf, integriert TLS 1.3, eliminiert TCP Head-of-Line Blocking. Basis für HTTP/3.",
+      "keyFacts": [
+        "0-RTT Connection Establishment (bei wiederholter Verbindung)",
+        "Multiplexing ohne Head-of-Line Blocking (anders als HTTP/2 über TCP)",
+        "TLS 1.3 ist in QUIC integriert — immer verschlüsselt",
+        "Connection Migration: Verbindung bleibt bestehen wenn sich die IP ändert (z.B. WiFi → Mobilfunk)",
+        "Läuft über UDP Port 443 — sieht für Firewalls aus wie normaler HTTPS-Traffic"
+      ],
+      "useCases": ["HTTP/3", "Google Services", "Cloudflare", "Video-Streaming"],
+      "homelab": "Chrome nutzt QUIC automatisch für Google/Cloudflare-Dienste. Kann AdGuard DNS-Filtering umgehen wenn QUIC-Verbindungen nicht inspiziert werden.",
+      "securityRelevance": "QUIC Traffic ist schwerer zu inspizieren als TCP+TLS weil Header verschlüsselt sind. Deep Packet Inspection funktioniert nicht. Firewalls: UDP/443 blocken erzwingt Fallback auf TCP/HTTPS.",
+      "links": [
+        { "title": "RFC 9000 – QUIC", "url": "https://datatracker.ietf.org/doc/html/rfc9000" },
+        { "title": "HTTP/3 erklärt", "url": "https://http3-explained.haxx.se/" }
+      ],
+      "relatedProtocols": ["udp", "tls", "http"]
+    },
+    {
+      "id": "ipv4",
+      "name": "IPv4",
+      "fullName": "Internet Protocol Version 4",
+      "layers": [3],
+      "category": "Addressing",
+      "summary": "32-Bit Adressen (4.3 Milliarden), CIDR-Notation für Subnetting. Wird durch IPv6 ergänzt aber nicht ersetzt.",
+      "keyFacts": [
+        "32-Bit Adresse: 4 Oktette dezimal (z.B. 192.168.0.200)",
+        "CIDR-Notation: /24 = 256 Adressen, /16 = 65536, /8 = 16 Millionen",
+        "Private Ranges (RFC1918): 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16",
+        "Header: 20-60 Bytes mit TTL, Protocol (TCP=6, UDP=17, ICMP=1), Source IP, Dest IP, Checksum",
+        "NAT (Network Address Translation): erlaubt mehreren Geräten eine öffentliche IP zu teilen",
+        "Fragmentierung: große Pakete werden in kleinere aufgeteilt (MTU typisch 1500 Bytes)"
+      ],
+      "useCases": ["Alles was eine IP-Adresse hat", "Subnetting", "Routing", "NAT"],
+      "homelab": "Dein IP-Plan: 10.0.1.0/24 (MGMT), 10.0.2.0/24 (SVC), 10.0.3.0/24 (LAB), 10.0.4.0/24 (DMZ). Aktuell: 192.168.0.0/24. Subnetzmaske /24 = 255.255.255.0 = 254 nutzbare Hosts.",
+      "securityRelevance": "IP Spoofing, Smurf Attack (ICMP Broadcast). RFC1918-Adressen sind nicht im Internet routbar — NAT auf dem Router übersetzt sie. Private IPs in Logs = interne Geräte.",
+      "links": [
+        { "title": "RFC 791 – IPv4", "url": "https://datatracker.ietf.org/doc/html/rfc791" },
+        { "title": "Subnet Calculator", "url": "https://www.subnet-calculator.com/" }
+      ],
+      "relatedProtocols": ["ipv6", "icmp", "arp", "nat"]
+    },
+    {
+      "id": "icmp",
+      "name": "ICMP",
+      "fullName": "Internet Control Message Protocol",
+      "layers": [3],
+      "category": "Diagnostics",
+      "summary": "Diagnose- und Fehlermeldungsprotokoll. Ping und Traceroute basieren auf ICMP.",
+      "keyFacts": [
+        "Kein Port — ICMP sitzt direkt auf IP (Protocol Number 1)",
+        "Typen: Echo Request/Reply (Typ 8/0 = Ping), Destination Unreachable (Typ 3), Time Exceeded (Typ 11 = Traceroute), Redirect (Typ 5)",
+        "Ping: ICMP Echo Request → Echo Reply (Erreichbarkeit und Latenz testen)",
+        "Traceroute: sendet Pakete mit steigendem TTL — jeder Router auf dem Weg antwortet mit Time Exceeded"
+      ],
+      "useCases": ["Ping (Erreichbarkeit)", "Traceroute (Pfad-Analyse)", "Path MTU Discovery", "Router-Fehlermeldungen"],
+      "homelab": "Debugging: ping 192.168.0.200 (Proxmox erreichbar?), tracert 8.8.8.8 (Pfad ins Internet). ICMP auf der Firewall einschränken aber nicht komplett blocken.",
+      "securityRelevance": "ICMP Flood (Ping Flood), Ping of Death (übergroße Pakete), ICMP Redirect Attack. Sinnvoll: Echo Request/Reply erlauben, aber Rate Limiting. ICMP komplett blocken bricht Path MTU Discovery und Fehlerdiagnose.",
+      "links": [
+        { "title": "RFC 792 – ICMP", "url": "https://datatracker.ietf.org/doc/html/rfc792" }
+      ],
+      "relatedProtocols": ["ipv4", "ipv6"]
+    },
+    {
+      "id": "arp",
+      "name": "ARP",
+      "fullName": "Address Resolution Protocol",
+      "layers": [3, 2],
+      "category": "Address Resolution",
+      "summary": "Löst IP-Adressen zu MAC-Adressen auf. Brücke zwischen Layer 3 (IP) und Layer 2 (Ethernet).",
+      "keyFacts": [
+        "ARP Request: Broadcast FF:FF:FF:FF:FF:FF — 'Wer hat IP x.x.x.x? Sagt es meiner MAC.'",
+        "ARP Reply: Unicast — 'Ich habe x.x.x.x, meine MAC ist xx:xx:xx:xx:xx:xx'",
+        "ARP Cache: OS speichert IP↔MAC Zuordnungen temporär (arp -a zum Anzeigen)",
+        "Gratuitous ARP: unaufgeforderte ARP-Antwort (IP-Änderung bekanntgeben, Failover)",
+        "Proxy ARP: Router antwortet auf ARP-Requests für Adressen in anderen Subnetzen"
+      ],
+      "useCases": ["IP→MAC Auflösung im LAN", "Duplicate IP Detection", "Failover/HA (VRRP nutzt GARP)", "Network Discovery"],
+      "homelab": "MAC Spoofing auf Hyper-V nötig weil LXC Container eigene MACs haben die per ARP angekündigt werden. Ohne Spoofing: ARP-Replies vom vSwitch gefiltert → kein Netzwerk für Container.",
+      "securityRelevance": "ARP Spoofing/Poisoning: Angreifer beantwortet ARP-Requests mit eigener MAC → Man-in-the-Middle. Fix: Dynamic ARP Inspection (DAI) auf managed Switches, Static ARP Entries für Gateway.",
+      "links": [
+        { "title": "RFC 826 – ARP", "url": "https://datatracker.ietf.org/doc/html/rfc826" }
+      ],
+      "relatedProtocols": ["ethernet", "ipv4"]
+    },
+    {
+      "id": "ospf",
+      "name": "OSPF",
+      "fullName": "Open Shortest Path First",
+      "layers": [3],
+      "category": "Routing",
+      "summary": "Link-State Routing-Protokoll für interne Netze (IGP). Berechnet kürzeste Pfade mit Dijkstra-Algorithmus.",
+      "keyFacts": [
+        "Protocol Number 89 (direkt auf IP, kein TCP/UDP)",
+        "Link-State: jeder Router kennt die komplette Topologie und berechnet selbst den kürzesten Pfad",
+        "Dijkstra-Algorithmus (Shortest Path First) für Pfadberechnung",
+        "Areas: Große Netze werden in Areas aufgeteilt (Area 0 = Backbone, muss immer existieren)",
+        "Konvergenz: schneller als RIP, LSA Flooding bei Topologie-Änderungen"
+      ],
+      "useCases": ["Enterprise-Routing", "Service Provider (OSPFv3 für IPv6)", "Data Center"],
+      "homelab": "Nicht sofort relevant — OPNsense nutzt für ein kleines Homelab statische Routen. OSPF wird interessant wenn mehrere Router/Firewalls im Netz sind. EVE-NG Lab zum Üben (idea: Netzwerk-Simulation).",
+      "securityRelevance": "OSPF Auth (MD5 oder SHA): verhindert Rogue-Router die falsche Routen injizieren. Passive Interfaces: OSPF nicht auf Enduser-Ports sprechen.",
+      "links": [
+        { "title": "RFC 2328 – OSPFv2", "url": "https://datatracker.ietf.org/doc/html/rfc2328" }
+      ],
+      "relatedProtocols": ["bgp", "ipv4"]
+    },
+    {
+      "id": "bgp",
+      "name": "BGP",
+      "fullName": "Border Gateway Protocol",
+      "layers": [3],
+      "category": "Routing",
+      "summary": "Das Routing-Protokoll des Internets. Verbindet autonome Systeme (AS) miteinander. Path-Vector basiert.",
+      "keyFacts": [
+        "TCP Port 179",
+        "Path-Vector: entscheidet basierend auf AS-Path, Policies und Metriken",
+        "eBGP: zwischen verschiedenen AS (Internet), iBGP: innerhalb eines AS",
+        "AS (Autonomous System): ein Netzwerk unter einer administrativen Kontrolle (z.B. ein ISP)",
+        "BGP Hijacking: falsche Routen ankündigen → Traffic umleiten (passiert regelmäßig im Internet)"
+      ],
+      "useCases": ["Internet-Routing", "Multi-Homing (mehrere ISPs)", "Content Delivery", "Cloud Networking"],
+      "homelab": "Nicht direkt relevant — aber Verständnis wichtig für Network Engineering. Kann in EVE-NG/GNS3 Lab simuliert werden.",
+      "securityRelevance": "BGP Hijacking (Route Leaks), BGP Session Hijacking. RPKI (Resource Public Key Infrastructure) als Schutz. Im Homelab: BGP nur im Lab-Subnetz simulieren, nie ins echte Netz.",
+      "links": [
+        { "title": "RFC 4271 – BGP-4", "url": "https://datatracker.ietf.org/doc/html/rfc4271" },
+        { "title": "BGP Stream (Live Hijacks)", "url": "https://bgpstream.crosswork.cisco.com/" }
+      ],
+      "relatedProtocols": ["ospf", "tcp"]
+    },
+    {
+      "id": "ipsec",
+      "name": "IPsec",
+      "fullName": "Internet Protocol Security",
+      "layers": [3],
+      "category": "VPN/Security",
+      "summary": "Verschlüsselung und Authentifizierung auf Layer 3. Basis für IKEv2 VPN-Tunnel. Enterprise-Standard.",
+      "keyFacts": [
+        "Tunnel Mode: ganzes IP-Paket verschlüsselt + neuer IP-Header (Site-to-Site VPN)",
+        "Transport Mode: nur Payload verschlüsselt (Host-to-Host)",
+        "AH (Authentication Header): nur Integrität/Auth, keine Verschlüsselung — selten genutzt",
+        "ESP (Encapsulating Security Payload): Verschlüsselung + Integrität + Auth — Standard",
+        "IKE (Internet Key Exchange): handelt SA (Security Association) und Schlüssel aus. IKEv2 = modern, IKEv1 = legacy",
+        "PFS (Perfect Forward Secrecy): jede Session hat eigene Keys, Kompromittierung eines Keys gefährdet nicht vergangene Sessions"
+      ],
+      "useCases": ["Site-to-Site VPN", "Remote Access VPN", "Router-zu-Router Encryption", "Cloud VPN (AWS, Azure)"],
+      "homelab": "Geplant: StrongSwan als IKEv2/IPsec VPN auf OPNsense (idea-011). Vergleich mit WireGuard (moderner, einfacher, aber nicht Enterprise-Standard).",
+      "securityRelevance": "IPsec mit PFS (DH Group 14+), AES-256-GCM, SHA-256+ verwenden. IKEv1 Aggressive Mode vermeiden (leakt Identities). Pre-Shared Keys für Testing OK, Zertifikate für Produktion.",
+      "links": [
+        { "title": "StrongSwan Docs", "url": "https://docs.strongswan.org/" },
+        { "title": "RFC 7296 – IKEv2", "url": "https://datatracker.ietf.org/doc/html/rfc7296" }
+      ],
+      "relatedProtocols": ["wireguard", "tls", "ipv4"]
+    },
+    {
+      "id": "ethernet",
+      "name": "Ethernet (802.3)",
+      "fullName": "IEEE 802.3 Ethernet",
+      "layers": [2],
+      "category": "LAN",
+      "summary": "Der Standard für kabelgebundene LANs. Definiert Frame-Format, MAC-Adressierung und Medienzugriff.",
+      "keyFacts": [
+        "Frame: Preamble (7B) → SFD (1B) → Dest MAC (6B) → Src MAC (6B) → EtherType (2B) → Payload (46-1500B) → FCS/CRC (4B)",
+        "MAC-Adressen: 48 Bit, z.B. 00:15:5D:00:9B:01. Erste 3 Bytes = OUI (Hersteller), letzte 3 = Gerät",
+        "EtherType: 0x0800 = IPv4, 0x0806 = ARP, 0x86DD = IPv6, 0x8100 = 802.1Q VLAN",
+        "Geschwindigkeiten: 10 Mbps → 100 Mbps (Fast) → 1 Gbps (Gigabit) → 10/25/40/100 Gbps",
+        "CSMA/CD: Collision Detection (nur bei Half-Duplex/Hubs — bei Switches irrelevant)"
+      ],
+      "useCases": ["LAN-Verbindungen", "Data Center", "Industrial Ethernet", "PoE (Power over Ethernet)"],
+      "homelab": "CAT6 Kabel zwischen Host und Router. Hyper-V ExternalSwitch emuliert einen Ethernet-Switch. vmbr0 Bridge in Proxmox ist eine virtuelle Ethernet-Bridge.",
+      "securityRelevance": "MAC Flooding (CAM Table Overflow), MAC Spoofing. Port Security auf Switches begrenzt MACs pro Port. 802.1X Port-Auth: nur authentifizierte Geräte am Switch.",
+      "links": [
+        { "title": "IEEE 802.3 Standard", "url": "https://standards.ieee.org/standard/802_3-2022.html" }
+      ],
+      "relatedProtocols": ["arp", "vlan", "stp"]
+    },
+    {
+      "id": "wifi",
+      "name": "WiFi (802.11)",
+      "fullName": "IEEE 802.11 Wireless LAN",
+      "layers": [2, 1],
+      "category": "WLAN",
+      "summary": "Drahtlose LAN-Technologie. Standards: a/b/g/n (WiFi 4) / ac (WiFi 5) / ax (WiFi 6) / be (WiFi 7).",
+      "keyFacts": [
+        "Frequenzen: 2.4 GHz (Reichweite, Interferenz) und 5 GHz (Geschwindigkeit, kürzere Reichweite) und 6 GHz (WiFi 6E/7)",
+        "Sicherheit: WEP (gebrochen) → WPA (TKIP, veraltet) → WPA2 (AES-CCMP) → WPA3 (SAE, PMF)",
+        "WPA Enterprise (802.1X): Auth über RADIUS-Server statt Pre-Shared Key",
+        "CSMA/CA: Collision Avoidance (Funk kann nicht gleichzeitig senden und empfangen)",
+        "BSS/ESS: ein AP = BSS (Basic Service Set), mehrere APs = ESS (Extended Service Set, Roaming)"
+      ],
+      "useCases": ["WLAN im Heim-/Büro-Netz", "IoT-Geräte", "Guest-Netze", "Hotspots"],
+      "homelab": "TP-Link Archer C80 als AP. Geplant: separate SSIDs pro VLAN (Guest, IoT, Admin), WPA Enterprise mit FreeRADIUS (idea-021). Pi Zero 2 W nutzt WLAN onboard.",
+      "securityRelevance": "WPA2/WPA3 verwenden, WEP/WPA nie. Hidden SSID bringt nichts (wird trotzdem gebroadcastet). MAC-Filter bringt wenig (MAC leicht fälschbar). WPA Enterprise + RADIUS ist der sichere Weg.",
+      "links": [
+        { "title": "WiFi Alliance", "url": "https://www.wi-fi.org/" }
+      ],
+      "relatedProtocols": ["ethernet", "radius", "vlan"]
+    },
+    {
+      "id": "vlan",
+      "name": "VLAN (802.1Q)",
+      "fullName": "Virtual Local Area Network",
+      "layers": [2],
+      "category": "Segmentierung",
+      "summary": "Logische Trennung eines physischen Netzwerks in virtuelle Segmente. Ein Switch, mehrere Netze.",
+      "keyFacts": [
+        "802.1Q Tag: 4 Bytes im Ethernet-Frame zwischen Source MAC und EtherType",
+        "VLAN-ID: 12 Bit = 1-4094 (0 und 4095 reserviert)",
+        "Access Port: ein VLAN, ungetaggt (für Endgeräte)",
+        "Trunk Port: mehrere VLANs, getaggt (zwischen Switches/Router)",
+        "Native VLAN: ungetaggte Frames auf Trunk-Ports (Default VLAN 1 — NICHT verwenden!)",
+        "Inter-VLAN Routing: braucht Layer-3-Switch oder Router (Router-on-a-Stick)"
+      ],
+      "useCases": ["Netzwerksegmentierung", "Broadcast-Domain-Trennung", "Security Zones (MGMT/SVC/LAB/DMZ)", "Guest WiFi Isolation"],
+      "homelab": "Geplant: VLAN 10 (MGMT), VLAN 20 (SVC), VLAN 30 (LAB), VLAN 40 (DMZ). Proxmox Linux Bridges pro VLAN. OPNsense als Inter-VLAN Router. TP-Link Archer C80 ist NICHT VLAN-fähig — muss durch managed Switch oder OPNsense mit Tagged Interfaces gelöst werden.",
+      "securityRelevance": "VLAN Hopping (Double Tagging Attack), DTP Exploitation (Dynamic Trunking Protocol). Fix: Native VLAN ändern, DTP deaktivieren, Trunk-Ports explizit konfigurieren. VLANs sind keine Firewall — Inter-VLAN Traffic muss trotzdem gefiltert werden.",
+      "links": [
+        { "title": "IEEE 802.1Q", "url": "https://standards.ieee.org/standard/802_1Q-2018.html" },
+        { "title": "Proxmox VLAN Config", "url": "https://pve.proxmox.com/wiki/Network_Configuration#_vlan_802_1q" }
+      ],
+      "relatedProtocols": ["stp", "ethernet"]
+    },
+    {
+      "id": "stp",
+      "name": "STP",
+      "fullName": "Spanning Tree Protocol",
+      "layers": [2],
+      "category": "Loop Prevention",
+      "summary": "Verhindert Switching-Loops in redundanten Netzwerken. Deaktiviert redundante Pfade und aktiviert sie bei Ausfall.",
+      "keyFacts": [
+        "Bridge Protocol Data Units (BPDUs): Switches tauschen Topology-Infos aus",
+        "Root Bridge: der Switch mit der niedrigsten Bridge-ID wird Root — alle Pfade werden relativ zur Root berechnet",
+        "Port States: Blocking → Listening → Learning → Forwarding (STP), Discarding → Learning → Forwarding (RSTP)",
+        "RSTP (802.1w): Rapid STP — Konvergenz in Sekunden statt 30-50 Sekunden",
+        "MSTP (802.1s): Multiple STP — verschiedene STP-Instanzen pro VLAN-Gruppe"
+      ],
+      "useCases": ["Redundante Switch-Topologien", "Data Center", "Enterprise Campus"],
+      "homelab": "Aktuell nicht relevant (nur ein Switch). Wird wichtig wenn mehrere Switches verbunden werden. Proxmox Bridge hat STP standardmäßig aus (bridge-stp off) — korrekt für Single-Bridge-Setup.",
+      "securityRelevance": "BPDU Guard: schützt Access-Ports davor dass ein Angreifer einen Switch simuliert und die Root-Bridge-Wahl manipuliert. Root Guard: verhindert dass ein bestimmter Port Root Bridge wird.",
+      "links": [
+        { "title": "IEEE 802.1D (STP)", "url": "https://standards.ieee.org/standard/802_1D-2004.html" }
+      ],
+      "relatedProtocols": ["vlan", "ethernet"]
+    },
+    {
+      "id": "lldp",
+      "name": "LLDP",
+      "fullName": "Link Layer Discovery Protocol",
+      "layers": [2],
+      "category": "Discovery",
+      "summary": "Geräte-Discovery auf Layer 2. Switches und Router teilen Informationen über sich selbst mit ihren direkten Nachbarn.",
+      "keyFacts": [
+        "Multicast: 01:80:C2:00:00:0E — wird nicht über Switches geforwarded",
+        "TLVs (Type-Length-Value): System Name, System Description, Port Description, Management IP, Capabilities",
+        "Vendor-neutral (IEEE Standard), im Gegensatz zu CDP (Cisco-proprietär)",
+        "Wird auch für PoE-Negotiation und VoIP-VLAN-Zuweisung genutzt"
+      ],
+      "useCases": ["Netzwerk-Dokumentation", "Automatische Topologie-Erkennung", "VoIP VLAN Assignment", "Troubleshooting"],
+      "homelab": "OPNsense und managed Switches unterstützen LLDP. Hilfreich für automatische Netzwerk-Dokumentation. In Proxmox: lldpd installierbar.",
+      "securityRelevance": "LLDP sendet Informationen über das Gerät (Hostname, IP, OS-Version) — kann für Reconnaissance genutzt werden. In Security-kritischen Netzen LLDP auf Enduser-Ports deaktivieren.",
+      "links": [
+        { "title": "IEEE 802.1AB – LLDP", "url": "https://standards.ieee.org/standard/802_1AB-2016.html" }
+      ],
+      "relatedProtocols": ["ethernet"]
+    },
+    {
+      "id": "lacp",
+      "name": "LACP",
+      "fullName": "Link Aggregation Control Protocol",
+      "layers": [2],
+      "category": "Bonding",
+      "summary": "Bündelt mehrere physische Links zu einem logischen Link. Mehr Bandbreite und Redundanz.",
+      "keyFacts": [
+        "802.3ad / 802.1AX Standard",
+        "Active/Passive Mode: beide Seiten müssen LACP sprechen oder eine Seite aktiv",
+        "Load Balancing: basierend auf Source/Dest MAC, IP oder Port (Hash-basiert)",
+        "Failover: wenn ein Link ausfällt, wird Traffic automatisch auf die verbleibenden Links verteilt",
+        "Nicht zu verwechseln mit Multipath (ECMP) — LACP ist Layer 2, ECMP ist Layer 3"
+      ],
+      "useCases": ["Server-Anbindung (2x 1Gbps = 2Gbps)", "Switch Stacking", "NAS-Anbindung"],
+      "homelab": "Erst relevant wenn dedizierte Hardware (NAS, Server) mit mehreren NICs angebunden wird. Proxmox unterstützt Linux Bonding (bond0).",
+      "securityRelevance": "LACP-Pakete können manipuliert werden — in sicheren Umgebungen nur auf Trunk-Ports erlauben.",
+      "links": [
+        { "title": "IEEE 802.1AX", "url": "https://standards.ieee.org/standard/802_1AX-2020.html" }
+      ],
+      "relatedProtocols": ["ethernet", "stp"]
+    },
+    {
+      "id": "8021x",
+      "name": "802.1X (Port-Auth)",
+      "fullName": "IEEE 802.1X Port-Based Network Access Control",
+      "layers": [2],
+      "category": "Security",
+      "summary": "Port-basierte Authentifizierung am Switch. Nur authentifizierte Geräte bekommen Netzwerkzugang.",
+      "keyFacts": [
+        "Drei Rollen: Supplicant (Client), Authenticator (Switch), Authentication Server (RADIUS)",
+        "EAP (Extensible Authentication Protocol): Framework für verschiedene Auth-Methoden",
+        "EAP-TLS: Client + Server Zertifikat (stärkste Methode, aber aufwendig)",
+        "PEAP: Server-Zertifikat + Username/Password (häufig in Enterprise WiFi)",
+        "Dynamic VLAN Assignment: RADIUS kann pro User ein VLAN zuweisen (Guest, Employee, Admin)"
+      ],
+      "useCases": ["Enterprise WiFi (WPA Enterprise)", "Switch Port Security", "NAC (Network Access Control)", "BYOD"],
+      "homelab": "Geplant: FreeRADIUS (idea-014) + 802.1X auf WLAN (WPA Enterprise). Später auf Switch-Ports wenn managed Switch vorhanden. Dynamic VLAN Assignment pro Gerät.",
+      "securityRelevance": "Verhindert dass unbekannte Geräte ins Netz kommen. Guest VLAN für nicht-authentifizierte Geräte. MAC Authentication Bypass (MAB) als Fallback für Geräte ohne 802.1X Support (Drucker, IoT).",
+      "links": [
+        { "title": "IEEE 802.1X", "url": "https://standards.ieee.org/standard/802_1X-2020.html" },
+        { "title": "FreeRADIUS Docs", "url": "https://freeradius.org/documentation/" }
+      ],
+      "relatedProtocols": ["radius", "wifi", "vlan"]
+    },
+    {
+      "id": "radius",
+      "name": "RADIUS",
+      "fullName": "Remote Authentication Dial-In User Service",
+      "layers": [7],
+      "category": "AAA",
+      "summary": "AAA-Protokoll (Authentication, Authorization, Accounting). Backend für 802.1X, VPN-Auth, WiFi-Auth.",
+      "keyFacts": [
+        "UDP Port 1812 (Authentication) und 1813 (Accounting) — alte Ports: 1645/1646",
+        "Shared Secret zwischen Client (Switch/AP) und RADIUS Server",
+        "Attribute-Value Pairs (AVPs): transportieren Auth-Daten, VLAN-Assignment, Session-Timeout etc.",
+        "Proxy: RADIUS kann Requests an andere RADIUS-Server weiterleiten (Roaming, Federation)",
+        "RadSec: RADIUS über TLS (verschlüsselt, TCP statt UDP)"
+      ],
+      "useCases": ["WiFi-Auth (WPA Enterprise)", "VPN-Auth", "Switch Port Auth (802.1X)", "ISP Dial-In"],
+      "homelab": "Geplant: FreeRADIUS auf 10.0.3.12 (idea-014). Für WPA Enterprise auf dem WiFi und 802.1X auf Switch-Ports. Später: Integration mit Authentik/Keycloak als User-Backend.",
+      "securityRelevance": "Shared Secret STARK wählen (min. 32 Zeichen). RadSec für verschlüsselte Kommunikation. Accounting-Logs für Audit-Trail (wer war wann wo im Netz).",
+      "links": [
+        { "title": "RFC 2865 – RADIUS", "url": "https://datatracker.ietf.org/doc/html/rfc2865" },
+        { "title": "FreeRADIUS", "url": "https://freeradius.org/" }
+      ],
+      "relatedProtocols": ["tacacs", "8021x", "wifi"]
+    },
+    {
+      "id": "tacacs",
+      "name": "TACACS+",
+      "fullName": "Terminal Access Controller Access-Control System Plus",
+      "layers": [7],
+      "category": "AAA",
+      "summary": "AAA-Protokoll speziell für Netzwerkgeräte (Router, Switches, Firewalls). Cisco-Herkunft, aber offen.",
+      "keyFacts": [
+        "TCP Port 49 — zuverlässiger als RADIUS (UDP)",
+        "Verschlüsselt den GESAMTEN Paket-Body (RADIUS nur das Passwort)",
+        "Trennt Authentication, Authorization und Accounting komplett voneinander",
+        "Command Authorization: kann einzelne CLI-Befehle erlauben/verbieten pro User",
+        "Privilege Levels: 0-15 auf Cisco/Netzwerkgeräten (Level 15 = Full Admin)"
+      ],
+      "useCases": ["Netzwerkgeräte-Management (Router, Switches)", "Command Authorization", "Privilege Levels", "Audit-Logging"],
+      "homelab": "Geplant: tac_plus auf 10.0.3.11 (idea-013) + Access Server auf 10.0.3.13 (idea-015). Login-Flow üben: Privilege Levels, Command Authorization, Accounting. Jobrelevant im Network Engineering.",
+      "securityRelevance": "TACACS+ verschlüsselt den Body — besser als RADIUS für Admin-Zugriff. Audit-Logging: wer hat welchen Befehl auf welchem Gerät ausgeführt. Für Compliance essentiell.",
+      "links": [
+        { "title": "RFC Draft – TACACS+", "url": "https://datatracker.ietf.org/doc/html/rfc8907" }
+      ],
+      "relatedProtocols": ["radius", "ssh"]
+    },
+    {
+      "id": "wireguard",
+      "name": "WireGuard",
+      "fullName": "WireGuard VPN",
+      "layers": [3],
+      "category": "VPN",
+      "summary": "Modernes, schlankes VPN-Protokoll. ~4000 Zeilen Code (vs. OpenVPN ~100.000). Schnell, einfach, sicher.",
+      "keyFacts": [
+        "UDP basiert (Standard Port 51820)",
+        "Cryptokey Routing: Public Key = Identität, Allowed IPs = Routing-Tabelle",
+        "Nur moderne Kryptographie: Curve25519, ChaCha20, Poly1305, BLAKE2s",
+        "Keine Cipher-Negotiation (weniger Angriffsfläche als IPsec/OpenVPN)",
+        "Stealth: antwortet nicht auf unauthentifizierte Pakete (unsichtbar für Port-Scanner)",
+        "Kernel-Modul (Linux): extrem schnell, wenig Overhead"
+      ],
+      "useCases": ["Remote Access VPN", "Site-to-Site VPN", "Container-Networking", "Mobile VPN (Roaming-freundlich)"],
+      "homelab": "Geplant: WireGuard auf OPNsense (p2-wireguard). Homelab von unterwegs erreichbar. Vergleich mit IPsec/IKEv2 (idea-011) — WireGuard einfacher, IPsec Enterprise-Standard.",
+      "securityRelevance": "Keine known vulnerabilities. Kleiner Codebase = weniger Bugs. Keine Legacy-Cipher. Nachteil: kein User/Password-Auth (nur Keys), kein RADIUS-Integration nativ.",
+      "links": [
+        { "title": "WireGuard Website", "url": "https://www.wireguard.com/" },
+        { "title": "WireGuard Whitepaper", "url": "https://www.wireguard.com/papers/wireguard.pdf" }
+      ],
+      "relatedProtocols": ["ipsec", "udp"]
+    }
+  ]
+}
