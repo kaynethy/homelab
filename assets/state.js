@@ -223,7 +223,35 @@
 
   window.exportJSON = function () {
     if (!window.STATE) return;
-    const blob = new Blob([JSON.stringify(window.STATE, null, 2)], {
+    // Deep-clone nur die relevanten Teile (ohne ideas)
+    const exportData = JSON.parse(JSON.stringify({
+      meta: window.STATE.meta,
+      hardware: window.STATE.hardware,
+      phases: window.STATE.phases,
+      diary: window.STATE.diary
+    }));
+
+    // Dynamisch berechnete Felder entfernen (werden von calcProgress() beim Laden neu berechnet)
+    delete exportData.meta.progress_pct;
+    delete exportData.meta.progress_done;
+    delete exportData.meta.progress_wip;
+    delete exportData.meta.progress_total;
+
+    // Leere Felder bereinigen die durch localStorage-Merge entstanden sind
+    for (const phase of exportData.phases) {
+      if (phase.notes === '') delete phase.notes;
+      const cleanSteps = function(steps) {
+        for (const step of steps) {
+          if (step.deferred_reason === '') delete step.deferred_reason;
+          if (step.notes === '') delete step.notes;
+          if (Array.isArray(step.log) && step.log.length === 0) delete step.log;
+        }
+      };
+      if (phase.steps) cleanSteps(phase.steps);
+      if (phase.sections) phase.sections.forEach(function(s) { cleanSteps(s.steps || []); });
+    }
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);

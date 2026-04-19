@@ -199,6 +199,13 @@
           '<button class="btn-accent" id="si-save">Speichern</button>' +
           '<button class="btn btn-secondary" id="si-cancel">Abbrechen</button>' +
         '</div>' +
+      '</div>' +
+      '<hr style="border:none;border-top:1px solid var(--border);margin:32px 0 16px">' +
+      '<div style="text-align:right">' +
+        '<button id="btn-delete-step" style="font-family:\'JetBrains Mono\',monospace;font-size:11px;padding:6px 14px;border-radius:4px;border:1px solid rgba(239,68,68,0.4);background:transparent;color:rgba(239,68,68,0.7);cursor:pointer;transition:all 0.15s"' +
+          ' onmouseover="this.style.borderColor=\'#ef4444\';this.style.color=\'#ef4444\';this.style.background=\'rgba(239,68,68,0.08)\'"' +
+          ' onmouseout="this.style.borderColor=\'rgba(239,68,68,0.4)\';this.style.color=\'rgba(239,68,68,0.7)\';this.style.background=\'transparent\'"' +
+          '>🗑 Step entfernen</button>' +
       '</div>';
 
     renderStatusToggles(step, phase);
@@ -319,6 +326,51 @@
           '<div class="card-desc">' + escHtml(i.desc||'') + '</div>' +
         '</div>';
       }).join('');
+    });
+
+    // Delete step button
+    document.getElementById('btn-delete-step').addEventListener('click', function() {
+      if (!confirm('Step \'' + step.title + '\' wirklich aus der Roadmap entfernen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+
+      // Check if step was created from an idea (log contains "Aus Idee [idea-...]")
+      var linkedIdeaId = null;
+      if (step.log) {
+        for (var i = 0; i < step.log.length; i++) {
+          var match = (step.log[i].entry || '').match(/Aus Idee \[(idea-[^\]]+)\]/);
+          if (match) { linkedIdeaId = match[1]; break; }
+        }
+      }
+
+      // If linked idea found, revert it to "idea" status
+      if (linkedIdeaId) {
+        var IDEAS_KEY = 'homelab_ideas_data';
+        try {
+          var saved = localStorage.getItem(IDEAS_KEY);
+          var ideas = saved ? JSON.parse(saved) : ((window.STATE && window.STATE.ideas) || []);
+          var idea = ideas.find(function(i) { return i.id === linkedIdeaId; });
+          if (idea && idea.status === 'done') {
+            idea.status = 'idea';
+            idea.step_id = '';
+            localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
+          }
+        } catch(e) {}
+        // Also update in-memory STATE.ideas
+        if (window.STATE && window.STATE.ideas) {
+          var stateIdea = window.STATE.ideas.find(function(i) { return i.id === linkedIdeaId; });
+          if (stateIdea && stateIdea.status === 'done') {
+            stateIdea.status = 'idea';
+            stateIdea.step_id = '';
+          }
+        }
+      }
+
+      // Remove step via state.js helper
+      if (window.removeCustomStep) {
+        window.removeCustomStep(step.id);
+      }
+
+      // Redirect to parent phase page
+      window.location.href = '../phases/' + phase.id + '.html';
     });
   }
 

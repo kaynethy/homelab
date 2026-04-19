@@ -145,31 +145,70 @@
     for (var i = 0; i < s.phases.length; i++) {
       var phase = s.phases[i];
       var pNum = PHASE_NUM[phase.id] || '?';
-      var steps = getPhaseSteps(phase).filter(function(st) { return st.status !== 'deferred'; });
+      var allPhaseSteps = getPhaseSteps(phase);
+      var steps = allPhaseSteps.filter(function(st) { return st.status !== 'deferred'; });
       var doneCount = steps.filter(function(st) { return st.status === 'done'; }).length;
       var isActive = phase.status === 'active';
+      var isComplete = steps.length > 0 && doneCount === steps.length;
+
+      // Deferred counts
+      var deferredSteps = allPhaseSteps.filter(function(st) { return st.status === 'deferred'; }).length;
+      var deferredIdeas = (s.ideas || []).filter(function(idea) { return idea.phase_id === phase.id && idea.status === 'deferred'; }).length;
+      var deferredTotal = deferredSteps + deferredIdeas;
+      var deferredHtml = '';
+      if (deferredTotal > 0) {
+        var parts = [];
+        if (deferredSteps > 0) parts.push(deferredSteps + ' Step' + (deferredSteps !== 1 ? 's' : ''));
+        if (deferredIdeas > 0) parts.push(deferredIdeas + ' Idee' + (deferredIdeas !== 1 ? 'n' : ''));
+        deferredHtml = '<div style="font-size:11px;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin-top:4px">' + parts.join(' · ') + ' zurückgest.</div>';
+      }
+
+      // Phase completion badge
+      var statusBadge = '';
+      if (isComplete) {
+        statusBadge = '<span style="margin-left:6px;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--done);border:1px solid rgba(34,197,94,0.3)">✓ abgeschlossen</span>';
+      } else if (isActive) {
+        statusBadge = '<span class="current-tag" style="margin-left:6px">← aktiv</span>';
+      }
 
       var card = document.createElement('a');
       card.href = 'phases/' + phase.id + '.html';
-      card.className = 'phase-card' + (isActive ? ' active-phase' : '');
+      card.className = 'phase-card' + (isActive ? ' active-phase' : '') + (isComplete ? ' phase-complete' : '');
       card.innerHTML =
         '<span class="phase-num p' + pNum + '" style="display:inline-block;margin-bottom:10px">PHASE ' + pNum + '</span>' +
-        (isActive ? '<span class="current-tag" style="margin-left:6px">← aktiv</span>' : '') +
+        statusBadge +
         '<div class="phase-card-title">' + phase.title + '</div>' +
         '<div class="phase-card-subtitle">' + (phase.subtitle || '') + '</div>' +
-        '<div class="phase-card-step-count">' + doneCount + '/' + steps.length + ' done</div>';
+        '<div class="phase-card-step-count">' + doneCount + '/' + steps.length + ' done</div>' +
+        deferredHtml;
       grid.appendChild(card);
+
+      // One-time celebration for completed phases
+      if (isComplete) {
+        var celebKey = 'homelab_phase_celebrated_' + phase.id;
+        if (!localStorage.getItem(celebKey)) {
+          localStorage.setItem(celebKey, new Date().toISOString());
+          (function(cardEl) {
+            setTimeout(function() { showPhaseCelebration(cardEl); }, 400);
+          })(card);
+        }
+      }
     }
 
-    // Später — kompakter Link wenn deferred Steps existieren
+    // Später — kompakter Link wenn deferred Steps/Ideas existieren
     var deferred = window.getDeferredSteps ? window.getDeferredSteps() : [];
-    if (deferred.length > 0) {
+    var deferredIdeasTotal = (s.ideas || []).filter(function(i) { return i.status === 'deferred'; }).length;
+    var totalDeferred = deferred.length + deferredIdeasTotal;
+    if (totalDeferred > 0) {
       var deferredLink = document.getElementById('deferred-section');
       deferredLink.style.display = '';
+      var parts = [];
+      if (deferred.length > 0) parts.push(deferred.length + ' Step' + (deferred.length !== 1 ? 's' : ''));
+      if (deferredIdeasTotal > 0) parts.push(deferredIdeasTotal + ' Idee' + (deferredIdeasTotal !== 1 ? 'n' : ''));
       deferredLink.innerHTML = '<div class="section-label">Später</div>' +
         '<a href="deferred.html" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--muted);border-radius:8px;padding:12px 18px;text-decoration:none;transition:border-color 0.15s">' +
           '<div>' +
-            '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--muted)">' + deferred.length + ' Step' + (deferred.length !== 1 ? 's' : '') + ' zurückgestellt</span>' +
+            '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--muted)">' + parts.join(' · ') + ' zurückgestellt</span>' +
           '</div>' +
           '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--accent)">Alle anzeigen →</span>' +
         '</a>';
@@ -372,6 +411,30 @@
       }
     })
     .catch(function() {});
+
+  // Phase completion celebration — subtle sparkle particles
+  function showPhaseCelebration(cardEl) {
+    var rect = cardEl.getBoundingClientRect();
+    var colors = ['#22c55e', '#4ade80', '#86efac', '#4fffa0', '#ffffff'];
+    for (var i = 0; i < 20; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          var spark = document.createElement('div');
+          spark.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;width:4px;height:4px;border-radius:50%;' +
+            'background:' + colors[idx % colors.length] + ';' +
+            'left:' + (rect.left + Math.random() * rect.width) + 'px;' +
+            'top:' + (rect.top + Math.random() * rect.height) + 'px;' +
+            'opacity:1;transition:all 1.2s ease-out;';
+          document.body.appendChild(spark);
+          requestAnimationFrame(function() {
+            spark.style.transform = 'translateY(' + (-30 - Math.random() * 60) + 'px) translateX(' + (-20 + Math.random() * 40) + 'px) scale(0)';
+            spark.style.opacity = '0';
+          });
+          setTimeout(function() { spark.remove(); }, 1400);
+        }, idx * 50);
+      })(i);
+    }
+  }
 })();
 </script>
 </body>

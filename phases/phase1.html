@@ -45,11 +45,23 @@
     var allSteps = getPhaseSteps(phase).filter(function(s) { return s.status !== 'deferred'; });
     var doneCount = allSteps.filter(function(s) { return s.status === 'done'; }).length;
     var pct = allSteps.length > 0 ? Math.round(doneCount / allSteps.length * 100) : 0;
+    var isComplete = allSteps.length > 0 && doneCount === allSteps.length;
 
     document.title = 'Homelab – Phase ' + pNum + ': ' + phase.title;
     document.getElementById('bc-title').textContent = 'Phase ' + pNum + ' – ' + phase.title;
 
     var hwHtml = (phase.id === 'phase1' && window.STATE.hardware) ? renderHardware() : '';
+
+    var statusBadge = '';
+    if (isComplete) {
+      statusBadge = '<span style="margin-left:8px;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:3px 10px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--done);border:1px solid rgba(34,197,94,0.3)">✓ abgeschlossen</span>';
+    } else if (phase.status === 'active') {
+      statusBadge = '<span class="current-tag" style="margin-left:8px">← aktiv</span>';
+    }
+
+    var completeBanner = isComplete
+      ? '<div class="phase-complete-banner">[✓ PHASE ' + pNum + ' COMPLETE] — Alle ' + allSteps.length + ' Steps erledigt</div>'
+      : '';
 
     var stepsHtml = '';
     if (phase.steps) {
@@ -63,35 +75,55 @@
       }
     }
 
-    var deferredCount = getPhaseSteps(phase).filter(function(s) { return s.status === 'deferred'; }).length;
-    var deferredHint = deferredCount > 0
-      ? '<div style="margin-top:12px;margin-bottom:8px"><a href="../deferred.html" style="font-size:12px;color:var(--muted);font-family:\'JetBrains Mono\',monospace;text-decoration:none">' + deferredCount + ' Step' + (deferredCount !== 1 ? 's' : '') + ' zurückgestellt → <span style="color:var(--accent)">Später anzeigen</span></a></div>'
-      : '';
-    stepsHtml += deferredHint;
+    var deferredSectionHtml = renderDeferredSection(phase, pNum);
 
-    var phaseIdeas = (window.STATE.ideas || []).filter(function(i) { return i.phase_id === phase.id; });
+    var phaseIdeas = (window.STATE.ideas || []).filter(function(i) { return i.phase_id === phase.id && i.status !== 'deferred'; });
     var ideasHtml = renderIdeasPreview(phase.id, phaseIdeas);
     var notes = phase.notes || '';
 
     document.getElementById('phase-content').innerHTML =
       '<div class="page-header">' +
         '<span class="phase-num p' + pNum + '" style="display:inline-block;margin-bottom:10px">PHASE ' + pNum + '</span>' +
-        (phase.status === 'active' ? '<span class="current-tag" style="margin-left:8px">← aktiv</span>' : '') +
+        statusBadge +
         '<h1 style="font-family:\'JetBrains Mono\',monospace;font-size:22px;font-weight:700;color:#fff;margin-bottom:4px">' + escHtml(phase.title) + '</h1>' +
         '<div style="font-size:13px;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin-bottom:16px">' + escHtml(phase.subtitle || '') + '</div>' +
         '<div class="progress-bar" style="margin-bottom:0">' +
           '<span class="progress-label">PHASE FORTSCHRITT</span>' +
-          '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="progress-track"><div class="progress-fill' + (isComplete ? ' progress-fill-complete' : '') + '" style="width:' + pct + '%"></div></div>' +
           '<span class="progress-pct">' + doneCount + '/' + allSteps.length + '</span>' +
         '</div>' +
+        completeBanner +
       '</div>' +
-      hwHtml + stepsHtml + ideasHtml +
+      hwHtml + stepsHtml + deferredSectionHtml + ideasHtml +
       '<div class="section-label" style="margin-top:24px">Phase-Notizen</div>' +
       '<textarea class="phase-notes" id="phase-notes" placeholder="Notizen zu dieser Phase...">' + escHtml(notes) + '</textarea>';
 
     document.getElementById('phase-notes').addEventListener('blur', function() {
       phase.notes = document.getElementById('phase-notes').value;
       window.saveState();
+    });
+
+    // Bind deferred reactivate buttons
+    document.querySelectorAll('.deferred-reactivate-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = btn.dataset.id;
+        if (btn.dataset.type === 'step') {
+          var result = window.findStep(id);
+          if (result) { result.step.status = 'todo'; result.step.deferred_reason = ''; window.saveState(); init(); }
+        } else {
+          var ideas = _getIdeas();
+          var idea = ideas.find(function(i) { return i.id === id; });
+          if (idea) {
+            idea.status = 'idea'; idea.deferred_reason = '';
+            _persistIdeas(ideas);
+            if (window.STATE && window.STATE.ideas) {
+              var si = window.STATE.ideas.find(function(i) { return i.id === id; });
+              if (si) { si.status = 'idea'; si.deferred_reason = ''; }
+            }
+            init();
+          }
+        }
+      });
     });
   }
 
@@ -115,6 +147,50 @@
       '</a>';
     }).join('');
     return '<div class="cards">' + cards + '</div>';
+  }
+
+  var IDEAS_KEY = 'homelab_ideas_data';
+  function _getIdeas() {
+    try { var s = localStorage.getItem(IDEAS_KEY); if (s) return JSON.parse(s); } catch(e) {}
+    return (window.STATE && window.STATE.ideas) || [];
+  }
+  function _persistIdeas(ideas) {
+    try { localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas)); } catch(e) {}
+  }
+
+  function renderDeferredSection(phase, pNum) {
+    var allSteps = getPhaseSteps(phase);
+    var dSteps = allSteps.filter(function(s) { return s.status === 'deferred'; });
+    var allIdeas = _getIdeas();
+    var dIdeas = allIdeas.filter(function(i) { return i.phase_id === phase.id && i.status === 'deferred'; });
+    var total = dSteps.length + dIdeas.length;
+    if (total === 0) return '';
+    var h = '<div style="margin-top:24px;margin-bottom:24px">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.04em">ZURÜCKGESTELLT (' + total + ')</span>' +
+      '<a href="../deferred.html" style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--accent);text-decoration:none">Alle anzeigen →</a>' +
+    '</div>';
+    function dCard(type, title, desc, reason, tags, id) {
+      var tagHtml = (tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
+      var reasonHtml = reason ? '<div style="margin-top:6px;padding-left:12px;font-size:11px;color:var(--muted);font-style:italic">Grund: ' + escHtml(reason) + '</div>' : '';
+      return '<div class="deferred-section-card">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+          '<span class="deferred-type-badge">' + type + '</span>' +
+          '<span style="font-size:13px;font-weight:600;color:#e8ecf5">' + escHtml(title) + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">' + escHtml(desc || '') + '</div>' +
+        reasonHtml +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">' +
+          '<div class="tags">' + tagHtml + '</div>' +
+          '<button class="deferred-reactivate-btn" data-id="' + escHtml(id) + '" data-type="' + (type === 'STEP' ? 'step' : 'idea') + '" ' +
+            'style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;flex-shrink:0">Reaktivieren</button>' +
+        '</div>' +
+      '</div>';
+    }
+    dSteps.forEach(function(s) { h += dCard('STEP', s.title, s.desc, s.deferred_reason, s.tags, s.id); });
+    dIdeas.forEach(function(i) { h += dCard('IDEE', i.title, i.desc, i.deferred_reason, i.tags, i.id); });
+    h += '</div>';
+    return h;
   }
 
   function renderIdeasPreview(phaseId, ideas) {

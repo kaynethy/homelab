@@ -33,40 +33,63 @@
 
   var PHASE_NUM = { phase1: 1, phase2: 2, phase3: 3, phase4: 4 };
   var PHASE_ORDER = ['phase1','phase2','phase3','phase4'];
+  var PHASE_LABELS = { phase1: 'Phase 1 – Fundament', phase2: 'Phase 2 – Netz', phase3: 'Phase 3 – Dienste', phase4: 'Phase 4 – Security' };
 
   function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  var IDEAS_KEY = 'homelab_ideas_data';
+  function getIdeas() {
+    try {
+      var saved = localStorage.getItem(IDEAS_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return (window.STATE && window.STATE.ideas) || [];
+  }
+  function persistIdeas(ideas) {
+    try { localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas)); } catch(e) {}
+  }
+
   function init() {
-    if (!window.STATE || !window.getDeferredSteps) return;
-    var deferred = window.getDeferredSteps();
+    if (!window.STATE) return;
+    var deferredSteps = window.getDeferredSteps ? window.getDeferredSteps() : [];
+    var allIdeas = getIdeas();
+    var deferredIdeas = allIdeas.filter(function(i) { return i.status === 'deferred'; });
 
-    // Group by phase
-    var grouped = {};
-    PHASE_ORDER.forEach(function(pid) { grouped[pid] = []; });
-    deferred.forEach(function(d) {
-      if (!grouped[d.phase.id]) grouped[d.phase.id] = [];
-      grouped[d.phase.id].push(d);
-    });
-
-    var totalCount = deferred.length;
+    var totalCount = deferredSteps.length + deferredIdeas.length;
     var html = '';
 
-    PHASE_ORDER.forEach(function(pid) {
-      var pNum = PHASE_NUM[pid] || '?';
-      var phase = window.STATE.phases.find(function(p) { return p.id === pid; });
-      var phaseTitle = phase ? phase.title : 'Phase ' + pNum;
-      var items = grouped[pid] || [];
+    // ── ZURÜCKGESTELLTE STEPS ──
+    html += '<div style="margin-bottom:32px">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.04em">── ZURÜCKGESTELLTE STEPS</span>' +
+      '<span style="height:1px;flex:1;background:var(--border)"></span>' +
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted)">(' + deferredSteps.length + ')</span>' +
+    '</div>';
 
-      html += '<div style="margin-bottom:24px">';
-      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
-        '<span class="phase-num p' + pNum + '" style="display:inline-block">PHASE ' + pNum + '</span>' +
-        '<span style="font-size:14px;font-weight:600;color:#fff">' + escHtml(phaseTitle) + '</span>' +
-        '<span style="font-size:12px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">(' + items.length + ')</span>' +
-      '</div>';
+    if (deferredSteps.length === 0) {
+      html += '<div style="font-size:12px;color:var(--muted);font-style:italic;padding-left:12px;margin-bottom:8px">(keine zurückgestellten Steps)</div>';
+    } else {
+      // Group steps by phase
+      var groupedSteps = {};
+      PHASE_ORDER.forEach(function(pid) { groupedSteps[pid] = []; });
+      deferredSteps.forEach(function(d) {
+        if (!groupedSteps[d.phase.id]) groupedSteps[d.phase.id] = [];
+        groupedSteps[d.phase.id].push(d);
+      });
 
-      if (items.length === 0) {
-        html += '<div style="font-size:12px;color:var(--muted);font-style:italic;padding-left:12px;margin-bottom:8px">(keine zurückgestellten Steps)</div>';
-      } else {
+      PHASE_ORDER.forEach(function(pid) {
+        var items = groupedSteps[pid] || [];
+        if (items.length === 0) return;
+        var pNum = PHASE_NUM[pid] || '?';
+        var phase = window.STATE.phases.find(function(p) { return p.id === pid; });
+        var phaseTitle = phase ? phase.title : 'Phase ' + pNum;
+
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;margin-top:12px">' +
+          '<span class="phase-num p' + pNum + '" style="display:inline-block">PHASE ' + pNum + '</span>' +
+          '<span style="font-size:13px;font-weight:600;color:#fff">' + escHtml(phaseTitle) + '</span>' +
+          '<span style="font-size:11px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">(' + items.length + ')</span>' +
+        '</div>';
+
         html += '<div class="cards">';
         items.forEach(function(d) {
           var tags = (d.step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
@@ -82,19 +105,80 @@
             '<div class="card-desc">' + escHtml(d.step.desc || '') + '</div>' +
             reasonHtml +
             (tags ? '<div class="tags" style="margin-top:8px">' + tags + '</div>' : '') +
-            '<button class="reactivate-btn" data-step-id="' + escHtml(d.step.id) + '" data-phase-id="' + escHtml(d.phase.id) + '" ' +
+            '<button class="reactivate-btn" data-step-id="' + escHtml(d.step.id) + '" data-phase-id="' + escHtml(d.phase.id) + '" data-type="step" ' +
               'style="margin-top:10px;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer">Reaktivieren</button>' +
           '</div>';
         });
         html += '</div>';
-      }
-      html += '</div>';
-    });
+      });
+    }
+    html += '</div>';
+
+    // ── ZURÜCKGESTELLTE IDEEN ──
+    html += '<div style="margin-bottom:32px">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.04em">── ZURÜCKGESTELLTE IDEEN</span>' +
+      '<span style="height:1px;flex:1;background:var(--border)"></span>' +
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted)">(' + deferredIdeas.length + ')</span>' +
+    '</div>';
+
+    if (deferredIdeas.length === 0) {
+      html += '<div style="font-size:12px;color:var(--muted);font-style:italic;padding-left:12px;margin-bottom:8px">(keine zurückgestellten Ideen)</div>';
+    } else {
+      // Group ideas by phase
+      var groupedIdeas = {};
+      PHASE_ORDER.forEach(function(pid) { groupedIdeas[pid] = []; });
+      groupedIdeas['open'] = [];
+      deferredIdeas.forEach(function(idea) {
+        var key = idea.phase_id || 'open';
+        if (!groupedIdeas[key]) groupedIdeas[key] = [];
+        groupedIdeas[key].push(idea);
+      });
+
+      var ideaGroups = PHASE_ORDER.concat(['open']);
+      ideaGroups.forEach(function(pid) {
+        var items = groupedIdeas[pid] || [];
+        if (items.length === 0) return;
+        var pNum = PHASE_NUM[pid] || '?';
+        var phaseLabel = PHASE_LABELS[pid] || 'Offen (ohne Phase)';
+
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;margin-top:12px">' +
+          (pid !== 'open'
+            ? '<span class="phase-num p' + pNum + '" style="display:inline-block">PHASE ' + pNum + '</span>'
+            : '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted);padding:2px 6px">—</span>') +
+          '<span style="font-size:13px;font-weight:600;color:#fff">' + escHtml(phaseLabel) + '</span>' +
+          '<span style="font-size:11px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">(' + items.length + ')</span>' +
+        '</div>';
+
+        html += '<div class="cards">';
+        items.forEach(function(idea) {
+          var tags = (idea.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
+          var reasonHtml = idea.deferred_reason
+            ? '<div class="callout" style="margin-top:8px;padding:8px 12px"><div class="callout-label">Grund</div>' + escHtml(idea.deferred_reason) + '</div>'
+            : '';
+          var prioBadge = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:var(--bg3);color:var(--muted)">' + escHtml(idea.prio || 'medium') + '</span>';
+          html += '<div class="card" style="border-left:3px dashed var(--muted)">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
+              prioBadge +
+              '<span style="font-size:11px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + escHtml(idea.id) + ' · deferred</span>' +
+            '</div>' +
+            '<div style="font-size:13px;font-weight:600;color:#e8ecf5;margin-bottom:4px">' + escHtml(idea.title) + '</div>' +
+            '<div class="card-desc">' + escHtml(idea.desc || '') + '</div>' +
+            reasonHtml +
+            (tags ? '<div class="tags" style="margin-top:8px">' + tags + '</div>' : '') +
+            '<button class="reactivate-btn" data-idea-id="' + escHtml(idea.id) + '" data-type="idea" ' +
+              'style="margin-top:10px;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer">Reaktivieren</button>' +
+          '</div>';
+        });
+        html += '</div>';
+      });
+    }
+    html += '</div>';
 
     if (totalCount === 0) {
       html = '<div style="text-align:center;padding:40px 0">' +
-        '<div style="font-size:16px;color:var(--muted);margin-bottom:8px">Keine zurückgestellten Steps</div>' +
-        '<div style="font-size:12px;color:var(--muted)">Alle Steps sind aktiv in ihren Phasen.</div>' +
+        '<div style="font-size:16px;color:var(--muted);margin-bottom:8px">Keine zurückgestellten Einträge</div>' +
+        '<div style="font-size:12px;color:var(--muted)">Alle Steps und Ideen sind aktiv.</div>' +
         '<a href="index.html" style="display:inline-block;margin-top:16px;font-family:\'JetBrains Mono\',monospace;font-size:12px">← Dashboard</a>' +
       '</div>';
     }
@@ -104,12 +188,28 @@
     // Bind reactivate buttons
     document.querySelectorAll('.reactivate-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        var result = window.findStep(btn.dataset.stepId);
-        if (result) {
-          result.step.deferred_reason = '';
-          result.step.status = 'todo';
-          window.saveState();
-          window.location.href = 'phases/' + btn.dataset.phaseId + '.html';
+        if (btn.dataset.type === 'step') {
+          var result = window.findStep(btn.dataset.stepId);
+          if (result) {
+            result.step.deferred_reason = '';
+            result.step.status = 'todo';
+            window.saveState();
+            window.location.href = 'phases/' + btn.dataset.phaseId + '.html';
+          }
+        } else if (btn.dataset.type === 'idea') {
+          var ideas = getIdeas();
+          var idea = ideas.find(function(i) { return i.id === btn.dataset.ideaId; });
+          if (idea) {
+            idea.status = 'idea';
+            idea.deferred_reason = '';
+            persistIdeas(ideas);
+            // Also update STATE in memory
+            if (window.STATE && window.STATE.ideas) {
+              var stateIdea = window.STATE.ideas.find(function(i) { return i.id === btn.dataset.ideaId; });
+              if (stateIdea) { stateIdea.status = 'idea'; stateIdea.deferred_reason = ''; }
+            }
+            init(); // Re-render
+          }
         }
       });
     });

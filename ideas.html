@@ -832,6 +832,67 @@
       letter-spacing: 0.04em;
     }
 
+    /* === DEFERRED CARD STYLING === */
+    .cmd-card.is-deferred {
+      opacity: 0.6;
+      border-color: var(--border) !important;
+      border-left: 3px dashed var(--muted) !important;
+    }
+    .cmd-card.is-deferred .card-title { color: var(--muted); }
+    .cmd-card.is-deferred .card-desc { color: var(--border2); }
+    .deferred-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(90,98,120,0.2);
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .deferred-reason-callout {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-left: 3px solid var(--phase4);
+      background: rgba(251,146,60,0.06);
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .deferred-reason-callout .callout-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--phase4);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .deferred-reason-input {
+      margin-top: 6px;
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .deferred-reason-input:focus { border-color: var(--accent); }
+    .card-btn-reactivate {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(79,255,176,0.4);
+      background: rgba(79,255,176,0.08);
+      color: var(--accent);
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .card-btn-reactivate:hover { background: rgba(79,255,176,0.18); }
+
     /* Card action buttons (delete / done) */
     .card-actions-row {
       display: flex;
@@ -1141,6 +1202,7 @@
   var activePrio  = 'all';
   var activeTags  = [];
   var hideDone    = false;
+  var hideDeferred = false;
   var expandedId  = null;
   var IDEAS_KEY   = 'homelab_ideas_data';
 
@@ -1184,7 +1246,23 @@
   function applyPersistedIdeas() {
     try {
       var saved = localStorage.getItem(IDEAS_KEY);
-      if (saved) window.STATE.ideas = JSON.parse(saved);
+      if (saved) {
+        var lsIdeas = JSON.parse(saved);
+        var jsonIdeas = window.STATE.ideas || [];
+        // Merge: localStorage-Version behalten (User-Änderungen), aber neue Ideas aus JSON hinzufügen
+        var lsMap = {};
+        for (var i = 0; i < lsIdeas.length; i++) lsMap[lsIdeas[i].id] = true;
+        var added = 0;
+        for (var j = 0; j < jsonIdeas.length; j++) {
+          if (!lsMap[jsonIdeas[j].id]) {
+            lsIdeas.push(jsonIdeas[j]);
+            added++;
+            console.info('[ideas] Neue Idee aus JSON gemergt: ' + jsonIdeas[j].id + ' "' + jsonIdeas[j].title + '"');
+          }
+        }
+        window.STATE.ideas = lsIdeas;
+        if (added > 0) persistIdeas(); // Persist merged result
+      }
     } catch(e) {}
   }
 
@@ -1194,8 +1272,9 @@
   function getFiltered() {
     return getIdeas().filter(function(i) {
       if (hideDone && i.status === 'done') return false;
+      if (hideDeferred && i.status === 'deferred') return false;
       var phaseOk = activePhase === 'all' ||
-        (activePhase === 'open' ? !i.phase_id : i.phase_id === activePhase);
+        (activePhase === 'open' ? !i.phase_id : activePhase === 'deferred' ? i.status === 'deferred' : i.phase_id === activePhase);
       var prioOk = activePrio === 'all' || i.prio === activePrio;
       var tagsOk = activeTags.length === 0 || activeTags.every(function(t) {
         return (i.tags || []).some(function(it) { return it.toLowerCase() === t.toLowerCase(); });
@@ -1290,6 +1369,10 @@
     html += '<span class="cb">' + (hideDone ? '✓' : '') + '</span>';
     html += 'Umgesetzt ausblenden';
     html += '</button>';
+    html += '<button class="sb-hide-done' + (hideDeferred ? ' active' : '') + '" id="sb-hide-deferred">';
+    html += '<span class="cb">' + (hideDeferred ? '✓' : '') + '</span>';
+    html += 'Zurückgestellte ausblenden';
+    html += '</button>';
 
     var allTags = getAllTags();
     // Aktive Tags bereinigen die nicht mehr in sichtbaren Ideen vorkommen
@@ -1373,6 +1456,23 @@
         }, 75);
         return;
       }
+      // Hide-deferred toggle
+      var hideDeferredBtn = e.target.closest('#sb-hide-deferred');
+      if (hideDeferredBtn) {
+        var grid = document.getElementById('cmd-grid');
+        grid.style.opacity = '0';
+        setTimeout(function() {
+          hideDeferred = !hideDeferred;
+          expandedId = null;
+          renderSidebar();
+          renderHeader();
+          renderGrid();
+          bindSidebar();
+          bindCardTagACs();
+          grid.style.opacity = '1';
+        }, 75);
+        return;
+      }
       var newBtn = e.target.closest('#sb-new-btn');
       if (newBtn) openPanel();
     });
@@ -1437,10 +1537,15 @@
     var isExpanded = expandedId === idea.id;
     var commentCount = (idea.comments || []).length;
     var isDone = idea.status === 'done';
+    var isDeferred = idea.status === 'deferred';
 
     var tags = (idea.tags || []).map(function(t) {
       return '<span class="card-tag ' + tagClass(t) + '">' + esc(t) + '</span>';
     }).join('');
+
+    var statusBadge = '';
+    if (isDone) statusBadge = '<span class="done-badge">DONE ✓</span>';
+    else if (isDeferred) statusBadge = '<span class="deferred-badge">ZURÜCKGESTELLT</span>';
 
     var commentsHtml = (idea.comments || []).map(function(c) {
       return '<div class="card-comment">' +
@@ -1479,10 +1584,10 @@
         '<button onclick="window._removeTag(\'' + esc(idea.id) + '\',\'' + esc(t).replace(/'/g, "\\'") + '\',event)">✕</button></span>';
     }).join('');
 
-    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + (isDone ? ' is-done' : '') + '" data-id="' + esc(idea.id) + '" draggable="true">' +
+    return '<div class="cmd-card prio-' + prio + (isExpanded ? ' expanded' : '') + (isDone ? ' is-done' : '') + (isDeferred ? ' is-deferred' : '') + '" data-id="' + esc(idea.id) + '" draggable="true">' +
       '<div class="card-summary" onclick="window._toggleCard(\'' + esc(idea.id) + '\')">' +
         '<div class="card-top">' +
-          '<div class="card-tags">' + tags + (isDone ? '<span class="done-badge">DONE ✓</span>' : '') + '</div>' +
+          '<div class="card-tags">' + tags + statusBadge + '</div>' +
           '<button class="card-close" onclick="window._closeCard(event)">✕</button>' +
         '</div>' +
         '<div class="card-title">' + esc(idea.title) + '</div>' +
@@ -1498,6 +1603,7 @@
       '<div class="card-details" id="cd-' + esc(idea.id) + '">' +
         '<div class="card-details-inner">' +
           (idea.desc ? '<div class="card-full-desc">' + esc(idea.desc) + '</div>' : '') +
+          (isDeferred && idea.deferred_reason ? '<div class="deferred-reason-callout"><div class="callout-label">Grund</div>' + esc(idea.deferred_reason) + '</div>' : '') +
           stepLink +
           '<div class="card-comments-section">' +
             '<div class="card-comments-label">── Kommentare ──</div>' +
@@ -1514,7 +1620,13 @@
               '<option value="planned"' + (idea.status === 'planned' ? ' selected' : '') + '>Geplant</option>' +
               '<option value="wip"' + (idea.status === 'wip' ? ' selected' : '') + '>In Arbeit</option>' +
               '<option value="done"' + (idea.status === 'done' ? ' selected' : '') + '>Erledigt</option>' +
+              '<option value="deferred"' + (idea.status === 'deferred' ? ' selected' : '') + '>Zurückgestellt</option>' +
             '</select>' +
+            '<div id="deferred-reason-wrap-' + esc(idea.id) + '" style="' + (idea.status === 'deferred' ? 'display:flex' : 'display:none') + ';align-items:center;gap:6px;margin-left:4px">' +
+              '<label style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">Grund:</label>' +
+              '<input class="deferred-reason-input" type="text" value="' + esc(idea.deferred_reason || '') + '" placeholder="Warum zurückgestellt?" ' +
+                'onchange="window._setDeferredReason(\'' + esc(idea.id) + '\', this.value)" style="width:200px;margin-top:0">' +
+            '</div>' +
           '</div>' +
           '<div class="card-assign-row">' +
             '<label>Phase:</label>' +
@@ -1537,8 +1649,10 @@
           '<div class="card-actions-row">' +
             (isDone
               ? '<button class="card-btn-done" onclick="window._markUndone(\'' + esc(idea.id) + '\',event)">↩ Zurücksetzen</button>'
-              : '<button class="card-btn-done" onclick="window._markDone(\'' + esc(idea.id) + '\',event)">Umgesetzt ✓</button>') +
-            (!isDone ? '<button class="card-btn-realize" onclick="window._showRealize(\'' + esc(idea.id) + '\',event)">🚀 Realisieren</button>' : '') +
+              : isDeferred
+                ? '<button class="card-btn-reactivate" onclick="window._reactivateIdea(\'' + esc(idea.id) + '\',event)">↩ Reaktivieren</button>'
+                : '<button class="card-btn-done" onclick="window._markDone(\'' + esc(idea.id) + '\',event)">Umgesetzt ✓</button>') +
+            (!isDone && !isDeferred ? '<button class="card-btn-realize" onclick="window._showRealize(\'' + esc(idea.id) + '\',event)">🚀 Realisieren</button>' : '') +
             '<span class="spacer"></span>' +
             '<button class="card-btn-delete" onclick="window._deleteIdea(\'' + esc(idea.id) + '\',event)">Löschen</button>' +
           '</div>' +
@@ -1599,12 +1713,14 @@
 
       var PRIO_ORDER = { high: 0, medium: 1, low: 2 };
       var html = '';
+
+      // Non-deferred ideas grouped by phase
       groups.forEach(function(g) {
         var groupIdeas = ideas.filter(function(i) {
-          return g.key ? i.phase_id === g.key : !i.phase_id;
+          var phaseMatch = g.key ? i.phase_id === g.key : !i.phase_id;
+          return phaseMatch && i.status !== 'deferred';
         });
         groupIdeas.sort(function(a, b) {
-          // Done ideas go to the end
           var da = a.status === 'done' ? 1 : 0;
           var db = b.status === 'done' ? 1 : 0;
           if (da !== db) return da - db;
@@ -1621,6 +1737,19 @@
         '</div>';
         html += groupIdeas.map(renderCardHtml).join('');
       });
+
+      // Deferred ideas as separate section at the bottom
+      var deferredIdeas = ideas.filter(function(i) { return i.status === 'deferred'; });
+      if (deferredIdeas.length > 0) {
+        html += '<div class="phase-group-divider">' +
+          '<span class="phase-group-line" style="background:var(--muted);opacity:0.4"></span>' +
+          '<span class="phase-group-label" style="color:var(--muted)">Zurückgestellt</span>' +
+          '<span class="phase-group-line" style="background:var(--muted);opacity:0.4"></span>' +
+          '<span class="phase-group-count">(' + deferredIdeas.length + ')</span>' +
+        '</div>';
+        html += deferredIdeas.map(renderCardHtml).join('');
+      }
+
       grid.innerHTML = html;
     } else {
       var PRIO_ORDER_FLAT = { high: 0, medium: 1, low: 2 };
@@ -1732,7 +1861,43 @@
     var idea = getIdeas().find(function(i) { return i.id === ideaId; });
     if (!idea) return;
     idea.status = newStatus;
+    if (newStatus === 'deferred') {
+      // Show reason field
+      var wrap = document.getElementById('deferred-reason-wrap-' + ideaId);
+      if (wrap) wrap.style.display = 'flex';
+    } else {
+      idea.deferred_reason = '';
+      var wrap = document.getElementById('deferred-reason-wrap-' + ideaId);
+      if (wrap) wrap.style.display = 'none';
+    }
     persistIdeas();
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+    bindCardTagACs();
+  };
+
+  window._setDeferredReason = function(ideaId, reason) {
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.deferred_reason = reason;
+    persistIdeas();
+  };
+
+  window._reactivateIdea = function(ideaId, e) {
+    if (e) e.stopPropagation();
+    var idea = getIdeas().find(function(i) { return i.id === ideaId; });
+    if (!idea) return;
+    idea.status = 'idea';
+    idea.deferred_reason = '';
+    persistIdeas();
+    expandedId = null;
+    renderSidebar();
+    renderHeader();
+    renderGrid();
+    bindSidebar();
+    bindCardTagACs();
   };
 
   // ---- PHASE / STEP REASSIGN ----

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "1.0",
+    "version": "1.1",
     "updated": "2026-04-19",
     "description": "Homelab Wiki – Wissensbasis, Snippets, Gotchas. Separat von homelab-ideas.json.",
     "main_state": "homelab-state.json",
@@ -98,7 +98,8 @@
           "title": "Microsoft – Nested Virtualization",
           "url": "https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/nested-virtualization"
         }
-      ]
+      ],
+      "type": "reference"
     },
     {
       "id": "doc-002",
@@ -135,7 +136,8 @@
           "title": "Proxmox Wiki – Package Repositories",
           "url": "https://pve.proxmox.com/wiki/Package_Repositories"
         }
-      ]
+      ],
+      "type": "reference"
     },
     {
       "id": "doc-003",
@@ -215,7 +217,8 @@
           "title": "HaGeZi Blocklists",
           "url": "https://github.com/hagezi/dns-blocklists"
         }
-      ]
+      ],
+      "type": "reference"
     },
     {
       "id": "doc-004",
@@ -275,7 +278,8 @@
           "title": "Proxmox Wiki – Root Password Reset",
           "url": "https://pve.proxmox.com/wiki/Root_Password_Reset"
         }
-      ]
+      ],
+      "type": "lesson"
     },
     {
       "id": "doc-005",
@@ -350,7 +354,8 @@
           "title": "Linux Kernel – hv_netvsc driver",
           "url": "https://www.kernel.org/doc/html/latest/networking/device_drivers/ethernet/microsoft/netvsc.html"
         }
-      ]
+      ],
+      "type": "lesson"
     },
     {
       "id": "doc-006",
@@ -415,7 +420,8 @@
           "title": "AdGuard – Blocking DoH",
           "url": "https://adguard-dns.io/kb/general/dns-filtering-syntax/"
         }
-      ]
+      ],
+      "type": "lesson"
     },
     {
       "id": "doc-007",
@@ -496,7 +502,8 @@
           "title": "vim Adventures (Gamified)",
           "url": "https://vim-adventures.com"
         }
-      ]
+      ],
+      "type": "reference"
     },
     {
       "id": "doc-008",
@@ -557,7 +564,8 @@
           "title": "Proxmox Wiki – Startup and Shutdown Behavior",
           "url": "https://pve.proxmox.com/wiki/Startup_and_shutdown_order"
         }
-      ]
+      ],
+      "type": "reference"
     },
     {
       "id": "doc-009",
@@ -621,6 +629,116 @@
         {
           "title": "KeePass URL Overrides (classic only)",
           "url": "https://keepass.info/help/base/autourl.html"
+        }
+      ],
+      "type": "reference"
+    },
+    {
+      "id": "doc-010",
+      "title": "AdGuard Passwort-Desaster – bcrypt, auth_attempts & Neuinstallation",
+      "namespace": "recovery/adguard",
+      "tags": [
+        "AdGuard",
+        "Passwort",
+        "bcrypt",
+        "Recovery",
+        "KeePass"
+      ],
+      "type": "lesson",
+      "step_id": "p2-dns",
+      "summary": "KeePass-DB verloren, AdGuard-Login gesperrt (auth_attempts), bcrypt $2y/$2a Inkompatibilität. Lösung: users:[] → Setup-Wizard, dann komplette Neuinstallation.",
+      "snippets": [
+        {
+          "title": "Setup-Wizard triggern",
+          "lang": "yaml",
+          "code": "# In /opt/AdGuardHome/AdGuardHome.yaml:\nusers: []\n# Dann: systemctl restart AdGuardHome\n# → Port 3000 Setup-Wizard erscheint"
+        },
+        {
+          "title": "Komplette Neuinstallation",
+          "lang": "bash",
+          "code": "systemctl stop AdGuardHome\nsystemctl disable AdGuardHome\nrm -rf /opt/AdGuardHome\nrm /etc/systemd/system/AdGuardHome.service\nsystemctl daemon-reload\ncurl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v"
+        }
+      ],
+      "gotchas": [
+        "auth_attempts=5 sperrt nach 5 Fehlversuchen — bcrypt-Hash tauschen hilft dann nicht mehr.",
+        "bcrypt $2y (PHP/htpasswd) vs $2a (Go/AdGuard) — verschiedene Prefixe, gleicher Algo, aber manche Implementierungen akzeptieren nur einen.",
+        "Niemals destruktive Befehle via AI ohne eigene Prüfung ausführen — KeePass-DB war das Opfer.",
+        "Passwort SOFORT in KeePass eintragen, nicht 'mach ich gleich'."
+      ],
+      "links": [
+        {
+          "title": "AdGuard Home GitHub",
+          "url": "https://github.com/AdguardTeam/AdGuardHome"
+        }
+      ]
+    },
+    {
+      "id": "doc-011",
+      "title": "DNS-Ausfall durch Set-DnsClientServerAddress",
+      "namespace": "netzwerk/dns",
+      "tags": [
+        "DNS",
+        "Windows",
+        "PowerShell",
+        "DHCP"
+      ],
+      "type": "lesson",
+      "step_id": "p2-dns",
+      "summary": "Set-DnsClientServerAddress schaltet Windows von DHCP auf manuellen DNS um. Alle DNS-Anfragen gehen an die gesetzte IP — auch wenn DHCP einen anderen DNS liefert.",
+      "snippets": [
+        {
+          "title": "Problem-Befehl (nicht verwenden!)",
+          "lang": "powershell",
+          "code": "# ACHTUNG: schaltet Windows auf manuellen DNS!\nSet-DnsClientServerAddress -InterfaceAlias 'Ethernet' -ServerAddresses '192.168.0.201'"
+        },
+        {
+          "title": "Fix: zurück auf DHCP-DNS",
+          "lang": "powershell",
+          "code": "# GUI: ncpa.cpl → Adapter → Properties → IPv4 → DNS automatisch\n# Oder PowerShell:\nSet-DnsClientServerAddress -InterfaceAlias 'Ethernet' -ResetServerAddresses"
+        }
+      ],
+      "gotchas": [
+        "Windows zeigt keinen Fehler — DNS funktioniert einfach nicht mehr wenn die manuelle IP nicht erreichbar ist.",
+        "ipconfig /all prüfen: wenn 'DHCP Enabled: No' → manueller DNS aktiv.",
+        "Set-DnsClientServerAddress ist persistent über Neustarts — einmal falsch gesetzt, bleibt es."
+      ],
+      "links": []
+    },
+    {
+      "id": "doc-012",
+      "title": "MAC Spoofing für LXC Container in Hyper-V",
+      "namespace": "netzwerk/bridge",
+      "tags": [
+        "Hyper-V",
+        "LXC",
+        "MAC Spoofing",
+        "Proxmox"
+      ],
+      "type": "lesson",
+      "step_id": "p1-proxmox-vm",
+      "summary": "LXC Container in Proxmox (nested unter Hyper-V) generieren eigene MAC-Adressen. Hyper-V blockiert standardmäßig fremde MACs auf dem vSwitch — ohne MAC Spoofing haben Container kein Netzwerk.",
+      "snippets": [
+        {
+          "title": "MAC Spoofing aktivieren (VM muss gestoppt sein)",
+          "lang": "powershell",
+          "code": "Stop-VM -Name 'Proxmox' -Force\nSet-VMNetworkAdapter -VMName 'Proxmox' -MacAddressSpoofing On\nStart-VM -Name 'Proxmox'"
+        },
+        {
+          "title": "Prüfen ob aktiv",
+          "lang": "powershell",
+          "code": "Get-VMNetworkAdapter -VMName 'Proxmox' | Select-Object MacAddressSpoofing"
+        }
+      ],
+      "gotchas": [
+        "Muss VOR dem Erstellen von LXC Containern aktiviert werden.",
+        "VM muss gestoppt sein für die Änderung.",
+        "Betrifft nur nested-Virt-Setups (Proxmox in Hyper-V) — auf Bare Metal kein Problem.",
+        "Symptom ohne Spoofing: Container startet, hat IP, aber ping und apt-get schlagen fehl."
+      ],
+      "links": [
+        {
+          "title": "Microsoft Docs – MAC Address Spoofing",
+          "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/set-vmnetworkadapter"
         }
       ]
     }

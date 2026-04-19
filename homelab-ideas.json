@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "1.2",
+    "version": "1.4",
     "updated": "2026-04-19"
   },
   "ideas": [
@@ -306,7 +306,7 @@
       "title": "DHCP Server (interner Adressvergabe)",
       "desc": "Eigener DHCP-Server statt Router-DHCP. Feste IP-Reservierungen per MAC-Adresse, DHCP-Scopes pro VLAN/Subnetz. Kea DHCP oder direkt in AdGuard/OPNsense integriert.",
       "phase_id": "phase2",
-      "step_id": null,
+      "step_id": "p2-dns",
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -356,6 +356,22 @@
           "edited": false
         }
       ]
+    },
+    {
+      "id": "idea-023",
+      "title": "PuTTY / SSH-Zugang für Windows",
+      "desc": "PuTTY oder Windows Terminal für direkten SSH-Zugang zu VMs statt Proxmox Browser-Console. ssh root@192.168.0.201 direkt aus Windows Terminal. Schneller, komfortabler, Copy-Paste funktioniert korrekt. Basis für alle weiteren SSH-basierten Operationen.",
+      "phase_id": "phase1",
+      "step_id": "p1-ssh-hardening",
+      "prio": "high",
+      "status": "done",
+      "tags": [
+        "SSH",
+        "PuTTY",
+        "Windows",
+        "Terminal"
+      ],
+      "comments": []
     },
     {
       "id": "idea-025",
@@ -436,7 +452,7 @@
       "title": "Recovery-Runbook als dokumentiertes Verfahren",
       "desc": "Eigener Wiki-Bereich 'recovery/' mit Schritt-für-Schritt-Anleitungen für typische Notfälle: GRUB Passwort-Reset (done: doc-006), Netzwerk nicht erreichbar (done: doc-007), Proxmox VM korrupt, Container corrupted. Jeweils mit 'wenn X passiert, dann Y machen'.",
       "phase_id": "phase3",
-      "step_id": null,
+      "step_id": "p3-dokuwiki",
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -507,6 +523,31 @@
         "Boot-Performance"
       ],
       "comments": []
+    },
+    {
+      "id": "idea-032",
+      "title": "IPAM – IP Address Management (NetBox)",
+      "desc": "NetBox als zentrales IPAM. Alle IP-Ranges, Prefixes, VLANs und Devices dokumentieren und planen. REST-API für spätere Ansible/Terraform-Integration. Branchenstandard im Network Engineering – direkter Lernwert für den Job.",
+      "phase_id": "phase2",
+      "step_id": "p2-ipam",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "IPAM",
+        "NetBox",
+        "Netzwerk",
+        "IP-Management",
+        "Ansible",
+        "Terraform"
+      ],
+      "comments": [
+        {
+          "id": "c-010",
+          "date": "2026-04-19",
+          "text": "Als echter Step p2-ipam in Phase 2 verankert. IP-Management-Dreieck: DHCP (Vergabe) + DNS (Auflösung) + IPAM (Planung & Dokumentation). NetBox braucht PostgreSQL + Redis – Docker Compose Stack empfohlen. Ressourcen: 1-2 Cores, 2 GB RAM, 10 GB Disk.",
+          "edited": false
+        }
+      ]
     },
     {
       "id": "idea-033",
@@ -608,12 +649,37 @@
       ]
     },
     {
-      "id": "idea-038",
-      "title": "NAS – Network Attached Storage anschaffen",
-      "desc": "Dediziertes NAS als zentraler Speicher für Backups, VM-Snapshots, Medien und Dokumentation. Ziel: 15-20 TB nutzbar, zukunftssicher erweiterbar. Integration mit Proxmox Backup Server (PBS) als Backup-Target via NFS oder iSCSI. Löst das Single-Disk-Problem des aktuellen Setups und ist Grundlage für die 3-2-1 Backup-Strategie (idea-005).",
-      "phase_id": "phase1",
-      "step_id": "p1-proxmox-vm",
+      "id": "idea-037",
+      "title": "SNMPv3 – Network Monitoring & Device Management",
+      "desc": "SNMPv3 als sicheres Netzwerk-Monitoring-Protokoll einrichten. Im Gegensatz zu SNMPv1/v2c bietet SNMPv3 echte Authentifizierung (MD5/SHA) und Verschlüsselung (DES/AES). Ziel: alle Netzwerkgeräte über SNMP überwachen, Metriken in Grafana via SNMP Exporter integrieren. Jobrelevant: SNMPv3 ist Enterprise-Standard für Netzwerk-Monitoring.",
+      "phase_id": "phase4",
+      "step_id": "p4-grafana",
       "prio": "high",
+      "status": "idea",
+      "tags": [
+        "SNMP",
+        "SNMPv3",
+        "Monitoring",
+        "NetOps",
+        "Netzwerk",
+        "Grafana"
+      ],
+      "comments": [
+        {
+          "id": "c-037-1",
+          "date": "2026-04-19",
+          "text": "SNMPv3 Kernkonzepte: USM (User-based Security Model) für Auth+Encryption, VACM (View-based Access Control) für Zugriffskontrolle. Setup: SNMPv3 User auf OPNsense/Router anlegen, Prometheus SNMP Exporter konfigurieren, Grafana Dashboard für Interface-Traffic, Fehler, Uptime. Ergänzt TACACS+ (idea-013) und RADIUS (idea-014) zu einem vollständigen Network-Engineering-Lab.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-038",
+      "title": "NAS – Synology DS223j als Einstieg (Lernfokus RAID + Storage)",
+      "desc": "Dediziertes NAS primär zum Lernen: RAID-Konzepte praktisch üben (Redundanz aufbauen, Platte rausziehen, Rebuild beobachten), Proxmox Backup Server (PBS) auf NAS-Storage sichern, NFS-Mount in Proxmox einbinden. Sekundär: zentraler Medienspeicher. Kaufentscheidung bewusst auf Phase 2/3 verschoben – macht erst Sinn wenn VMs und Netz laufen.",
+      "phase_id": "phase3",
+      "step_id": null,
+      "prio": "medium",
       "status": "idea",
       "tags": [
         "NAS",
@@ -621,31 +687,38 @@
         "Backup",
         "Hardware",
         "Synology",
-        "RAID"
+        "RAID",
+        "Redundanz"
       ],
       "comments": [
         {
           "id": "c-038-1",
           "date": "2026-04-19",
-          "text": "Budget: ~500€ +/- 150€ für Gerät, Festplatten separat. Empfehlung Gerät: Synology DS423+ (4-Bay, ~380€) – DSM ausgereift, gut dokumentiert, NFS/iSCSI für Proxmox, erweiterbar. Alternative: QNAP TS-464 ähnlich gut, etwas mehr Features, etwas komplexer.",
+          "text": "Kaufzeitpunkt: NICHT jetzt. Erst kaufen wenn Phase 2 abgeschlossen – dann gibt es VMs, Netz und Dienste die vom NAS profitieren. Bis dahin: externe 2TB SSD für einfache Backups.",
           "edited": false
         },
         {
           "id": "c-038-2",
           "date": "2026-04-19",
-          "text": "Festplatten: IMMER CMR (Conventional Magnetic Recording), NIEMALS SMR (Shingled) für RAID. SMR ist billiger aber langsam beim Schreiben und problematisch in RAID-Verbänden. Empfehlung: WD Red Plus CMR oder Seagate IronWolf CMR. Immer vor Kauf prüfen ob CMR oder SMR.",
+          "text": "RAID-Empfehlung für 2-Bay: RAID1 (Spiegelung, 50% Effizienz, 1 Platte Ausfall überlebt) oder SHR (Synology Hybrid RAID, flexibler bei Erweiterung). RAID5 geht erst ab 3 Drives. Lernwert: Platte absichtlich rausziehen, Rebuild beobachten, verstehen was passiert.",
           "edited": false
         },
         {
           "id": "c-038-3",
           "date": "2026-04-19",
-          "text": "Einstiegsstrategie: Start mit 2x 8TB WD Red Plus CMR in RAID1 (8TB nutzbar, gespiegelt) + 2 Bays leer lassen. Später 2x 8TB dazu + Migration auf RAID5 = 24TB nutzbar. Gesamtkosten gestreckt: DS423+ ~380€ + 2x 8TB ~360€ = ~740€ initial, Rest später. RAID5 bietet Schutz gegen 1 Festplattenausfall bei 75% Effizienz.",
+          "text": "WICHTIG – CMR vs SMR: Immer CMR kaufen, NIEMALS SMR. SMR ist billiger aber langsam beim Schreiben und gefährlich in RAID-Verbänden. WD Red OHNE 'Plus' war lange SMR – immer 'WD Red Plus' oder 'Seagate IronWolf' kaufen.",
           "edited": false
         },
         {
           "id": "c-038-4",
           "date": "2026-04-19",
-          "text": "Proxmox-Integration: NAS als NFS-Share in Proxmox einbinden → als Storage für VM-Backups nutzen → PBS (idea-010) kann direkt auf NAS-Share sichern. Synology hat eigene Backup-App (Hyper Backup) für offsite-Backup nach B2/S3 – erfüllt damit das Offsite-Kriterium der 3-2-1 Regel (idea-005).",
+          "text": "Preisrecherche April 2026 (Preise ~46% gestiegen seit Sep 2025): DS223 Leergehäuse ~268€ (https://geizhals.de/synology-diskstation-ds223-a2893895.html), DS223j ~205€ (ARM, für Homelab ausreichend), 2x 4TB Seagate IronWolf CMR ~240€ (https://geizhals.de/seagate-ironwolf-nas-hdd-4tb-st4000vn006-a2627917.html). Gesamtkosten: DS223j + 2x 4TB IronWolf = ~445€.",
+          "edited": false
+        },
+        {
+          "id": "c-038-5",
+          "date": "2026-04-19",
+          "text": "Empfohlene Konfiguration: Synology DS223j + 2x 4TB Seagate IronWolf CMR (ST4000VN006) in RAID1 = 4TB nutzbar gespiegelt. Proxmox-Integration: NAS per NFS einbinden, als Backup-Target für PBS nutzen. Link DS223j: https://geizhals.de/synology-diskstation-ds223j-a2893895.html",
           "edited": false
         }
       ]
