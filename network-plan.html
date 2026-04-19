@@ -490,7 +490,7 @@
   // Dynamic layout generators
   function generateStarLayout(ds) {
     var positions = {};
-    var centerX = 0, centerY = 200;
+    var centerX = 0, centerY = 0;
     var subnetNodes = [], hostsBySubnet = {}, otherNodes = [];
     ds.forEach(function(n) {
       if (n._subnetId && !n._isHost) subnetNodes.push(n);
@@ -502,28 +502,29 @@
     // OPNsense (id 2) in center
     positions[2] = { x: centerX, y: centerY };
     // Internet above
-    positions[1] = { x: centerX, y: centerY - 400 };
+    positions[1] = { x: centerX, y: centerY - 300 };
     // TP-Link off to the side
-    positions[3] = { x: centerX + 200, y: centerY - 400 };
-    // Fixed subnet quadrant positions (far from center)
-    var SUBNET_POS = { mgmt: { x: -350, y: -250 }, svc: { x: 350, y: -250 }, lab: { x: 350, y: 250 }, dmz: { x: -350, y: 250 } };
+    positions[3] = { x: centerX + 200, y: centerY - 300 };
+    // Subnet quadrant positions — moderate distance
+    var SUBNET_POS = { mgmt: { x: -300, y: -200 }, svc: { x: 300, y: -200 }, lab: { x: 300, y: 250 }, dmz: { x: -300, y: 250 } };
     subnetNodes.forEach(function(sn) {
       var pos = SUBNET_POS[sn._subnetId] || { x: 0, y: 0 };
       var sx = centerX + pos.x;
       var sy = centerY + pos.y;
       positions[sn.id] = { x: Math.round(sx), y: Math.round(sy) };
-      // Hosts in arc facing outward (away from OPNsense)
+      // Hosts in half-arc on the outside (away from OPNsense)
       var hosts = hostsBySubnet[sn._subnetId] || [];
-      var hR = 180;
-      var centerAngle = Math.atan2(sy - centerY, sx - centerX);
+      var hR = 130;
+      var awayAngle = Math.atan2(pos.y, pos.x);
+      var spread = Math.PI * 0.8; // 144° fan
       if (hosts.length === 1) {
         positions[hosts[0].id] = {
-          x: Math.round(sx + hR * Math.cos(centerAngle)),
-          y: Math.round(sy + hR * Math.sin(centerAngle))
+          x: Math.round(sx + hR * Math.cos(awayAngle)),
+          y: Math.round(sy + hR * Math.sin(awayAngle))
         };
       } else {
-        var startAngle = centerAngle - Math.PI / 2;
-        var angleStep = Math.PI / (hosts.length - 1);
+        var startAngle = awayAngle - spread / 2;
+        var angleStep = spread / (hosts.length - 1);
         hosts.forEach(function(h, j) {
           var angle = startAngle + angleStep * j;
           positions[h.id] = {
