@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Encapsulation Demo</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* === DEMO BACK LINK === */
+    .demo-back {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); text-decoration: none; display: inline-block; margin-bottom: 20px;
+      transition: color 0.15s;
+    }
+    .demo-back:hover { color: #4fffb0; }
+
+    /* === LAYOUT: Tower left + Content right === */
+    .enc-layout {
+      display: flex; gap: 20px; align-items: flex-start;
+    }
+
+    /* === OSI TOWER (sticky left) === */
+    .enc-tower {
+      width: 190px; min-width: 190px; position: sticky; top: 20px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; flex-shrink: 0;
+    }
+    .enc-tower-title {
+      font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px;
+      text-transform: uppercase; text-align: center; margin-bottom: 10px;
+    }
+    .enc-tower-layer {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 6px;
+      border: 2px solid transparent;
+      transition: all 0.3s ease; margin-bottom: 4px;
+    }
+    .enc-tower-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700;
+      color: var(--lc); min-width: 18px; text-align: center;
+    }
+    .enc-tower-name {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    }
+    .enc-tower-active {
+      border-color: var(--lc); background: color-mix(in srgb, var(--lc) 10%, transparent);
+      box-shadow: 0 0 14px color-mix(in srgb, var(--lc) 25%, transparent);
+      transform: scale(1.04);
+    }
+    .enc-tower-active .enc-tower-name { color: var(--text); font-weight: 700; }
+    .enc-tower-passed { opacity: 0.35; }
+    .enc-tower-dir {
+      font-size: 10px; color: var(--muted); text-align: center; margin-top: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* === CONTENT AREA === */
+    .enc-content { flex: 1; min-width: 0; }
+
+    /* === SECTIONS === */
+    .enc-section-box {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .enc-section-label {
+      font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .enc-bar { width: 3px; height: 14px; border-radius: 2px; display: inline-block; }
+
+    /* === CONTROLS === */
+    .enc-controls-section {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 20px; margin-bottom: 16px;
+    }
+    .enc-dir-label {
+      font-size: 10px; font-weight: 700; color: #4fffb0; letter-spacing: 1.5px;
+      text-align: center; margin-bottom: 10px;
+    }
+    .enc-controls {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .enc-ctrl-btn {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 7px 14px; cursor: pointer; transition: border-color 0.15s;
+    }
+    .enc-ctrl-btn:hover:not(:disabled) { border-color: #4fffb0; }
+    .enc-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
+    .enc-ctrl-step {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text);
+      min-width: 110px; text-align: center;
+    }
+    .enc-ctrl-auto { border-color: #4fffb055; color: #4fffb0; }
+    .enc-ctrl-reset { color: var(--muted); }
+    .enc-dir-toggle {
+      display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 12px;
+    }
+    .enc-dir-label2 { font-size: 11px; color: var(--muted); }
+    .enc-dir-select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 6px 12px; cursor: pointer; outline: none;
+    }
+    .enc-scenarios {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+    }
+    .enc-scenarios-label { font-size: 11px; color: var(--muted); margin-right: 4px; }
+    .enc-scenario-btn {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .enc-scenario-btn:hover { border-color: #4fffb0; }
+    .enc-scenario-active { border-color: #4fffb0; background: rgba(79,255,176,0.12); color: #4fffb0; }
+
+    /* === PACKET BLOCKS === */
+    .enc-packet-section {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .enc-packet-blocks {
+      display: flex; align-items: stretch; gap: 0; margin: 16px 0; min-height: 80px;
+    }
+    .enc-block {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 12px 14px; border: 2px solid var(--bc);
+      font-family: 'JetBrains Mono', monospace; text-align: center;
+      transition: all 0.4s ease; flex-shrink: 0; min-width: 60px;
+    }
+    .enc-block:first-child { border-radius: 8px 0 0 8px; }
+    .enc-block:last-child { border-radius: 0 8px 8px 0; }
+    .enc-block:only-child { border-radius: 8px; }
+    .enc-block-new {
+      background: color-mix(in srgb, var(--bc) 15%, transparent);
+      animation: encSlideIn 0.5s ease-out;
+    }
+    .enc-block-prev {
+      background: color-mix(in srgb, var(--bc) 6%, transparent);
+      opacity: 0.55;
+    }
+    @keyframes encSlideIn {
+      from { transform: translateX(-30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .enc-block-label {
+      font-size: 11px; font-weight: 700; color: var(--bc);
+    }
+    .enc-block-size {
+      font-size: 10px; color: var(--muted); margin-top: 4px;
+    }
+
+    /* === BITS ROW === */
+    .enc-bits-row {
+      display: flex; flex-wrap: wrap; gap: 2px; margin: 16px 0; padding: 12px;
+      background: var(--bg); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px;
+    }
+    .enc-bit {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 26px; font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 700; color: #ef4444;
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 3px;
+    }
+    .enc-bit-more {
+      font-size: 11px; color: var(--muted); padding: 4px 8px; align-self: center;
+    }
+
+    /* === SIZE TRACKER === */
+    .enc-size-tracker { margin-top: 16px; }
+    .enc-size-title {
+      font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .enc-size-bar {
+      display: flex; height: 14px; border-radius: 4px; overflow: hidden;
+      background: var(--bg); border: 1px solid var(--border); margin-bottom: 8px;
+    }
+    .enc-size-seg {
+      height: 100%; transition: width 0.4s ease; min-width: 2px;
+    }
+    .enc-size-info {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text);
+      line-height: 1.6;
+    }
+    .enc-size-sep { color: var(--border); margin: 0 4px; }
+    .enc-size-pct { color: var(--muted); }
+    .enc-size-warn {
+      color: #ef4444; font-weight: 700; margin-left: 8px;
+    }
+
+    /* === DETAIL PANEL === */
+    .enc-detail {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .enc-explain { margin-bottom: 16px; }
+    .enc-explain-q {
+      font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px;
+    }
+    .enc-explain-a {
+      font-size: 13px; color: var(--text); line-height: 1.7; opacity: 0.85;
+    }
+    .enc-fields-box {
+      background: var(--bg); border: 1px solid; border-radius: 8px;
+      padding: 14px; margin-bottom: 14px;
+    }
+    .enc-fields-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .enc-field-row {
+      display: flex; gap: 12px; padding: 3px 0;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    }
+    .enc-field-key { color: var(--muted); min-width: 130px; flex-shrink: 0; }
+    .enc-field-val { color: var(--text); }
+    .enc-payload-preview { margin-bottom: 14px; }
+    .enc-payload-title {
+      font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .enc-payload-code {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #4fffb0;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px 14px; margin: 0; white-space: pre-wrap; line-height: 1.6;
+    }
+    .enc-size-summary {
+      font-size: 12px; color: var(--text); line-height: 1.6;
+    }
+    .enc-size-summary-title {
+      font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 4px;
+    }
+    .enc-size-note { color: var(--muted); font-size: 11px; }
+
+    /* === TOGGLE SECTIONS === */
+    .enc-toggle {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text);
+      cursor: pointer; transition: color 0.15s;
+    }
+    .enc-toggle:hover { color: #4fffb0; }
+
+    /* === INTERACTIVE MODE === */
+    .enc-interactive-body { margin-top: 14px; }
+    .enc-int-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    }
+    .enc-int-row {
+      display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;
+    }
+    .enc-int-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    }
+    .enc-int-input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 7px 10px; outline: none; transition: border-color 0.15s;
+    }
+    .enc-int-input:focus { border-color: #4fffb0; }
+    .enc-int-textarea { resize: vertical; min-height: 50px; }
+    .enc-int-apply {
+      background: #4fffb0; color: #0d0f14; border: none; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+      padding: 8px 20px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .enc-int-apply:hover { opacity: 0.85; }
+
+    /* === HOP VISUALIZATION === */
+    .enc-hop-body { margin-top: 14px; }
+    .enc-hop-chain {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .enc-hop-node {
+      background: var(--bg); border: 2px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; text-align: center; min-width: 90px;
+    }
+    .enc-hop-icon { font-size: 24px; margin-bottom: 4px; }
+    .enc-hop-name { font-size: 11px; font-weight: 700; color: var(--text); }
+    .enc-hop-ip { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .enc-hop-arrow { color: var(--muted); font-size: 16px; font-weight: 700; }
+    .enc-hop-steps { margin-bottom: 12px; }
+    .enc-hop-step-title {
+      font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px;
+    }
+    .enc-hop-step {
+      font-size: 12px; color: var(--text); line-height: 1.8; padding-left: 8px;
+    }
+    .enc-hop-note {
+      background: rgba(79,255,176,0.06); border: 1px solid rgba(79,255,176,0.15);
+      border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--text); line-height: 1.6;
+    }
+
+    /* === HOMELAB PANEL === */
+    .enc-homelab {
+      border-color: rgba(79,255,176,0.2);
+    }
+    .enc-homelab-text {
+      font-size: 13px; color: var(--text); line-height: 1.7;
+    }
+    .enc-homelab-list {
+      margin: 10px 0; padding-left: 20px;
+    }
+    .enc-homelab-list li {
+      margin-bottom: 4px; font-size: 12px;
+    }
+    .enc-homelab-note {
+      background: rgba(79,255,176,0.06); border: 1px solid rgba(79,255,176,0.15);
+      border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--muted);
+      line-height: 1.6; margin-top: 10px;
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 900px) {
+      .enc-layout { flex-direction: column; }
+      .enc-tower {
+        position: static; width: 100%; min-width: 0;
+        display: flex; flex-wrap: wrap; gap: 6px; padding: 12px;
+        justify-content: center;
+      }
+      .enc-tower-title { width: 100%; }
+      .enc-tower-layer { padding: 6px 10px; margin-bottom: 0; }
+      .enc-tower-dir { width: 100%; }
+      .enc-packet-blocks { flex-wrap: wrap; }
+      .enc-block { min-width: 70px; flex: 1; }
+      .enc-block:first-child { border-radius: 8px 8px 0 0; }
+      .enc-block:last-child { border-radius: 0 0 8px 8px; }
+      .enc-int-grid { grid-template-columns: 1fr; }
+      .enc-hop-chain { flex-direction: column; }
+      .enc-hop-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="../index.html">Dashboard</a><span class="sep">›</span><a href="../wiki-preview.html">Wiki</a><span class="sep">›</span><a href="../academy.html?tab=demos">Netz-Akademie</a><span class="sep">›</span><span>Encapsulation Demo</span></div>
+
+  <a href="../academy.html?tab=demos" class="demo-back">← Zurück zur Akademie</a>
+
+  <div id="enc-main"></div>
+</div>
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script src="../assets/demos/encapsulation.js"></script>
+</body>
+</html>

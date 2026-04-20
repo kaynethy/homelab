@@ -304,39 +304,14 @@
     .osi-search-item-proto { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
     .osi-search-item-layer { font-size: 11px; color: var(--muted); }
 
-    /* Encapsulation */
-    .encap-wrap { background: rgba(13,15,20,0.8); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-top: 16px; }
-    .encap-title { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
-    .encap-btns { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-    .encap-btn {
-      background: transparent; border: 2px solid var(--border); color: var(--muted);
-      padding: 6px 14px; border-radius: 4px; cursor: pointer;
-      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.2s;
+    /* Encapsulation Demo Link */
+    .encap-demo-link {
+      display: block; width: 100%; margin-top: 16px; padding: 14px 20px;
+      background: rgba(79,255,176,0.04); border: 1px solid rgba(79,255,176,0.2); border-radius: 8px;
+      color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      text-decoration: none; text-align: center; transition: all 0.2s;
     }
-    .encap-btn.active { background: color-mix(in srgb, currentColor 13%, transparent); }
-    @keyframes encapPulse {
-      0%, 100% { box-shadow: 0 0 0 0 transparent; }
-      50% { box-shadow: 0 0 10px 1px currentColor; }
-    }
-    .encap-btn.active { animation: encapPulse 2s ease-in-out infinite; }
-    .encap-content { background: var(--bg); border-radius: 4px; padding: 16px; transition: all 0.3s; }
-    .encap-layer-label { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: bold; margin-bottom: 4px; }
-    .encap-desc { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
-    .encap-code {
-      font-family: 'JetBrains Mono', monospace; font-size: 11px;
-      background: var(--bg2); padding: 12px; border-radius: 4px; overflow-x: auto;
-      white-space: pre-wrap; word-break: break-all; line-height: 1.8;
-    }
-    .encap-code .encap-new { font-weight: 700; }
-    .encap-code .encap-prev { opacity: 0.4; }
-    .encap-nav { display: flex; justify-content: space-between; margin-top: 12px; }
-    .encap-nav button {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      padding: 4px 16px; border-radius: 4px; cursor: pointer;
-      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
-    }
-    .encap-nav button:hover:not(:disabled) { border-color: var(--border2); color: var(--text); }
-    .encap-nav button:disabled { color: var(--border); cursor: default; }
+    .encap-demo-link:hover { background: rgba(79,255,176,0.1); border-color: var(--accent); }
 
     /* Protocol detail */
     .proto-detail-block {
@@ -433,10 +408,7 @@
     <div class="osi-grid no-detail" id="osi-grid">
       <div>
         <div class="osi-stack" id="osi-stack"></div>
-        <div style="margin-top:16px">
-          <button id="btn-encap" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 16px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:1px;transition:all 0.2s">▶ Encapsulation Demo</button>
-          <div id="encap-container" style="display:none"></div>
-        </div>
+        <a href="demos/encapsulation-demo.html" class="encap-demo-link">▶ Encapsulation Demo starten — Schicht für Schicht durch das OSI-Modell →</a>
       </div>
       <div id="osi-detail"></div>
     </div>
@@ -762,24 +734,9 @@
     }
   ];
 
-  var ENCAP_STEPS = [
-    { layer: "Daten", label: "Layer 7-5", desc: "HTTP GET /index.html", color: "#4fffb0",
-      newPart: "GET /index.html HTTP/1.1\nHost: proxmox.homelab.local", prevPart: "" },
-    { layer: "+ TCP Header", label: "Layer 4", desc: "Src Port: 54321 → Dst Port: 8006", color: "#4db8ff",
-      newPart: "[TCP | SrcPort:54321 | DstPort:8006 | Seq:1 | Ack:0 | SYN]", prevPart: " + Daten" },
-    { layer: "+ IP Header", label: "Layer 3", desc: "Src: 192.168.0.155 → Dst: 192.168.0.200", color: "#00d4aa",
-      newPart: "[IP | Src:192.168.0.155 | Dst:192.168.0.200 | TTL:64 | Proto:TCP]", prevPart: " + TCP + Daten" },
-    { layer: "+ Ethernet Frame", label: "Layer 2", desc: "Src MAC → Dst MAC + CRC", color: "#fb923c",
-      newPart: "[ETH | DstMAC:00:15:5d:00:9b:01 | SrcMAC:... | Type:0x0800]", prevPart: " + IP + TCP + Daten + [FCS]" },
-    { layer: "→ Bits", label: "Layer 1", desc: "10110010 01001... auf dem Kabel", color: "#ef4444",
-      newPart: "10110010 01001101 11010010 10110100 01001...", prevPart: "" }
-  ];
-
   var activeLayer = null;
   var highlightProtocol = null;
   var expandedProtocol = null;
-  var encapStep = 0;
-  var encapVisible = false;
 
   function findProtocolData(tagName) {
     if (!window.PROTOCOLS || !window.PROTOCOLS.protocols) return null;
@@ -991,38 +948,6 @@
     });
   }
 
-  function renderEncap() {
-    if (!encapVisible) { document.getElementById('encap-container').style.display = 'none'; return; }
-    document.getElementById('encap-container').style.display = '';
-    var s = ENCAP_STEPS[encapStep];
-    var html = '<div class="encap-wrap">';
-    html += '<div class="encap-title">Encapsulation — Schicht für Schicht</div>';
-    html += '<div class="encap-btns">';
-    ENCAP_STEPS.forEach(function(st, i) {
-      var active = i === encapStep;
-      var style = active
-        ? 'border-color:' + st.color + ';color:' + st.color + ';background:' + st.color + '22'
-        : 'border-color:' + st.color + '44;color:' + st.color + '88';
-      html += '<button class="encap-btn' + (active ? ' active' : '') + '" data-encap="' + i + '" style="' + style + '">' + st.label + '</button>';
-    });
-    html += '</div>';
-    html += '<div class="encap-content" style="border:1px solid ' + s.color + '44;border-left:3px solid ' + s.color + '">';
-    html += '<div class="encap-layer-label" style="color:' + s.color + '">' + esc(s.layer) + '</div>';
-    html += '<div class="encap-desc">' + esc(s.desc) + '</div>';
-    // Colored code: new part in step color, prev part muted
-    html += '<div class="encap-code">';
-    html += '<span class="encap-new" style="color:' + s.color + '">' + esc(s.newPart) + '</span>';
-    if (s.prevPart) html += '<span class="encap-prev">' + esc(s.prevPart) + '</span>';
-    html += '</div>';
-    html += '</div>';
-    html += '<div class="encap-nav">';
-    html += '<button id="encap-prev"' + (encapStep === 0 ? ' disabled' : '') + '>← Hoch (De-Encap)</button>';
-    html += '<button id="encap-next"' + (encapStep === ENCAP_STEPS.length - 1 ? ' disabled' : '') + '>Runter (Encap) →</button>';
-    html += '</div>';
-    html += '</div>';
-    document.getElementById('encap-container').innerHTML = html;
-  }
-
   function doSearch(term) {
     var results = document.getElementById('osi-search-results');
     if (term.length < 2) { results.style.display = 'none'; return; }
@@ -1083,22 +1008,6 @@
       doSearch(this.value);
     });
 
-    document.getElementById('btn-encap').addEventListener('click', function() {
-      encapVisible = !encapVisible;
-      this.textContent = (encapVisible ? '▼' : '▶') + ' Encapsulation Demo';
-      this.style.borderColor = encapVisible ? 'var(--accent)' : 'var(--border)';
-      this.style.color = encapVisible ? 'var(--accent)' : 'var(--muted)';
-      renderEncap();
-    });
-
-    document.getElementById('encap-container').addEventListener('click', function(e) {
-      if (e.target.id === 'encap-prev' && encapStep > 0) { encapStep--; renderEncap(); }
-      else if (e.target.id === 'encap-next' && encapStep < ENCAP_STEPS.length - 1) { encapStep++; renderEncap(); }
-      else if (e.target.classList.contains('encap-btn')) {
-        encapStep = parseInt(e.target.getAttribute('data-encap'));
-        renderEncap();
-      }
-    });
   }
 
   function initOSI() {
@@ -1327,7 +1236,7 @@
   // =============================================
   function renderDemos() {
     var demos = [
-      { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, action: 'encap' },
+      { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, href: 'demos/encapsulation-demo.html' },
       { icon: '📐', title: 'Subnetting Calculator', desc: 'CIDR berechnen, Subnetze aufteilen, Host-Ranges sehen. Visuell dargestellt.', live: true, href: 'demos/subnetting-calculator.html' },
       { icon: '🤝', title: 'TCP Handshake Simulator', desc: '3-Way Handshake Schritt für Schritt visualisiert. SYN → SYN-ACK → ACK animiert.', live: true, href: 'demos/tcp-handshake.html' },
       { icon: '🔍', title: 'DNS Lookup Visualizer', desc: 'Recursive Resolution live nachvollziehen. Root → TLD → Authoritative → Antwort.', live: true, href: 'demos/dns-lookup.html' }
@@ -1336,8 +1245,7 @@
     var html = demos.map(function(d) {
       var cls = 'demo-card' + (d.live ? '' : ' coming-soon');
       var link = d.href ? ' onclick="window.location.href=\'' + d.href + '\'"' : '';
-      var id = d.action === 'encap' ? ' id="demo-encap"' : '';
-      return '<div class="' + cls + '"' + id + ' style="cursor:pointer"' + link + '>' +
+      return '<div class="' + cls + '" style="cursor:pointer"' + link + '>' +
         '<span class="demo-card-icon">' + d.icon + '</span>' +
         '<h3>' + escHtml(d.title) + '</h3>' +
         '<p>' + escHtml(d.desc) + '</p>' +
@@ -1352,22 +1260,6 @@
 
     document.getElementById('demo-grid').innerHTML = html;
 
-    var encapCard = document.getElementById('demo-encap');
-    if (encapCard) {
-      encapCard.addEventListener('click', function(e) {
-        if (e.target.closest('a')) return;
-        switchTab('osi');
-        encapVisible = true;
-        var btn = document.getElementById('btn-encap');
-        btn.textContent = '▼ Encapsulation Demo';
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.color = 'var(--accent)';
-        renderEncap();
-        setTimeout(function() {
-          document.getElementById('encap-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-      });
-    }
   }
 
   // =============================================
