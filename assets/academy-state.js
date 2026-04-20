@@ -4,7 +4,7 @@
 
   function getRoot() {
     var path = window.location.pathname;
-    return (path.includes('/phases/') || path.includes('/steps/')) ? '../' : './';
+    return (path.includes('/phases/') || path.includes('/steps/') || path.includes('/demos/')) ? '../' : './';
   }
 
   async function loadAcademy() {

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Subnetting Calculator</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ===== SUBNETTING CALCULATOR (erweitert) ===== */
+    .demo-back {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); text-decoration: none; display: inline-block; margin-bottom: 20px;
+      transition: color 0.15s;
+    }
+    .demo-back:hover { color: #22d3ee; }
+
+    /* ---- Input ---- */
+    .subnet-input-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .subnet-input-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); white-space: nowrap;
+    }
+    .subnet-input {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px 14px; color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 14px;
+      outline: none; transition: border-color 0.2s; width: 180px;
+    }
+    .subnet-input:focus { border-color: #22d3ee; box-shadow: 0 0 0 3px rgba(34,211,238,0.1); }
+    .subnet-slash {
+      font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--muted); font-weight: 700;
+    }
+    .subnet-prefix-input {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px 14px; color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 14px;
+      outline: none; width: 70px; text-align: center; transition: border-color 0.2s;
+    }
+    .subnet-prefix-input:focus { border-color: #22d3ee; box-shadow: 0 0 0 3px rgba(34,211,238,0.1); }
+    .subnet-calc-btn {
+      background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.3);
+      color: #22d3ee; padding: 10px 20px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 1px; transition: all 0.15s;
+    }
+    .subnet-calc-btn:hover { background: rgba(34,211,238,0.2); border-color: #22d3ee; }
+
+    /* ---- Alerts ---- */
+    .subnet-error {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: #ef4444; margin-bottom: 12px; display: none;
+    }
+    .subnet-warning {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: #eab308; background: rgba(234,179,8,0.06);
+      border-left: 3px solid #eab308; padding: 10px 14px;
+      border-radius: 0 4px 4px 0; margin-bottom: 16px;
+    }
+
+    /* ---- Presets ---- */
+    .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .preset-btn {
+      background: var(--bg2); border: 1px solid var(--border); color: var(--muted);
+      padding: 6px 12px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .preset-btn:hover { border-color: #22d3ee; color: #22d3ee; background: rgba(34,211,238,0.06); }
+
+    /* ---- Homelab overlay ---- */
+    .subnet-homelab-overlay {
+      background: rgba(34,211,238,0.06); border-left: 3px solid #22d3ee;
+      padding: 14px 16px; border-radius: 0 6px 6px 0; margin-bottom: 16px;
+      animation: subnetFade 0.3s ease;
+    }
+    .subnet-homelab-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); margin-bottom: 4px;
+    }
+    .subnet-homelab-line {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted);
+    }
+
+    /* ---- Sections ---- */
+    .subnet-section { margin-bottom: 24px; animation: subnetFade 0.35s ease; }
+    .subnet-section-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .subnet-bar { width: 8px; height: 2px; background: #22d3ee; display: inline-block; }
+
+    @keyframes subnetFade {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- Details table ---- */
+    .subnet-table-wrap {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+    }
+    .subnet-table { width: 100%; border-collapse: collapse; }
+    .subnet-table tr { border-bottom: 1px solid var(--border); }
+    .subnet-table tr:last-child { border-bottom: none; }
+    .subnet-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); padding: 10px 16px; white-space: nowrap; width: 180px;
+    }
+    .subnet-value {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: #22d3ee; padding: 10px 16px; word-break: break-all;
+    }
+
+    /* ---- Binary view ---- */
+    .binary-view {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 20px; overflow-x: auto;
+    }
+    .binary-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .binary-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); width: 50px; text-align: right; flex-shrink: 0;
+    }
+    .binary-bits { display: flex; align-items: center; gap: 1px; flex-wrap: nowrap; }
+    .binary-bit {
+      width: 18px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;
+      border-radius: 2px; cursor: default; transition: all 0.12s; flex-shrink: 0;
+    }
+    .binary-bit:hover { transform: scale(1.2); z-index: 1; }
+    .bit-net { background: rgba(79,255,176,0.15); color: #4fffb0; }
+    .bit-host { background: rgba(251,146,60,0.15); color: #fb923c; }
+    .binary-dot {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px;
+      color: var(--border2); padding: 0 2px; flex-shrink: 0;
+    }
+    .binary-legend {
+      display: flex; align-items: center; margin-top: 8px; padding-left: 62px;
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; gap: 4px;
+    }
+    .binary-legend-item.net { color: #4fffb0; }
+    .binary-legend-item.host { color: #fb923c; }
+
+    /* ---- Splitter ---- */
+    .splitter-controls {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .splitter-label { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); }
+    .splitter-select {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      padding: 8px 12px; color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      outline: none; cursor: pointer; transition: border-color 0.15s;
+    }
+    .splitter-select:focus { border-color: #22d3ee; }
+    .splitter-select option { background: var(--bg2); color: var(--text); }
+    .split-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-left: 3px solid var(--border); border-radius: 0 8px 8px 0;
+      padding: 14px 18px; margin-bottom: 8px; transition: all 0.2s; animation: subnetFade 0.3s ease;
+    }
+    .split-card:hover { transform: translateX(2px); }
+    .split-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .split-card-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .split-homelab-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 2px 8px; border-radius: 3px; border: 1px solid;
+    }
+    .split-card-cidr {
+      font-family: 'JetBrains Mono', monospace; font-size: 15px;
+      color: var(--text); font-weight: 600; margin-bottom: 2px;
+    }
+    .split-card-detail {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); line-height: 1.6;
+    }
+    .split-more {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--border2); text-align: center; padding: 12px;
+    }
+
+    /* ---- Math section ---- */
+    .math-toggle {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: #22d3ee; cursor: pointer; padding: 12px 16px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+      transition: all 0.15s; user-select: none;
+    }
+    .math-toggle:hover { border-color: #22d3ee; background: rgba(34,211,238,0.06); }
+    .math-body {
+      background: var(--bg2); border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 6px 6px; padding: 20px; margin-top: -1px;
+    }
+    .math-step { margin-bottom: 20px; }
+    .math-step:last-child { margin-bottom: 0; }
+    .math-step-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: #22d3ee; margin-bottom: 8px; font-weight: 600;
+    }
+    .math-mono {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); line-height: 1.7;
+      white-space: pre; overflow-x: auto;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 12px 16px;
+    }
+    .math-dim { color: var(--muted); }
+    .math-muted { color: var(--border2); }
+    .math-green { color: #4fffb0; }
+    .math-orange { color: #fb923c; }
+    .math-cyan { color: #22d3ee; font-weight: 600; }
+
+    /* ---- Prefix reference table ---- */
+    .prefix-table-wrap {
+      max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;
+    }
+    .prefix-table-wrap::-webkit-scrollbar { width: 6px; }
+    .prefix-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .prefix-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .prefix-table thead { position: sticky; top: 0; z-index: 1; }
+    .prefix-table th {
+      background: var(--bg3); color: var(--muted); padding: 8px 12px;
+      text-align: left; border-bottom: 1px solid var(--border); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px; font-size: 10px;
+    }
+    .prefix-table td {
+      padding: 6px 12px; color: var(--text); border-bottom: 1px solid rgba(42,47,63,0.5);
+    }
+    .prefix-table tr:hover td { background: rgba(34,211,238,0.04); }
+    .prefix-table tr.prefix-active td {
+      background: rgba(34,211,238,0.1); color: #22d3ee; font-weight: 600;
+    }
+
+    /* ============================================= */
+    /* ---- BAUKASTEN (Subnet Builder) ---- */
+    /* ============================================= */
+    .baukasten-section {
+      margin-bottom: 32px; padding: 24px; background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    .baukasten-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .bk-header {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .bk-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted);
+    }
+    .bk-input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 8px 12px; color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; outline: none; width: 140px; transition: border-color 0.15s;
+    }
+    .bk-input:focus { border-color: #22d3ee; }
+    .bk-slash { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--muted); font-weight: 700; }
+    .bk-select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 8px 12px; color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; outline: none; cursor: pointer; transition: border-color 0.15s;
+    }
+    .bk-select:focus { border-color: #22d3ee; }
+    .bk-select option { background: var(--bg); color: var(--text); }
+    .bk-homelab-btn {
+      background: rgba(79,255,176,0.08); border: 1px solid rgba(79,255,176,0.25);
+      color: #4fffb0; padding: 8px 14px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .bk-homelab-btn:hover { background: rgba(79,255,176,0.15); border-color: #4fffb0; }
+
+    /* Address bar */
+    .bk-bar {
+      display: flex; height: 36px; border-radius: 6px; overflow: hidden;
+      border: 1px solid var(--border); margin-bottom: 16px; position: relative;
+    }
+    .bk-bar-seg {
+      display: flex; align-items: center; justify-content: center;
+      border-right: 1px solid var(--border); transition: all 0.25s; min-width: 2px;
+      position: relative;
+    }
+    .bk-bar-seg:last-child { border-right: none; }
+    .bk-bar-free { background: var(--bg); }
+    .bk-bar-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding: 0 6px;
+    }
+
+    /* Subnet cards */
+    .bk-cards { display: grid; gap: 8px; margin-bottom: 16px; }
+    .bk-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-left: 3px solid var(--border); border-radius: 0 6px 6px 0;
+      padding: 12px 16px; transition: all 0.15s;
+    }
+    .bk-card:hover { transform: translateX(2px); }
+    .bk-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .bk-card-name {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      font-weight: 600; cursor: default;
+    }
+    .bk-homelab-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px;
+      padding: 1px 6px; border-radius: 3px; border: 1px solid;
+    }
+    .bk-remove {
+      margin-left: auto; background: none; border: 1px solid transparent;
+      color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px 6px;
+      border-radius: 3px; transition: all 0.15s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .bk-remove:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+    .bk-card-cidr {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px;
+      color: var(--text); font-weight: 600; margin-bottom: 2px;
+    }
+    .bk-card-info {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    }
+    .bk-card-bar {
+      height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden;
+    }
+    .bk-card-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+    /* Add row */
+    .bk-add-row { margin-bottom: 12px; }
+    .bk-add-btn {
+      background: none; border: 1px dashed var(--border); color: var(--muted);
+      padding: 10px 18px; border-radius: 6px; cursor: pointer; width: 100%;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; transition: all 0.15s;
+    }
+    .bk-add-btn:hover { border-color: #22d3ee; color: #22d3ee; }
+    .bk-add-form {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; margin-top: 8px;
+    }
+    .bk-add-name {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+      padding: 8px 12px; color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; outline: none; width: 140px; transition: border-color 0.15s;
+    }
+    .bk-add-name:focus { border-color: #22d3ee; }
+    .bk-confirm-btn {
+      background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.3);
+      color: #22d3ee; padding: 8px 14px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .bk-confirm-btn:hover { background: rgba(34,211,238,0.2); border-color: #22d3ee; }
+
+    /* Warning & Stats */
+    .bk-warning {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: #ef4444; background: rgba(239,68,68,0.06);
+      border-left: 3px solid #ef4444; padding: 10px 14px;
+      border-radius: 0 4px 4px 0; margin-bottom: 12px;
+    }
+    .bk-stats {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .bk-stats-val { color: var(--text); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 640px) {
+      .subnet-input-row { flex-direction: column; align-items: stretch; }
+      .subnet-input, .subnet-prefix-input { width: 100%; }
+      .subnet-label { width: auto; }
+      .binary-bit { width: 14px; height: 18px; font-size: 9px; }
+      .bk-header { flex-direction: column; align-items: stretch; }
+      .bk-input { width: 100%; }
+      .bk-add-form { flex-direction: column; }
+      .bk-add-name { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="../index.html">Dashboard</a><span class="sep">›</span><a href="../wiki-preview.html">Wiki</a><span class="sep">›</span><a href="../academy.html?tab=demos">Netz-Akademie</a><span class="sep">›</span><span>Subnetting Calculator</span></div>
+
+  <a href="../academy.html?tab=demos" class="demo-back">← Zurück zur Akademie</a>
+
+  <header>
+    <div class="header-left">
+      <h1>// subnet<span>_calculator</span></h1>
+      <p style="color:var(--muted);font-size:14px;max-width:640px">CIDR berechnen, Subnetze visuell aufteilen, Mathematik verstehen</p>
+    </div>
+  </header>
+
+  <!-- ===== BAUKASTEN ===== -->
+  <div class="baukasten-section">
+    <div class="baukasten-title"><span class="subnet-bar" style="background:#a78bfa"></span>SUBNETZ-BAUKASTEN</div>
+    <div id="baukasten"></div>
+  </div>
+
+  <!-- ===== CALCULATOR ===== -->
+  <div class="preset-row" id="subnet-presets"></div>
+
+  <div class="subnet-input-row">
+    <span class="subnet-input-label">Netzwerk:</span>
+    <input type="text" class="subnet-input" id="subnet-ip" value="10.0.1.0" placeholder="10.0.1.0" maxlength="15" spellcheck="false" autocomplete="off">
+    <span class="subnet-slash">/</span>
+    <input type="number" class="subnet-prefix-input" id="subnet-prefix" value="24" min="0" max="32">
+    <button class="subnet-calc-btn" id="subnet-calc-btn">Berechnen</button>
+  </div>
+
+  <div class="subnet-error" id="subnet-error"></div>
+  <div id="subnet-results"></div>
+
+  <footer style="margin-top:40px;padding:16px 0;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--border2);text-align:center">
+    homelab_roadmap · subnet_calculator · Security by Design
+  </footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script src="../assets/demos/subnetting.js"></script>
+</body>
+</html>

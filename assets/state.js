@@ -100,7 +100,7 @@
 
   async function loadState() {
     try {
-      const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/');
+      const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/') || window.location.pathname.includes('/demos/');
       const root = inSubdir ? '../' : './';
 
       const fetches = [

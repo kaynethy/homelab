@@ -27,7 +27,7 @@
     },
     "ideas_file": "homelab-ideas.json",
     "progress_done": 11,
-    "progress_wip": 0,
+    "progress_wip": 1,
     "progress_total": 35
   },
   "hardware": {
@@ -806,18 +806,110 @@
         },
         {
           "id": "p2-firewall",
-          "title": "pfSense / OPNsense",
-          "status": "todo",
+          "title": "OPNsense Firewall",
+          "status": "wip",
           "tags": [
             "Firewall",
-            "pfSense",
+            "OPNsense",
             "Routing",
-            "NAT"
+            "NAT",
+            "FreeBSD"
           ],
-          "desc": "Virtuelle Firewall-VM in Proxmox. Routing zwischen VLANs, Firewall-Regeln, NAT.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
+          "desc": "OPNsense 26.1 als virtuelle Firewall-VM in Proxmox (VM 102). Routing zwischen VLANs, Firewall-Regeln, NAT. Ersetzt TP-Link Archer C80 als Gateway.",
+          "log": [
+            {
+              "date": "2026-04-20",
+              "entry": "OPNsense 26.1 ISO heruntergeladen via pkg.opnsense.org (Mirror 404 Fehler behoben)."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "VM 102 erstellt: 1 Core, 2 GB RAM, 16 GB Disk, x86-64-v2-AES, onboot=1, startup order=1 delay=60."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Zwei NICs: vtnet0 (LAN) + vtnet1 (WAN), beide vmbr0, VirtIO, firewall=1."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Installer: login installer/opnsense. UFS, vtbd0. RAM-Warnung 2 GB < 3 GB → Proceed anyway."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "LAN via Konsole Option 2 auf 192.168.0.202/24 gesetzt (Übergangs-IP, selbes Subnetz wie restliche Infra)."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Web-UI https://192.168.0.202 erreichbar. HTTPS aktiviert, Port 443."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Root-Passwort geändert (Default opnsense entfernt), in KeePass eingetragen."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Security-Update: LDAP auth bypass fix, curl 8.19.0, OpenSSL 3.0.20, FreeBSD security advisories."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Basis-Config: Timezone Europe/Berlin, Hostname opnsense.homelab.local, DNS 192.168.0.201, IPv4 bevorzugt."
+            },
+            {
+              "date": "2026-04-20",
+              "entry": "Proxmox Snapshot: opnsense-basis-config-2026-04-20."
+            }
+          ],
+          "notes": "Basis-Konfiguration abgeschlossen. LAN 192.168.0.202 (Übergang), WAN 192.168.0.215. Nächste Schritte: Firewall-Regeln, VLANs, Migration auf 10.0.x.",
+          "deferred_reason": "",
+          "details": {
+            "vm": {
+              "id": 102,
+              "name": "opensense",
+              "cores": 1,
+              "ram_mb": 2048,
+              "disk_gb": 16,
+              "cpu_type": "x86-64-v2-AES",
+              "bios": "SeaBIOS",
+              "onboot": true,
+              "startup_order": 1,
+              "startup_delay": 60
+            },
+            "network": {
+              "lan_interface": "vtnet0",
+              "wan_interface": "vtnet1",
+              "lan_ip_transition": "192.168.0.202/24",
+              "wan_ip": "192.168.0.215/24 (DHCP)",
+              "lan_ip_target": "10.0.1.1/24",
+              "web_ui": "https://192.168.0.202"
+            },
+            "completed": [
+              "VM erstellt: 1 Core, 2 GB RAM, 16 GB Disk, x86-64-v2-AES, SeaBIOS, onboot=1, startup order=1 delay=60",
+              "Zwei NICs: vtnet0 (LAN) + vtnet1 (WAN), beide vmbr0, VirtIO, firewall=1",
+              "OPNsense 26.1 installiert (UFS, vtbd0)",
+              "LAN IP auf 192.168.0.202 gesetzt via Konsole Option 2",
+              "HTTPS aktiviert: Port 443, self-signed Zertifikat",
+              "Root-Passwort geändert, in KeePass eingetragen",
+              "Security-Update eingespielt: LDAP auth bypass + curl/OpenSSL",
+              "Timezone: Europe/Berlin, Hostname: opnsense.homelab.local",
+              "DNS: 192.168.0.201 (AdGuard), IPv4 bevorzugt",
+              "Proxmox Snapshot: opnsense-basis-config-2026-04-20"
+            ],
+            "todo": [
+              "Firewall-Regeln konfigurieren (Block/Allow nach IP-Plan)",
+              "VLANs einrichten (p2-vlans)",
+              "Zweite Bridge in Proxmox für LAN-Trennung von WAN",
+              "Migration: LAN auf 10.0.1.1, alle Hosts auf 10.0.x umziehen",
+              "TP-Link als Gateway ablösen",
+              "HTTPS Zertifikat: Let's Encrypt nach Domain-Einrichtung (p2-ddns)"
+            ],
+            "security_notes": [
+              "AES-NI via x86-64-v2-AES – wichtig für VPN-Verschlüsselung (WireGuard/IPsec)",
+              "HTTPS für Web-UI – Credentials nicht im Klartext übertragen",
+              "Security-Update sofort eingespielt: LDAP auth bypass CVE gefixt",
+              "Firewall-first Autostart: order=1, delay=60s",
+              "Default-Credentials geändert – kein Default-PW mehr aktiv",
+              "TODO: Web-UI HTTPS mit echtem Zertifikat nach Let's Encrypt Setup"
+            ]
+          }
         },
         {
           "id": "p2-dhcp",
@@ -1328,6 +1420,27 @@
         "idea-027 (Passwort-Manager) als done markiert - KeePassXC laeuft",
         "idea-029 (Snapshots) als done markiert - Checkpoint-VM etabliert",
         "Phase 1 komplett: 10/10 Steps done. Weiter mit Phase 2 (OPNsense)."
+      ]
+    },
+    {
+      "date": "2026-04-20",
+      "session": 8,
+      "title": "OPNsense Installation & Basis-Konfiguration",
+      "entries": [
+        "OPNsense 26.1 ISO via pkg.opnsense.org heruntergeladen (direkter Mirror-Link nötig, opnsense.org/download/ funktioniert nicht direkt in Proxmox)",
+        "VM 102 erstellt: 1 Core, 2 GB RAM, 16 GB Disk, x86-64-v2-AES CPU-Type (AES-NI für späteres VPN), SeaBIOS",
+        "Autostart konfiguriert: onboot=1, startup order=1, delay=60s – Firewall startet vor allen anderen VMs",
+        "Zwei NICs: vtnet0 (LAN) + vtnet1 (WAN), VirtIO, beide vorerst vmbr0",
+        "Installer: login als installer/opnsense, UFS-Installation auf vtbd0 (16 GB)",
+        "LAN hatte Default-IP 192.168.1.1 – via Konsole Option 2 auf 192.168.0.202 gesetzt (Übergangsphase)",
+        "Web-UI erreichbar unter https://192.168.0.202 – HTTPS aktiviert, Port 443",
+        "Wichtig: HTTP für Firewall-UI ist Anti-Pattern – Credentials im Klartext. Sofort auf HTTPS umgestellt.",
+        "Default-Passwort geändert – Default-Credentials auf Firewall sind kritisches Sicherheitsrisiko",
+        "Security-Update sofort eingespielt: LDAP auth bypass CVE, curl 8.19.0, OpenSSL 3.0.20",
+        "Lessons Learned Supply Chain Security: Checksummen-Verifikation bei Firewall-Images sinnvoll",
+        "Basis-Config: Europe/Berlin, opnsense.homelab.local, DNS auf AdGuard 192.168.0.201",
+        "Proxmox Snapshot erstellt: opnsense-basis-config-2026-04-20",
+        "Nächste Schritte: Firewall-Regeln nach IP-Plan, VLANs, dann Migration auf 10.0.x Subnetze"
       ]
     }
   ]

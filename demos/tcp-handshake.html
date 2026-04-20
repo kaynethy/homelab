@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – TCP Handshake Simulator</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ===== TCP HANDSHAKE SIMULATOR ===== */
+    .demo-back {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); text-decoration: none; display: inline-block; margin-bottom: 20px;
+      transition: color 0.15s;
+    }
+    .demo-back:hover { color: #eab308; }
+
+    /* ---- Generic sections ---- */
+    .tcp-section { margin-bottom: 24px; animation: tcpFade 0.35s ease; }
+    .tcp-section-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .tcp-bar { width: 8px; height: 2px; background: #eab308; display: inline-block; }
+
+    @keyframes tcpFade {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- Toggle buttons ---- */
+    .tcp-toggle {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: #eab308; cursor: pointer; padding: 12px 16px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+      transition: all 0.15s; user-select: none; margin-bottom: 2px;
+    }
+    .tcp-toggle:hover { border-color: #eab308; background: rgba(234,179,8,0.06); }
+
+    /* ---- Flag badges ---- */
+    .tcp-flag-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 2px 8px; border-radius: 3px; border: 1px solid;
+      display: inline-block; margin: 0 2px; font-weight: 600;
+    }
+    .tcp-state-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 2px 8px; border-radius: 10px; border: 1px solid;
+      display: inline-block; white-space: nowrap;
+    }
+
+    /* =============================== */
+    /* SEQUENCE DIAGRAM                */
+    /* =============================== */
+    .seq-diagram {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 24px; margin-bottom: 24px; overflow-x: auto;
+    }
+    .seq-hosts {
+      display: flex; justify-content: space-between; margin-bottom: 8px;
+    }
+    .seq-host {
+      width: 180px; padding: 14px; border-radius: 8px;
+      background: var(--bg); border: 2px solid var(--border); text-align: center;
+      transition: all 0.3s;
+    }
+    .seq-client { border-color: #22d3ee; }
+    .seq-server { border-color: #4db8ff; }
+    .seq-host-glow { box-shadow: 0 0 20px rgba(234,179,8,0.3); }
+    .seq-host-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;
+    }
+    .seq-host-ip {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--text); font-weight: 600; margin-bottom: 8px;
+    }
+
+    /* Timeline */
+    .seq-timeline {
+      position: relative; padding: 12px 0; min-height: 100px;
+    }
+    .seq-line {
+      position: absolute; top: 0; bottom: 0; width: 2px;
+      background: var(--border); z-index: 0;
+    }
+    .seq-line-left { left: 90px; }
+    .seq-line-right { right: 90px; }
+
+    /* Arrow rows */
+    .seq-arrow-row {
+      position: relative; display: flex; align-items: center;
+      padding: 10px 0; margin: 4px 0; z-index: 1;
+      transition: opacity 0.3s;
+    }
+    .seq-arrow-hidden { opacity: 0; pointer-events: none; }
+    .seq-arrow-past { opacity: 0.4; }
+    .seq-arrow-active { opacity: 1; }
+
+    .seq-arrow-line {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; position: relative; margin: 0 90px;
+    }
+    .seq-arrow-label {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 4px; white-space: nowrap;
+    }
+    .seq-arrow-nums {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    }
+    .seq-arrow-shaft {
+      width: 100%; height: 2px; background: #eab308; position: relative;
+      border-radius: 1px;
+    }
+    .seq-arrow-right .seq-arrow-shaft { background: linear-gradient(90deg, transparent, #eab308); }
+    .seq-arrow-left .seq-arrow-shaft { background: linear-gradient(90deg, #eab308, transparent); }
+    .seq-arrow-tip {
+      position: absolute; top: -5px; width: 0; height: 0;
+      border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+    }
+    .seq-arrow-right .seq-arrow-tip { right: -2px; border-left: 10px solid #eab308; }
+    .seq-arrow-left .seq-arrow-tip { left: -2px; border-right: 10px solid #eab308; }
+    .seq-step-num {
+      position: absolute; right: 8px;
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--border2);
+    }
+    .seq-arrow-left .seq-step-num { left: 8px; right: auto; }
+
+    /* Arrow animation */
+    .seq-arrow-animate .seq-arrow-shaft { animation: arrowSlide 1s ease forwards; }
+    .seq-arrow-animate .seq-arrow-label { animation: arrowLabelFade 1s ease forwards; }
+    @keyframes arrowSlide {
+      0% { transform: scaleX(0); opacity: 0; }
+      100% { transform: scaleX(1); opacity: 1; }
+    }
+    .seq-arrow-right .seq-arrow-shaft { transform-origin: left; }
+    .seq-arrow-left .seq-arrow-shaft { transform-origin: right; }
+    @keyframes arrowLabelFade {
+      0% { opacity: 0; transform: translateY(-4px); }
+      50% { opacity: 0; }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .seq-established-marker {
+      text-align: center; padding: 12px 0;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: #4fffb0; letter-spacing: 2px;
+    }
+
+    /* =============================== */
+    /* CONTROLS                        */
+    /* =============================== */
+    .tcp-controls {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .ctrl-btn {
+      background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+      padding: 8px 16px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; transition: all 0.15s;
+    }
+    .ctrl-btn:hover:not(:disabled) { border-color: #eab308; color: #eab308; }
+    .ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+    .ctrl-auto { border-color: rgba(234,179,8,0.3); color: #eab308; background: rgba(234,179,8,0.06); }
+    .ctrl-reset { color: var(--muted); }
+    .ctrl-step {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--text); padding: 0 8px;
+    }
+    .tcp-speed {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 24px;
+    }
+    .speed-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    }
+    .speed-btn {
+      background: var(--bg2); border: 1px solid var(--border); color: var(--muted);
+      padding: 4px 10px; border-radius: 3px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .speed-btn:hover { border-color: #eab308; color: #eab308; }
+    .speed-active { border-color: #eab308; color: #eab308; background: rgba(234,179,8,0.1); }
+
+    /* =============================== */
+    /* STEP TABLE                      */
+    /* =============================== */
+    .step-table-wrap {
+      overflow-x: auto; border: 1px solid var(--border); border-radius: 6px;
+    }
+    .step-table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .step-table th {
+      background: var(--bg3); color: var(--muted); padding: 8px 10px;
+      text-align: left; border-bottom: 1px solid var(--border);
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; white-space: nowrap;
+    }
+    .step-table td {
+      padding: 8px 10px; border-bottom: 1px solid rgba(42,47,63,0.5);
+      color: var(--text); white-space: nowrap;
+    }
+    .step-table tr:last-child td { border-bottom: none; }
+    .step-table tr:hover td { background: rgba(234,179,8,0.04); }
+    .step-active td { background: rgba(234,179,8,0.1) !important; }
+    .step-past td { opacity: 0.5; }
+    .step-desc-cell { white-space: normal; color: var(--muted); max-width: 200px; }
+
+    /* =============================== */
+    /* DETAIL PANEL                    */
+    /* =============================== */
+    .detail-desc {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); line-height: 1.7; margin-bottom: 16px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 16px;
+    }
+    .tcp-header-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 16px; margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); overflow-x: auto;
+    }
+    .tcp-header-title { color: var(--muted); margin: 4px 0; white-space: pre; }
+    .tcp-header-row { white-space: pre; line-height: 1.6; }
+    .detail-transition {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); padding: 10px 14px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+    }
+
+    /* =============================== */
+    /* SEQ/ACK TRACKER                 */
+    /* =============================== */
+    .tracker-wrap {
+      overflow-x: auto; border: 1px solid var(--border); border-radius: 6px;
+    }
+    .tracker-table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .tracker-table th {
+      background: var(--bg3); color: var(--muted); padding: 8px 12px;
+      text-align: center; border-bottom: 1px solid var(--border);
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+    }
+    .tracker-sub th { font-size: 9px; padding: 4px 12px; background: var(--bg2); }
+    .tracker-table td {
+      padding: 8px 12px; text-align: center;
+      border-bottom: 1px solid rgba(42,47,63,0.5); color: var(--text);
+    }
+    .tracker-active td { background: rgba(234,179,8,0.1); color: #eab308; font-weight: 600; }
+    .tracker-future td { opacity: 0.25; }
+
+    /* =============================== */
+    /* WIRESHARK                        */
+    /* =============================== */
+    .ws-body { margin-top: 2px; }
+    .ws-table-wrap {
+      overflow-x: auto; border: 1px solid var(--border); border-radius: 0 0 6px 6px;
+    }
+    .ws-table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    }
+    .ws-table th {
+      background: var(--bg3); color: var(--muted); padding: 6px 10px;
+      text-align: left; border-bottom: 1px solid var(--border);
+      font-size: 10px; font-weight: 600; white-space: nowrap;
+    }
+    .ws-table td {
+      padding: 6px 10px; border-bottom: 1px solid rgba(42,47,63,0.5);
+      color: var(--text); white-space: nowrap;
+    }
+    .ws-active td { background: rgba(234,179,8,0.1); color: #eab308; }
+    .ws-future td { opacity: 0.2; }
+    .ws-hint {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); padding: 12px 16px; line-height: 1.6;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-top: none; border-radius: 0 0 6px 6px;
+    }
+    .ws-hint code {
+      background: var(--bg); padding: 2px 6px; border-radius: 3px;
+      color: #22d3ee; font-size: 11px;
+    }
+
+    /* =============================== */
+    /* INTERACTIVE                      */
+    /* =============================== */
+    .tcp-interactive { margin-bottom: 16px; }
+    .interactive-body {
+      background: var(--bg2); border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 6px 6px; padding: 16px; margin-top: -1px;
+    }
+    .interactive-row {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .interactive-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); display: flex; align-items: center; gap: 8px;
+    }
+    .interactive-input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 6px 10px; color: var(--text); width: 110px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      outline: none; transition: border-color 0.15s;
+    }
+    .interactive-input:focus { border-color: #eab308; }
+    .interactive-input-sm { width: 70px; }
+
+    /* =============================== */
+    /* SECURITY                         */
+    /* =============================== */
+    .sec-body {
+      background: var(--bg2); border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 6px 6px; padding: 16px; margin-top: -1px;
+    }
+    .sec-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .sec-tab {
+      background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+      padding: 6px 14px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .sec-tab:hover { border-color: #ef4444; color: #ef4444; }
+    .sec-tab-active { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.08); }
+    .sec-content { animation: tcpFade 0.3s ease; }
+    .sec-desc {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); line-height: 1.7; margin-bottom: 16px;
+    }
+    .sec-fix {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); line-height: 1.7;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 14px 16px; margin-top: 12px;
+    }
+    .sec-fix ul { margin: 8px 0 0 20px; }
+    .sec-fix li { margin-bottom: 4px; }
+    .sec-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+    .sec-btn {
+      padding: 8px 16px; border-radius: 4px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; transition: all 0.15s;
+    }
+    .sec-btn-start { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+    .sec-btn-start:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; }
+    .sec-btn-stop { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); color: #eab308; }
+    .sec-diagram {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 16px; margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .sec-diag-row {
+      display: flex; align-items: center; gap: 12px; padding: 6px 0; justify-content: center;
+    }
+    .sec-diag-label { min-width: 60px; text-align: center; }
+    .sec-diag-arrow { flex: 1; text-align: center; }
+
+    /* SYN Flood viz */
+    .flood-viz {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 16px; margin-bottom: 12px;
+      position: relative; min-height: 120px; overflow: hidden;
+    }
+    .flood-server {
+      text-align: center; padding: 12px;
+      border: 2px solid var(--border); border-radius: 8px; transition: all 0.3s;
+    }
+    .flood-server-red { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+    .flood-server-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 2px;
+    }
+    .flood-counter {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #ef4444; margin: 8px 0;
+    }
+    .flood-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .flood-bar-fill {
+      height: 100%; background: linear-gradient(90deg, #eab308, #ef4444);
+      border-radius: 3px; transition: width 0.1s;
+    }
+    .flood-arrows {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; overflow: hidden;
+    }
+    .flood-arrow {
+      position: absolute; left: 0;
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      color: #ef4444; white-space: nowrap;
+      animation: floodArrow 1.5s ease forwards;
+    }
+    @keyframes floodArrow {
+      0% { transform: translateX(-100%); opacity: 0; top: 30%; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateX(110%); opacity: 0; }
+    }
+
+    /* =============================== */
+    /* UDP COMPARISON                   */
+    /* =============================== */
+    .udp-body {
+      background: var(--bg2); border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 6px 6px; padding: 20px; margin-top: -1px;
+    }
+    .udp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 16px; }
+    .udp-col {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px;
+    }
+    .udp-col-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px;
+      font-weight: 700; margin-bottom: 12px; text-align: center;
+    }
+    .udp-steps { margin-bottom: 12px; }
+    .udp-step {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); padding: 4px 0;
+    }
+    .udp-single { font-size: 13px; font-weight: 600; }
+    .udp-stats {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); border-top: 1px solid var(--border);
+      padding-top: 8px; line-height: 1.8;
+    }
+    .udp-hint {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); line-height: 1.6;
+    }
+
+    /* =============================== */
+    /* HOMELAB PANEL                    */
+    /* =============================== */
+    .homelab-panel {
+      border-left: 3px solid #4fffb0; background: rgba(79,255,176,0.04);
+      border-radius: 0 8px 8px 0; padding: 20px;
+    }
+    .homelab-content {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); line-height: 1.8;
+    }
+    .homelab-content p { margin-bottom: 10px; }
+    .homelab-content code {
+      background: var(--bg); padding: 2px 6px; border-radius: 3px;
+      color: #22d3ee; font-size: 11px;
+    }
+    .homelab-content ol, .homelab-content ul { margin: 0 0 12px 20px; }
+    .homelab-content li { margin-bottom: 2px; }
+    .homelab-firewall {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 16px; margin-top: 12px;
+    }
+
+    /* =============================== */
+    /* RESPONSIVE                       */
+    /* =============================== */
+    @media (max-width: 768px) {
+      .seq-hosts { flex-direction: column; align-items: center; gap: 12px; }
+      .seq-host { width: 100%; max-width: 200px; }
+      .seq-line-left { left: 50%; transform: translateX(-50%); }
+      .seq-line-right { display: none; }
+      .seq-arrow-line { margin: 0 20px; }
+      .seq-arrow-row .seq-step-num { display: none; }
+      .interactive-row { flex-direction: column; }
+      .interactive-input { width: 100%; }
+      .udp-cols { grid-template-columns: 1fr; }
+      .tcp-controls { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="../index.html">Dashboard</a><span class="sep">›</span><a href="../wiki-preview.html">Wiki</a><span class="sep">›</span><a href="../academy.html?tab=demos">Netz-Akademie</a><span class="sep">›</span><span>TCP Handshake</span></div>
+
+  <a href="../academy.html?tab=demos" class="demo-back">← Zurück zur Akademie</a>
+
+  <header>
+    <div class="header-left">
+      <h1>// tcp<span>_handshake</span></h1>
+      <p style="color:var(--muted);font-size:14px;max-width:640px">3-Way Handshake, Datenübertragung und Verbindungsabbau — Schritt für Schritt visualisiert</p>
+    </div>
+  </header>
+
+  <div id="tcp-main"></div>
+
+  <footer style="margin-top:40px;padding:16px 0;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--border2);text-align:center">
+    homelab_roadmap · tcp_handshake · Security by Design
+  </footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script src="../assets/demos/tcp-handshake.js"></script>
+</body>
+</html>

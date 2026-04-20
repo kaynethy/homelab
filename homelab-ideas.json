@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "1.4",
+    "version": "1.5",
     "updated": "2026-04-19"
   },
   "ideas": [
@@ -135,7 +135,7 @@
       "phase_id": "phase1",
       "step_id": "p1-proxmox-vm",
       "prio": "high",
-      "status": "idea",
+      "status": "deferred",
       "tags": [
         "Backup",
         "Proxmox",
@@ -147,8 +147,15 @@
           "date": "2026-04-16",
           "text": "Direkt nach der ersten Proxmox-Installation einplanen – bevor irgendwas kaputt gehen kann",
           "edited": false
+        },
+        {
+          "id": "c-010-2",
+          "date": "2026-04-19",
+          "text": "Zurückgestellt: PBS braucht zweites Speichermedium. Auf einer einzelnen 1TB SSD kein echtes Backup. Bis dahin: Hyper-V Snapshots + vzdump.",
+          "edited": false
         }
-      ]
+      ],
+      "deferred_reason": "PBS braucht zweites Speichermedium. Auf einer einzelnen 1TB SSD kein echtes Backup. Bis dahin: Hyper-V Snapshots + vzdump."
     },
     {
       "id": "idea-011",

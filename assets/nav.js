@@ -4,7 +4,7 @@
 
   function getDepth() {
     const path = window.location.pathname;
-    return (path.includes('/phases/') || path.includes('/steps/')) ? 1 : 0;
+    return (path.includes('/phases/') || path.includes('/steps/') || path.includes('/demos/')) ? 1 : 0;
   }
 
   function getRoot() {
@@ -34,7 +34,8 @@
     ];
 
     const links = pages.map(p => {
-      const isActive = current === p.file || (p.file === 'wiki-preview.html' && (current === 'osi-reference.html' || current === 'academy.html'));
+      const isWikiSection = p.file === 'wiki-preview.html' && (current === 'osi-reference.html' || current === 'academy.html' || window.location.pathname.includes('/demos/'));
+      const isActive = current === p.file || isWikiSection;
       return `<a href="${p.href}" class="nav-link${isActive ? ' active' : ''}">${p.label}</a>`;
     }).join('');
 
