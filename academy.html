@@ -1327,21 +1327,24 @@
   // =============================================
   function renderDemos() {
     var demos = [
-      { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, id: 'demo-encap' },
-      { icon: '📐', title: 'Subnetting Calculator', desc: 'CIDR berechnen, Subnetze aufteilen, Host-Ranges sehen. Visuell dargestellt.', live: false },
-      { icon: '🤝', title: 'TCP Handshake Simulator', desc: '3-Way Handshake Schritt für Schritt visualisiert. SYN → SYN-ACK → ACK animiert.', live: false },
-      { icon: '🔍', title: 'DNS Lookup Visualizer', desc: 'Recursive Resolution live nachvollziehen. Root → TLD → Authoritative → Antwort.', live: false }
+      { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, action: 'encap' },
+      { icon: '📐', title: 'Subnetting Calculator', desc: 'CIDR berechnen, Subnetze aufteilen, Host-Ranges sehen. Visuell dargestellt.', live: true, href: 'demos/subnetting-calculator.html' },
+      { icon: '🤝', title: 'TCP Handshake Simulator', desc: '3-Way Handshake Schritt für Schritt visualisiert. SYN → SYN-ACK → ACK animiert.', live: true, href: 'demos/tcp-handshake.html' },
+      { icon: '🔍', title: 'DNS Lookup Visualizer', desc: 'Recursive Resolution live nachvollziehen. Root → TLD → Authoritative → Antwort.', live: true, href: 'demos/dns-lookup.html' }
     ];
 
     var html = demos.map(function(d) {
       var cls = 'demo-card' + (d.live ? '' : ' coming-soon');
-      return '<div class="' + cls + '"' + (d.id ? ' id="' + d.id + '" style="cursor:pointer"' : '') + '>' +
+      var link = d.href ? ' onclick="window.location.href=\'' + d.href + '\'"' : '';
+      var id = d.action === 'encap' ? ' id="demo-encap"' : '';
+      return '<div class="' + cls + '"' + id + ' style="cursor:pointer"' + link + '>' +
         '<span class="demo-card-icon">' + d.icon + '</span>' +
         '<h3>' + escHtml(d.title) + '</h3>' +
         '<p>' + escHtml(d.desc) + '</p>' +
         '<div class="demo-card-footer">' +
           (d.live
-            ? '<span class="demo-badge live">LIVE</span><button class="demo-start-btn">Starten →</button>'
+            ? '<span class="demo-badge live">LIVE</span>' +
+              (d.href ? '<a href="' + d.href + '" class="demo-start-btn" style="text-decoration:none">Starten →</a>' : '<button class="demo-start-btn">Starten →</button>')
             : '<span class="demo-badge soon">COMING SOON</span>') +
         '</div>' +
       '</div>';
@@ -1351,7 +1354,8 @@
 
     var encapCard = document.getElementById('demo-encap');
     if (encapCard) {
-      encapCard.addEventListener('click', function() {
+      encapCard.addEventListener('click', function(e) {
+        if (e.target.closest('a')) return;
         switchTab('osi');
         encapVisible = true;
         var btn = document.getElementById('btn-encap');

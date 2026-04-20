@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – DNS Lookup Visualizer</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* === DEMO BACK LINK === */
+    .demo-back {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); text-decoration: none; display: inline-block; margin-bottom: 20px;
+      transition: color 0.15s;
+    }
+    .demo-back:hover { color: #a78bfa; }
+
+    /* === INPUT SECTION === */
+    .dns-input-section {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 20px;
+    }
+    .dns-input-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .dns-input-label {
+      font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    }
+    .dns-input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      padding: 8px 14px; flex: 1; min-width: 200px; outline: none; transition: border-color 0.15s;
+    }
+    .dns-input:focus { border-color: #a78bfa; }
+    .dns-select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      padding: 8px 12px; cursor: pointer; outline: none;
+    }
+    .dns-resolve-btn {
+      background: #a78bfa; color: #0d0f14; border: none; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
+      padding: 8px 18px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .dns-resolve-btn:hover { opacity: 0.85; }
+    .dns-rectype-info {
+      font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 14px;
+      padding: 8px 12px; background: rgba(167,139,250,0.05); border: 1px solid rgba(167,139,250,0.12);
+      border-radius: 6px;
+    }
+    .dns-presets, .dns-scenarios {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .dns-presets-label {
+      font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-right: 4px;
+    }
+    .dns-preset-btn {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 5px 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .dns-preset-btn:hover { border-color: #a78bfa; background: rgba(167,139,250,0.08); }
+    .dns-scenario-btn {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .dns-scenario-btn:hover { border-color: #a78bfa; }
+    .dns-scenario-active {
+      border-color: #a78bfa; background: rgba(167,139,250,0.12); color: #a78bfa;
+    }
+
+    /* === SECTIONS === */
+    .dns-section {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .dns-section-title {
+      font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .dns-bar { width: 3px; height: 14px; background: #a78bfa; border-radius: 2px; display: inline-block; }
+
+    /* === SERVER CHAIN === */
+    .dns-chain {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      justify-content: center; padding: 16px 0;
+    }
+    .dns-node {
+      background: var(--bg); border: 2px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+      min-width: 100px; position: relative;
+    }
+    .dns-node:hover { border-color: #a78bfa; }
+    .dns-node-selected { box-shadow: 0 0 16px rgba(167,139,250,0.25); }
+    .dns-node-icon { font-size: 28px; margin-bottom: 6px; }
+    .dns-node-name { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .dns-node-ip { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .dns-node-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+      margin-top: 6px; display: inline-block; letter-spacing: 0.5px;
+    }
+    .dns-badge-cache { background: rgba(79,255,176,0.15); color: #4fffb0; }
+    .dns-badge-blocked { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .dns-badge-rewrite { background: rgba(79,255,176,0.15); color: #4fffb0; }
+    .dns-badge-bypassed { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .dns-badge-nxdomain { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .dns-chain-arrow {
+      color: var(--muted); font-size: 20px; font-weight: 700;
+    }
+
+    /* === SERVER DETAIL === */
+    .dns-server-detail {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; margin-top: 14px;
+    }
+    .dns-server-detail-title {
+      font-size: 13px; font-weight: 700; color: #a78bfa; margin-bottom: 8px;
+    }
+    .dns-server-detail-desc {
+      font-size: 12px; color: var(--text); line-height: 1.6;
+    }
+
+    /* === CONTROLS === */
+    .dns-controls {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 10px;
+    }
+    .dns-ctrl-btn {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 7px 14px; cursor: pointer; transition: border-color 0.15s;
+    }
+    .dns-ctrl-btn:hover:not(:disabled) { border-color: #a78bfa; }
+    .dns-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
+    .dns-ctrl-step {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text);
+      min-width: 120px; text-align: center;
+    }
+    .dns-ctrl-auto { border-color: #a78bfa55; color: #a78bfa; }
+    .dns-ctrl-reset { border-color: var(--border); color: var(--muted); }
+    .dns-speed {
+      display: flex; align-items: center; gap: 6px; justify-content: center; margin-bottom: 16px;
+    }
+    .dns-speed-label { font-size: 11px; color: var(--muted); margin-right: 4px; }
+    .dns-speed-btn {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 4px 10px; cursor: pointer; transition: border-color 0.15s;
+    }
+    .dns-speed-btn:hover { border-color: #a78bfa; }
+    .dns-speed-active { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.1); }
+
+    /* === STEP DETAIL === */
+    .dns-step-badge {
+      display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      padding: 4px 12px; border-radius: 5px; border: 1px solid; margin-bottom: 12px;
+    }
+    .dns-step-desc {
+      font-size: 13px; color: var(--text); line-height: 1.7; margin-bottom: 14px;
+    }
+    .dns-step-arrow {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+      background: var(--bg); border: 1px solid; border-radius: 8px;
+      padding: 12px 16px; font-size: 12px;
+    }
+    .dns-step-arrow-from, .dns-step-arrow-to {
+      font-weight: 700; color: var(--text); white-space: nowrap;
+    }
+    .dns-step-arrow-line {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; flex: 1;
+      text-align: center; min-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* === STEP TABLE === */
+    .dns-step-table-wrap { overflow-x: auto; }
+    .dns-step-table {
+      width: 100%; border-collapse: collapse; font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dns-step-table th {
+      text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 700;
+      border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.5px;
+    }
+    .dns-step-table td {
+      padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text);
+      vertical-align: top;
+    }
+    .dns-step-table .dns-table-desc { color: var(--muted); max-width: 250px; }
+    .dns-step-active { background: rgba(167,139,250,0.1); }
+    .dns-step-active td { color: #a78bfa; }
+    .dns-step-future { opacity: 0.35; }
+
+    /* === DNS RESPONSE === */
+    .dns-response-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .dns-resp-row {
+      display: flex; gap: 12px; padding: 4px 0; line-height: 1.6;
+    }
+    .dns-resp-label {
+      color: var(--muted); min-width: 90px; flex-shrink: 0;
+    }
+    .dns-resp-val { color: var(--text); }
+
+    /* === DIG COMMANDS === */
+    .dns-dig {
+      margin-top: 16px; padding: 14px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .dns-dig-title { font-size: 12px; color: var(--text); margin-bottom: 10px; }
+    .dns-dig-cmd {
+      display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 5px;
+      margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s;
+    }
+    .dns-dig-cmd:hover { border-color: #a78bfa; }
+    .dns-dig-cmd code {
+      font-size: 11px; color: #a78bfa; flex: 1; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dns-dig-copy { font-size: 12px; color: var(--muted); cursor: pointer; }
+
+    /* === HIERARCHY === */
+    .dns-toggle {
+      font-size: 13px; color: var(--text); cursor: pointer; padding: 12px 16px;
+      font-family: 'JetBrains Mono', monospace; transition: color 0.15s;
+    }
+    .dns-toggle:hover { color: #a78bfa; }
+    .dns-hierarchy-body { padding: 0 16px 16px; }
+    .dns-tree { text-align: center; font-family: 'JetBrains Mono', monospace; }
+    .dns-tree-row { margin: 4px 0; }
+    .dns-tree-line { color: var(--muted); font-size: 14px; }
+    .dns-tree-node {
+      display: inline-block; padding: 4px 14px; border: 1px solid var(--border);
+      border-radius: 5px; font-size: 12px; color: var(--text);
+    }
+    .dns-tree-active { border-color: #a78bfa; color: #a78bfa; }
+    .dns-tree-highlight {
+      border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.12);
+      font-weight: 700;
+    }
+    .dns-tree-branches {
+      display: flex; justify-content: center; gap: 16px; margin: 6px 0;
+    }
+    .dns-tree-branch {
+      font-size: 12px; color: var(--muted); padding: 3px 10px;
+      border: 1px solid var(--border); border-radius: 4px;
+    }
+    .dns-tree-branch.dns-tree-active { border-color: #a78bfa; color: #a78bfa; }
+    .dns-tree-siblings {
+      display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 10px;
+    }
+    .dns-tree-sibling {
+      font-size: 11px; color: var(--muted); padding: 3px 8px;
+      border: 1px solid var(--border); border-radius: 4px;
+    }
+    .dns-tree-sibling.dns-tree-highlight {
+      border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.12);
+    }
+
+    /* === HOMELAB PANEL === */
+    .dns-homelab-panel { border-color: rgba(79,255,176,0.2); }
+    .dns-homelab-content { font-family: 'JetBrains Mono', monospace; }
+    .dns-homelab-flow { margin-bottom: 14px; }
+    .dns-flow-row { font-size: 12px; color: var(--text); line-height: 1.8; }
+    .dns-flow-indent { color: var(--muted); padding-left: 30px; }
+    .dns-flow-sub { color: var(--muted); font-size: 11px; padding-left: 24px; }
+    .dns-homelab-warning {
+      background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px; padding: 12px 14px; font-size: 12px; color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+      .dns-chain { flex-direction: column; }
+      .dns-chain-arrow { transform: rotate(90deg); }
+      .dns-input-row { flex-direction: column; align-items: stretch; }
+      .dns-step-arrow { flex-direction: column; text-align: center; }
+      .dns-step-arrow-line { min-width: 0; }
+      .dns-tree-branches { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb"><a href="../index.html">Dashboard</a><span class="sep">›</span><a href="../wiki-preview.html">Wiki</a><span class="sep">›</span><a href="../academy.html?tab=demos">Netz-Akademie</a><span class="sep">›</span><span>DNS Lookup Visualizer</span></div>
+
+  <a href="../academy.html?tab=demos" class="demo-back">← Zurück zur Akademie</a>
+
+  <div id="dns-main"></div>
+</div>
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script src="../assets/demos/dns-lookup.js"></script>
+</body>
+</html>
