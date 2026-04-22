@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrivEsc Path Visualizer — Homelab</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+  <style>
+    /* ─── Layout ─────────────────────────────────────────────── */
+    .pv-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    .pv-header { margin-bottom: 32px; }
+    .pv-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 6px;
+    }
+    .pv-title span { color: #ef4444; }
+    .pv-badge-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .pv-badge {
+      background: #ef444420;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+    .pv-desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; }
+    .pv-back {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .pv-back:hover { color: var(--accent); }
+
+    /* ─── Scenario Selector ───────────────────────────────────── */
+    .pv-scenario-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .pv-scenario-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pv-scenario-btn:hover { border-color: #ef4444; color: var(--text); }
+    .pv-scenario-btn.active { background: #ef444420; border-color: #ef4444; color: #ef4444; }
+
+    /* ─── Main Grid ───────────────────────────────────────────── */
+    .pv-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) { .pv-grid { grid-template-columns: 1fr; } }
+
+    /* ─── Panel ───────────────────────────────────────────────── */
+    .pv-panel {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .pv-panel-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ─── Server Model ────────────────────────────────────────── */
+    .pv-layer {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .pv-layer-root { border-color: #ef444430; background: #ef444408; }
+    .pv-layer-root.pv-current { border-color: #ef4444; background: #ef444420; box-shadow: 0 0 12px #ef444430; }
+    .pv-layer-priv { border-color: var(--border2, var(--border)); }
+    .pv-layer-users { border-color: var(--border2, var(--border)); }
+    .pv-layer-www { border-color: #4fffb030; background: #4fffb008; }
+    .pv-layer-www.pv-current { border-color: #4fffb0; background: #4fffb015; box-shadow: 0 0 10px #4fffb020; }
+    .pv-layer-label { color: var(--text); font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+    .pv-layer-sub { color: var(--muted); font-size: 10px; }
+
+    .pv-privs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px; }
+    .pv-priv-box {
+      background: var(--bg3, var(--bg));
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 4px;
+      text-align: center;
+      font-size: 9px;
+      color: var(--muted);
+      cursor: default;
+    }
+    .pv-priv-box span { display: block; font-size: 8px; margin-top: 2px; opacity: 0.6; }
+    .pv-priv-box.pv-miscfg {
+      border-color: #ef4444;
+      background: #ef444415;
+      color: #ef4444;
+    }
+    .pv-priv-box.pv-miscfg span { opacity: 0.9; color: #ef4444; }
+
+    .pv-users { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .pv-user-box {
+      background: var(--bg3, var(--bg));
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .pv-user-box div:first-child { color: var(--text); margin-bottom: 2px; }
+
+    /* ─── Path Graph ──────────────────────────────────────────── */
+    .pg-chain {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 2px;
+      margin-top: 4px;
+    }
+    .pg-node {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      opacity: 0.35;
+      transition: all 0.4s;
+    }
+    .pg-node.pg-visible { opacity: 1; }
+    .pg-node.pg-node-root { font-weight: 700; }
+    .pg-node.pg-node-current { box-shadow: 0 0 10px currentColor; }
+    .pg-edge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px;
+      opacity: 0.2;
+      transition: opacity 0.4s;
+    }
+    .pg-edge.pg-visible { opacity: 1; }
+    .pg-edge-arrow {
+      width: 2px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 auto;
+      flex-shrink: 0;
+    }
+    .pg-edge-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ─── Step Panel ──────────────────────────────────────────── */
+    .pv-step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .pv-step-num {
+      background: #ef444420;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+    .pv-step-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ─── Step Terminal (read-only) ───────────────────────────── */
+    .pv-terminal {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .pv-term-prompt { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin-bottom: 2px; }
+    .pv-prompt-user { color: #4fffb0; }
+    .pv-prompt-user.pv-root-prompt { color: #ef4444; }
+    .pv-prompt-sep { color: var(--muted); }
+    .pv-prompt-dir { color: #4db8ff; }
+    .pv-prompt-hash { color: var(--muted); margin-right: 6px; }
+    .pv-cmd { color: var(--text); word-break: break-all; }
+    .pv-term-out {
+      color: var(--muted);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      padding-left: 0;
+    }
+    .pv-term-out.pv-term-root { color: #ef4444; }
+    .pv-term-out.pv-term-highlight {
+      color: #f59e0b;
+      font-weight: 700;
+      background: #f59e0b10;
+      border-left: 2px solid #f59e0b;
+      padding-left: 6px;
+    }
+
+    /* ─── Success Banner ──────────────────────────────────────── */
+    .pv-success-banner {
+      background: linear-gradient(135deg, #ef444420, #b91c1c15);
+      border: 2px solid #ef4444;
+      border-radius: 8px;
+      padding: 16px 20px;
+      text-align: center;
+      margin-bottom: 12px;
+      animation: pv-success-pulse 1s ease-in-out;
+    }
+    @keyframes pv-success-pulse {
+      0% { transform: scale(0.96); opacity: 0; }
+      60% { transform: scale(1.01); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pv-success-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ef4444;
+      margin-bottom: 4px;
+    }
+    .pv-success-sub { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── Findings ────────────────────────────────────────────── */
+    .pv-findings { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+    .pv-finding {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 4px 10px;
+      border-left: 2px solid var(--border);
+    }
+    .pv-finding-warn { color: #f59e0b; border-color: #f59e0b; }
+
+    /* ─── Step Controls ───────────────────────────────────────── */
+    .pv-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .pv-ctrl-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    .pv-ctrl-btn:hover:not(:disabled) { border-color: #ef4444; color: #ef4444; }
+    .pv-ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .pv-ctrl-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 40px;
+      text-align: center;
+    }
+
+    /* ─── Interactive Terminal ────────────────────────────────── */
+    .pv-iterm-wrap {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .pv-iterm-bar {
+      background: #151820;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pv-iterm-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .pv-iterm-output {
+      padding: 12px 14px;
+      min-height: 140px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .pv-iterm-input-row {
+      border-top: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pv-iterm-prompt { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4fffb0; white-space: nowrap; }
+    .pv-iterm-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      caret-color: #4fffb0;
+    }
+    .pv-term-suggestions {
+      padding: 8px 14px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pv-term-sug-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 3px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      transition: all 0.15s;
+    }
+    .pv-term-sug-btn:hover { border-color: #4fffb0; color: #4fffb0; }
+
+    /* ─── Root Success Banner (terminal) ─────────────────────── */
+    #root-success-banner {
+      display: none;
+      background: linear-gradient(135deg, #ef444425, #b91c1c18);
+      border: 2px solid #ef4444;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 16px;
+      animation: pv-success-pulse 0.6s ease;
+    }
+    #root-success-banner .pv-rsbanner-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ef4444;
+      margin-bottom: 6px;
+    }
+    .pv-success-method { font-size: 13px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── Checklist ───────────────────────────────────────────── */
+    .pv-checklist { display: flex; flex-direction: column; gap: 4px; }
+    .pv-check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .pv-check-item.pv-check-done { color: var(--text); }
+    .pv-check-icon { width: 14px; flex-shrink: 0; }
+    .pv-check-label { flex: 1; }
+    .pv-check-result { font-size: 11px; color: #4fffb0; }
+    .pv-check-result.pv-critical { color: #ef4444; }
+    .pv-check-summary {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ─── LinPEAS ─────────────────────────────────────────────── */
+    .pv-linpeas-section { margin-top: 24px; }
+    .pv-linpeas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pv-linpeas-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ef4444;
+    }
+    .pv-linpeas-btn {
+      background: #ef444418;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 7px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    .pv-linpeas-btn:hover:not(:disabled) { background: #ef444428; }
+    .pv-linpeas-btn:disabled { opacity: 0.5; cursor: wait; }
+    #linpeas-output {
+      display: none;
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+
+    /* ─── Defense Panel ───────────────────────────────────────── */
+    .pv-defense-wrap { margin-top: 24px; }
+    .pv-defense-toggle {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .pv-defense-toggle:hover { border-color: #4fffb0; color: #4fffb0; }
+    #defense-panel {
+      display: none;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 20px;
+    }
+    .pv-defense-section { margin-bottom: 24px; }
+    .pv-defense-section:last-child { margin-bottom: 0; }
+    .pv-defense-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #4fffb0;
+      margin-bottom: 12px;
+    }
+    .pv-fix { margin-bottom: 14px; }
+    .pv-fix-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; font-family: 'JetBrains Mono', monospace; }
+    .pv-fix-code {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      white-space: pre-wrap;
+      margin: 0;
+      overflow-x: auto;
+    }
+
+    /* ─── Homelab Box ─────────────────────────────────────────── */
+    .pv-homelab-box {
+      background: var(--bg2);
+      border: 1px solid var(--accent, #4fffb0);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 24px;
+    }
+    .pv-homelab-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent, #4fffb0);
+      margin-bottom: 12px;
+    }
+    .pv-hl-cmd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      padding: 3px 0;
+    }
+    .pv-hl-note { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 8px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div id="nav-root"></div>
+
+  <div class="pv-container">
+    <a class="pv-back" href="../academy.html#tab-demos">← Zurück zur Akademie</a>
+
+    <!-- Header -->
+    <div class="pv-header">
+      <div class="pv-badge-row">
+        <span class="pv-badge">💀 Hacking &amp; Security</span>
+        <span class="pv-badge" style="border-color:var(--border);background:transparent;color:var(--muted)">Interaktive Demo</span>
+      </div>
+      <h1 class="pv-title">// priv<span>_esc</span></h1>
+      <p class="pv-desc">Von www-data zu root — SUID, Docker Socket, Cronjob Hijack, Writable /etc/passwd, sudo Misconfig. Erkunde jeden Angriffsvektor Schritt für Schritt und lerne, wie du dein Homelab schützt.</p>
+    </div>
+
+    <!-- Scenario Selector -->
+    <div class="pv-scenario-row">
+      <button class="pv-scenario-btn" data-scenario="suid">🔧 SUID Binary</button>
+      <button class="pv-scenario-btn" data-scenario="docker">🐳 Docker Socket</button>
+      <button class="pv-scenario-btn" data-scenario="passwd">📝 Writable /etc/passwd</button>
+      <button class="pv-scenario-btn" data-scenario="cron">⏰ Cronjob Hijack</button>
+      <button class="pv-scenario-btn" data-scenario="sudo">🔑 sudo Misconfig</button>
+      <button class="pv-scenario-btn" data-scenario="all">🧩 Alle kombiniert</button>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="pv-grid">
+
+      <!-- Left: Server Model + Path Graph -->
+      <div>
+        <div class="pv-panel" style="margin-bottom:16px">
+          <div class="pv-panel-title">🖥 Server-Modell</div>
+          <div id="server-model"></div>
+        </div>
+
+        <div class="pv-panel">
+          <div class="pv-panel-title">📈 Eskalations-Pfad</div>
+          <div id="path-graph"></div>
+        </div>
+      </div>
+
+      <!-- Right: Steps + Terminal + Checklist -->
+      <div>
+
+        <!-- Step Controls -->
+        <div class="pv-panel" style="margin-bottom:16px">
+          <div class="pv-panel-title">📋 Geführte Walkthrough</div>
+          <div class="pv-controls">
+            <button class="pv-ctrl-btn" id="btn-prev-step">◀ Zurück</button>
+            <span class="pv-ctrl-counter" id="step-counter">1 / 3</span>
+            <button class="pv-ctrl-btn" id="btn-next-step">Weiter ▶</button>
+            <button class="pv-ctrl-btn" id="btn-auto-play">▶▶ Auto-Play</button>
+            <button class="pv-ctrl-btn" id="btn-step-reset">↺ Reset</button>
+          </div>
+          <div id="step-content"></div>
+        </div>
+
+        <!-- Interactive Terminal -->
+        <div class="pv-panel" style="margin-bottom:16px">
+          <div class="pv-panel-title">💻 Interaktives Terminal (Simulation)</div>
+          <div class="pv-iterm-wrap">
+            <div class="pv-iterm-bar">
+              <div class="pv-iterm-dot" style="background:#ef4444"></div>
+              <div class="pv-iterm-dot" style="background:#f59e0b"></div>
+              <div class="pv-iterm-dot" style="background:#4fffb0"></div>
+              <span style="margin-left:8px">www-data@proxmox — bash (simulated)</span>
+            </div>
+            <div class="pv-iterm-output" id="term-output"></div>
+            <div class="pv-iterm-input-row">
+              <span class="pv-iterm-prompt">www-data@proxmox:/var/www$</span>
+              <input class="pv-iterm-input" id="term-input" type="text" autocomplete="off" spellcheck="false" placeholder="Befehl eingeben…" />
+            </div>
+            <div class="pv-term-suggestions">
+              <button class="pv-term-sug-btn" data-term-cmd="whoami">whoami</button>
+              <button class="pv-term-sug-btn" data-term-cmd="id">id</button>
+              <button class="pv-term-sug-btn" data-term-cmd="sudo -l">sudo -l</button>
+              <button class="pv-term-sug-btn" data-term-cmd="find / -perm -4000 2>/dev/null">find SUID</button>
+              <button class="pv-term-sug-btn" data-term-cmd="ls -la /var/run/docker.sock">docker.sock</button>
+              <button class="pv-term-sug-btn" data-term-cmd="cat /etc/crontab">crontab</button>
+              <button class="pv-term-sug-btn" data-term-cmd="ls -la /etc/passwd">/etc/passwd</button>
+              <button class="pv-term-sug-btn" data-term-cmd="help">help</button>
+            </div>
+          </div>
+
+          <!-- Root Success Banner (terminal-triggered) -->
+          <div id="root-success-banner">
+            <div class="pv-rsbanner-title">🎯 PRIVILEGE ESCALATION ERFOLGREICH!</div>
+            <div class="pv-success-method"></div>
+          </div>
+        </div>
+
+        <!-- Enumeration Checklist -->
+        <div class="pv-panel">
+          <div class="pv-panel-title">✅ Enumeration-Checkliste</div>
+          <div class="pv-checklist" id="checklist"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- LinPEAS Simulator -->
+    <div class="pv-linpeas-section">
+      <div class="pv-linpeas-header">
+        <span class="pv-linpeas-label">🔍 LinPEAS Simulator</span>
+        <button class="pv-linpeas-btn" id="btn-linpeas">🔍 LinPEAS ausführen</button>
+      </div>
+      <div id="linpeas-output"></div>
+    </div>
+
+    <!-- Defense Panel -->
+    <div class="pv-defense-wrap">
+      <button class="pv-defense-toggle" id="btn-defense">🛡 Wie verhindert man das? ▾</button>
+      <div id="defense-panel"></div>
+    </div>
+
+    <!-- Homelab Box -->
+    <div class="pv-homelab-box">
+      <div class="pv-homelab-title">🏠 In deinem Homelab testen</div>
+      <div id="homelab-commands"></div>
+      <p class="pv-hl-note">
+        Teste PrivEsc nur auf <strong>eigenen Systemen</strong> oder in isolierten VMs!
+        Empfohlen: frische Debian/Ubuntu-VM in Proxmox, absichtlich Misconfigs einbauen, dann selbst eskalieren.
+        <br>Tools: <a href="https://github.com/peass-ng/PEASS-ng" target="_blank" rel="noopener" style="color:var(--accent)">LinPEAS</a>,
+        <a href="https://gtfobins.github.io" target="_blank" rel="noopener" style="color:var(--accent)">GTFOBins</a>,
+        <a href="https://github.com/DominicBreuker/pspy" target="_blank" rel="noopener" style="color:var(--accent)">pspy</a> (Cronjobs beobachten)
+      </p>
+    </div>
+
+  </div>
+
+  <script src="../assets/state.js"></script>
+  <script src="../assets/nav.js"></script>
+  <script src="../assets/demos/privesc.js"></script>
+  <script>
+    document.addEventListener('state-ready', function () {
+      window.PrivEsc.init();
+    });
+  </script>
+</body>
+</html>

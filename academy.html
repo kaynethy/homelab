@@ -181,21 +181,53 @@
     .alpha-letter.disabled:hover { color: var(--border); background: transparent; }
 
     /* ===== DEMOS ===== */
-    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    /* ── Demo Categories ── */
+    .demo-category { margin-bottom: 40px; }
+    .demo-category:last-child { margin-bottom: 0; }
+    .demo-category-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-category-header .cat-icon { font-size: 18px; flex-shrink: 0; }
+    .demo-category-header .cat-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      text-transform: uppercase; letter-spacing: 2px; color: var(--muted);
+      white-space: nowrap;
+    }
+    .demo-category-header .cat-line { flex: 1; height: 1px; background: var(--border); }
+    .demo-category-header .cat-count {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); white-space: nowrap; opacity: 0.6;
+    }
+    /* Category grid */
+    .demo-category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    @media (min-width: 1400px) { .demo-category-grid { grid-template-columns: repeat(4, 1fr); } }
+    /* Cards */
     .demo-card {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
-      padding: 24px; transition: all 0.2s; position: relative; overflow: hidden;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; cursor: pointer; transition: all 0.15s;
+      display: flex; flex-direction: column; justify-content: space-between;
+      min-height: 180px;
     }
-    .demo-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      transition: opacity 0.2s;
-    }
-    .demo-card:hover { border-color: var(--border2); transform: translateY(-2px); }
-    .demo-card.coming-soon { opacity: 0.6; }
-    .demo-card.coming-soon:hover { opacity: 0.7; transform: none; }
-    .demo-card-icon { font-size: 28px; margin-bottom: 12px; display: block; }
-    .demo-card h3 { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); margin-bottom: 8px; }
-    .demo-card p { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+    .demo-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); border-color: var(--border2); }
+    .demo-card.coming-soon { opacity: 0.5; cursor: default; }
+    .demo-card.coming-soon:hover { transform: none; box-shadow: none; border-color: var(--border); }
+    /* Category accent borders */
+    .demo-category[data-cat="netzwerk"] .demo-card { border-left: 3px solid rgba(77,184,255,0.3); }
+    .demo-category[data-cat="netzwerk"] .demo-card:hover { border-left-color: #4db8ff; }
+    .demo-category[data-cat="netzwerk"] .demo-card.coming-soon:hover { border-left-color: rgba(77,184,255,0.3); }
+    .demo-category[data-cat="hacking"] .demo-card { border-left: 3px solid rgba(239,68,68,0.3); }
+    .demo-category[data-cat="hacking"] .demo-card:hover { border-left-color: #ef4444; }
+    .demo-category[data-cat="hacking"] .demo-card.coming-soon:hover { border-left-color: rgba(239,68,68,0.3); }
+    /* Card internals */
+    .demo-card-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+    .demo-card h3 { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); margin-bottom: 6px; }
+    .demo-card p { font-size: 11px; color: var(--muted); line-height: 1.5; flex: 1; }
     .demo-badge {
       font-family: 'JetBrains Mono', monospace; font-size: 10px;
       padding: 2px 8px; border-radius: 3px; display: inline-block;
@@ -209,7 +241,7 @@
       border-radius: 4px; cursor: pointer; transition: all 0.15s;
     }
     .demo-start-btn:hover { background: rgba(34,211,238,0.15); }
-    .demo-card-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 4px; }
+    .demo-card-footer { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; }
 
     /* ===== OSI TAB ===== */
     .osi-stack { max-width: 420px; }
@@ -367,7 +399,7 @@
       .academy-tab { padding: 10px 12px; font-size: 11px; }
       .glossar-layout { grid-template-columns: 1fr; }
       .alphabet-nav { display: none; }
-      .demo-grid { grid-template-columns: 1fr; }
+      .demo-category-grid { grid-template-columns: 1fr; }
       .global-search { font-size: 12px; padding: 10px 12px 10px 32px; }
     }
   </style>
@@ -375,7 +407,7 @@
 <body>
 <div class="wrap">
   <div id="nav"></div>
-  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><a href="wiki-preview.html">Wiki</a><span class="sep">›</span><span>Netz-Akademie</span></div>
+  <div class="breadcrumb"><a href="index.html">Dashboard</a><span class="sep">›</span><span>Academy</span></div>
 
   <header>
     <div class="header-left">
@@ -398,6 +430,7 @@
     <button class="academy-tab" data-tab="security" data-color="#fb923c"><span class="tab-icon">🔒</span>Security</button>
     <button class="academy-tab" data-tab="infra" data-color="#a78bfa"><span class="tab-icon">🖥</span>Infrastruktur</button>
     <button class="academy-tab" data-tab="admin" data-color="#f472b6"><span class="tab-icon">🛠</span>Admin &amp; Tools</button>
+    <button class="academy-tab" data-tab="hacking" data-color="#ef4444"><span class="tab-icon">💀</span>Hacking</button>
     <button class="academy-tab" data-tab="demos" data-color="#22d3ee"><span class="tab-icon">⚡</span>Demos</button>
   </div>
 
@@ -462,6 +495,18 @@
     </div>
   </div>
 
+  <!-- ===== TAB: Hacking ===== -->
+  <div class="academy-panel" id="panel-hacking">
+    <div class="glossar-layout">
+      <div class="glossar-main">
+        <input type="text" class="glossar-search" data-glossar="hacking" placeholder="Begriff suchen...">
+        <div class="glossar-stats" id="stats-hacking"></div>
+        <div class="glossar-cards" id="cards-hacking"></div>
+      </div>
+      <div class="alphabet-nav" id="alpha-hacking"></div>
+    </div>
+  </div>
+
   <!-- ===== TAB: Demos ===== -->
   <div class="academy-panel" id="panel-demos">
     <div class="demo-grid" id="demo-grid"></div>
@@ -485,11 +530,11 @@
   // =============================================
   var TAB_COLORS = {
     osi: '#4fffb0', netzwerk: '#4db8ff', security: '#fb923c',
-    infra: '#a78bfa', admin: '#f472b6', demos: '#22d3ee'
+    infra: '#a78bfa', admin: '#f472b6', hacking: '#ef4444', demos: '#22d3ee'
   };
   var TAB_ICONS = {
     osi: '📡', netzwerk: '🌐', security: '🔒',
-    infra: '🖥', admin: '🛠', demos: '⚡'
+    infra: '🖥', admin: '🛠', hacking: '💀', demos: '⚡'
   };
   var TAG_COLOR_MAP = {
     'Netzwerk': '#4db8ff', 'Security': '#fb923c', 'Web': '#4fffb0',
@@ -565,7 +610,7 @@
     switchTab(tab.dataset.tab);
   });
 
-  var validTabs = ['osi', 'netzwerk', 'security', 'infra', 'admin', 'demos'];
+  var validTabs = ['osi', 'netzwerk', 'security', 'infra', 'admin', 'hacking', 'demos'];
   if (validTabs.indexOf(initialTab) !== -1) {
     switchTab(initialTab);
   }
@@ -575,8 +620,8 @@
   // =============================================
   var globalSearchInput = document.getElementById('global-search');
   var globalSearchResults = document.getElementById('global-search-results');
-  var glossarModules = ['netzwerk', 'security', 'infra', 'admin'];
-  var glossarModuleNames = { netzwerk: 'Netzwerk', security: 'Security', infra: 'Infrastruktur', admin: 'Admin & Tools' };
+  var glossarModules = ['netzwerk', 'security', 'infra', 'admin', 'hacking'];
+  var glossarModuleNames = { netzwerk: 'Netzwerk', security: 'Security', infra: 'Infrastruktur', admin: 'Admin & Tools', hacking: 'Hacking' };
 
   function doGlobalSearch(query) {
     if (query.length < 2) { globalSearchResults.style.display = 'none'; return; }
@@ -1235,31 +1280,58 @@
   // DEMOS TAB
   // =============================================
   function renderDemos() {
-    var demos = [
-      { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, href: 'demos/encapsulation-demo.html' },
-      { icon: '📐', title: 'Subnetting Calculator', desc: 'CIDR berechnen, Subnetze aufteilen, Host-Ranges sehen. Visuell dargestellt.', live: true, href: 'demos/subnetting-calculator.html' },
-      { icon: '🤝', title: 'TCP Handshake Simulator', desc: '3-Way Handshake Schritt für Schritt visualisiert. SYN → SYN-ACK → ACK animiert.', live: true, href: 'demos/tcp-handshake.html' },
-      { icon: '🔍', title: 'DNS Lookup Visualizer', desc: 'Recursive Resolution live nachvollziehen. Root → TLD → Authoritative → Antwort.', live: true, href: 'demos/dns-lookup.html' }
+    var categories = [
+      {
+        id: 'netzwerk', title: 'Netzwerk & Protokolle', icon: '🌐', color: '#4db8ff',
+        demos: [
+          { icon: '⚡', title: 'Encapsulation Demo', desc: 'Schritt für Schritt vom HTTP Request bis zum Bit auf dem Kabel. Interaktiv mit Code-Ansicht pro Schicht.', live: true, href: 'demos/encapsulation-demo.html' },
+          { icon: '📐', title: 'Subnetting Calculator', desc: 'CIDR berechnen, Subnetze aufteilen, Host-Ranges sehen. Mit Binär-Visualisierung und Mathematik.', live: true, href: 'demos/subnetting-calculator.html' },
+          { icon: '🤝', title: 'TCP Handshake Simulator', desc: '3-Way Handshake Schritt für Schritt visualisiert. SYN → SYN-ACK → ACK animiert.', live: true, href: 'demos/tcp-handshake.html' },
+          { icon: '🔍', title: 'DNS Lookup Visualizer', desc: 'Recursive Resolution live nachvollziehen. Root → TLD → Authoritative → Antwort.', live: true, href: 'demos/dns-lookup.html' }
+        ]
+      },
+      {
+        id: 'hacking', title: 'Hacking & Security', icon: '💀', color: '#ef4444',
+        demos: [
+          { icon: '🔓', title: 'Port Scanner Visualizer', desc: 'nmap SYN Scan, Connect Scan, XMAS Scan simuliert. Offene, geschlossene und gefilterte Ports visualisiert.', live: true, href: 'demos/port-scanner.html' },
+          { icon: '📈', title: 'PrivEsc Path Visualizer', desc: 'Von www-data zu root — SUID, Docker Socket, Cronjob Hijack, sudo Misconfig. Interaktives Terminal.', live: true, href: 'demos/privesc-visualizer.html' },
+          { icon: '🔥', title: 'Firewall-Simulator', desc: 'Zonen, Regeln, NAT, Routing — schicke Pakete durch deine OPNsense und sieh was passiert.', live: true, href: 'demos/firewall-simulator.html' },
+          { icon: '💉', title: 'SQL Injection Playground', desc: 'Simuliertes Login-Formular. Sieh live wie SQL Injection funktioniert und wie Prepared Statements schützen.', live: false },
+          { icon: '🎭', title: 'Phishing Detection Trainer', desc: 'URLs und E-Mails bewerten: echt oder Phishing? Trainiere dein Auge für Social Engineering.', live: false },
+          { icon: '🕸', title: 'ARP Spoofing Simulator', desc: 'Man-in-the-Middle Angriff via ARP Poisoning live visualisiert. Drei Nodes, animierte Pakete.', live: false },
+          { icon: '🔑', title: 'Password Strength Analyzer', desc: 'Passwort eingeben, Crack-Zeit sehen. GPU vs CPU, MD5 vs bcrypt vs Argon2 im Vergleich.', live: false }
+        ]
+      }
     ];
 
-    var html = demos.map(function(d) {
-      var cls = 'demo-card' + (d.live ? '' : ' coming-soon');
-      var link = d.href ? ' onclick="window.location.href=\'' + d.href + '\'"' : '';
-      return '<div class="' + cls + '" style="cursor:pointer"' + link + '>' +
-        '<span class="demo-card-icon">' + d.icon + '</span>' +
-        '<h3>' + escHtml(d.title) + '</h3>' +
-        '<p>' + escHtml(d.desc) + '</p>' +
-        '<div class="demo-card-footer">' +
-          (d.live
-            ? '<span class="demo-badge live">LIVE</span>' +
-              (d.href ? '<a href="' + d.href + '" class="demo-start-btn" style="text-decoration:none">Starten →</a>' : '<button class="demo-start-btn">Starten →</button>')
-            : '<span class="demo-badge soon">COMING SOON</span>') +
-        '</div>' +
-      '</div>';
+    var html = categories.map(function(cat) {
+      var headerHtml = '<div class="demo-category-header">' +
+        '<span class="cat-icon">' + cat.icon + '</span>' +
+        '<span class="cat-title">' + escHtml(cat.title) + '</span>' +
+        '<span class="cat-line" style="background:' + cat.color + '33"></span>' +
+        '<span class="cat-count">' + cat.demos.length + ' Demos</span>' +
+        '</div>';
+      var gridHtml = '<div class="demo-category-grid">' + cat.demos.map(function(d) {
+        var cls = 'demo-card' + (d.live ? '' : ' coming-soon');
+        var click = d.live && d.href ? ' onclick="window.location.href=\'' + d.href + '\'"' : '';
+        return '<div class="' + cls + '"' + click + '>' +
+          '<div>' +
+            '<span class="demo-card-icon">' + d.icon + '</span>' +
+            '<h3>' + escHtml(d.title) + '</h3>' +
+            '<p>' + escHtml(d.desc) + '</p>' +
+          '</div>' +
+          '<div class="demo-card-footer">' +
+            (d.live
+              ? '<span class="demo-badge live">LIVE</span>' +
+                (d.href ? '<a href="' + d.href + '" class="demo-start-btn" style="text-decoration:none">Starten →</a>' : '<button class="demo-start-btn">Starten →</button>')
+              : '<span class="demo-badge soon">COMING SOON</span>') +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+      return '<div class="demo-category" data-cat="' + cat.id + '">' + headerHtml + gridHtml + '</div>';
     }).join('');
 
     document.getElementById('demo-grid').innerHTML = html;
-
   }
 
   // =============================================

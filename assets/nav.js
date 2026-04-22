@@ -31,11 +31,12 @@
       { href: root + 'ideas.html', label: 'Ideen', file: 'ideas.html' },
       { href: root + 'diary.html', label: 'Tagebuch', file: 'diary.html' },
       { href: root + 'wiki-preview.html', label: 'Wiki', file: 'wiki-preview.html' },
+      { href: root + 'academy.html', label: 'Academy', file: 'academy.html' },
     ];
 
     const links = pages.map(p => {
-      const isWikiSection = p.file === 'wiki-preview.html' && (current === 'osi-reference.html' || current === 'academy.html' || window.location.pathname.includes('/demos/'));
-      const isActive = current === p.file || isWikiSection;
+      const isAcademySection = p.file === 'academy.html' && (current === 'academy.html' || window.location.pathname.includes('/demos/'));
+      const isActive = current === p.file || isAcademySection;
       return `<a href="${p.href}" class="nav-link${isActive ? ' active' : ''}">${p.label}</a>`;
     }).join('');
 

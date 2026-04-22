@@ -13,7 +13,8 @@
       { key: 'netzwerk', file: 'wiki/homelab-glossary-netzwerk.json' },
       { key: 'security', file: 'wiki/homelab-glossary-security.json' },
       { key: 'infra', file: 'wiki/homelab-glossary-infra.json' },
-      { key: 'admin', file: 'wiki/homelab-glossary-admin.json' }
+      { key: 'admin', file: 'wiki/homelab-glossary-admin.json' },
+      { key: 'hacking', file: 'wiki/homelab-glossary-hacking.json' }
     ];
 
     var academy = { osiwiki: null, glossary: {} };

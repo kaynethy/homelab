@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Firewall-Simulator</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ===== FIREWALL SIMULATOR ===== */
+    :root { --fw-orange: #fb923c; --fw-red: #ef4444; --fw-green: #4fffb0; --fw-blue: #4db8ff; --fw-purple: #a78bfa; --fw-gold: #eab308; }
+
+    .demo-back { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-bottom:20px; transition:color 0.15s; }
+    .demo-back:hover { color:var(--fw-orange); }
+
+    /* ---- page layout ---- */
+    .fw-layout { display:grid; grid-template-columns:1fr 320px; gap:20px; }
+    @media(max-width:900px) { .fw-layout { grid-template-columns:1fr; } }
+
+    /* ---- section headers ---- */
+    .fw-section { margin-bottom:20px; }
+    .fw-section-title {
+      font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .fw-bar { width:8px; height:2px; background:var(--fw-orange); display:inline-block; }
+
+    /* ---- scenario buttons ---- */
+    .scenario-strip { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+    .scenario-btn {
+      font-family:'JetBrains Mono',monospace; font-size:11px; padding:6px 12px;
+      background:var(--bg2); border:1px solid var(--border); border-radius:4px;
+      color:var(--muted); cursor:pointer; transition:all 0.15s;
+    }
+    .scenario-btn:hover { border-color:var(--fw-orange); color:var(--fw-orange); }
+    .scenario-btn.active { border-color:var(--fw-orange); color:var(--fw-orange); background:rgba(251,146,60,0.08); }
+    .scenario-desc { font-size:12px; color:var(--muted); margin-bottom:16px; padding:10px 12px; background:var(--bg2); border-left:3px solid var(--fw-orange); border-radius:0 4px 4px 0; }
+
+    /* ---- network topology ---- */
+    .topo-container {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      padding:20px; margin-bottom:20px; overflow-x:auto;
+    }
+    .topo-grid {
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+    .topo-wan-row { display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; }
+    .topo-fw-row  { display:flex; justify-content:center; }
+    .topo-zones-row { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+
+    .topo-zone {
+      border-radius:8px; border:2px solid; padding:12px; min-width:130px;
+      position:relative; transition:all 0.25s;
+    }
+    .topo-zone-label {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600;
+      text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;
+    }
+    .topo-zone-subnet { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); margin-bottom:8px; }
+
+    .topo-host {
+      display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:4px;
+      cursor:pointer; transition:all 0.15s; border:1px solid transparent;
+      font-family:'JetBrains Mono',monospace; font-size:11px; margin-bottom:4px;
+    }
+    .topo-host:hover { border-color:currentColor; background:rgba(255,255,255,0.04); }
+    .topo-host.pkt-src { background:rgba(251,146,60,0.15); border-color:var(--fw-orange); }
+    .topo-host.pkt-dst { background:rgba(79,255,176,0.15); border-color:var(--fw-green); }
+    .topo-host-ip { font-size:9px; color:var(--muted); }
+
+    .topo-fw-box {
+      background:rgba(234,179,8,0.06); border:2px solid var(--fw-gold);
+      border-radius:8px; padding:12px 20px; text-align:center; position:relative;
+      transition:all 0.3s;
+    }
+    .topo-fw-box.pkt-active { box-shadow:0 0 24px rgba(234,179,8,0.5); animation:fw-pulse 0.6s ease-in-out 3; }
+    @keyframes fw-pulse { 0%,100% { box-shadow:0 0 8px rgba(234,179,8,0.3); } 50% { box-shadow:0 0 28px rgba(234,179,8,0.7); } }
+    .topo-fw-icon { font-size:24px; display:block; }
+    .topo-fw-label { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--fw-gold); font-weight:600; }
+    .topo-fw-sub { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); }
+
+    .topo-connector { font-family:'JetBrains Mono',monospace; font-size:16px; color:var(--muted); align-self:center; }
+
+    /* ---- packet simulator ---- */
+    .sim-panel {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      padding:20px; margin-bottom:20px;
+    }
+    .sim-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; align-items:flex-end; }
+    .sim-field { display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px; }
+    .sim-label { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+    .sim-select {
+      font-family:'JetBrains Mono',monospace; font-size:12px;
+      background:var(--bg); border:1px solid var(--border); color:var(--text);
+      padding:8px 10px; border-radius:4px; outline:none; transition:border-color 0.15s;
+    }
+    .sim-select:focus { border-color:var(--fw-orange); }
+    .sim-btn {
+      font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600;
+      background:var(--fw-orange); color:#000; border:none; padding:10px 20px;
+      border-radius:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+    }
+    .sim-btn:hover { background:#fda86c; transform:translateY(-1px); }
+    .sim-btn:active { transform:translateY(0); }
+    .sim-clear-btn {
+      font-family:'JetBrains Mono',monospace; font-size:11px;
+      background:transparent; color:var(--muted); border:1px solid var(--border);
+      padding:10px 14px; border-radius:6px; cursor:pointer; transition:all 0.15s;
+    }
+    .sim-clear-btn:hover { border-color:var(--fw-red); color:var(--fw-red); }
+    .sim-custom-port { display:none; }
+
+    /* ---- result flow ---- */
+    #fw-result { margin-bottom:20px; }
+    .flow-header {
+      font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600;
+      padding:12px 16px; border-radius:6px 6px 0 0;
+      border:1px solid var(--border); border-bottom:none;
+      display:flex; align-items:center; gap:10px;
+    }
+    .flow-header.pass { background:rgba(79,255,176,0.08); border-color:var(--fw-green); color:var(--fw-green); }
+    .flow-header.block { background:rgba(239,68,68,0.08); border-color:var(--fw-red); color:var(--fw-red); }
+    .flow-header.bypass { background:rgba(77,184,255,0.08); border-color:var(--fw-blue); color:var(--fw-blue); }
+
+    .flow-steps { border:1px solid var(--border); border-radius:0 0 6px 6px; overflow:hidden; }
+    .flow-step {
+      padding:14px 16px; border-bottom:1px solid var(--border);
+      animation:stepFade 0.3s ease;
+    }
+    .flow-step:last-child { border-bottom:none; }
+    @keyframes stepFade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    .flow-step-title {
+      font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-weight:600;
+    }
+    .flow-step-line {
+      font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text);
+      margin-bottom:4px; padding-left:8px; border-left:2px solid var(--border);
+    }
+    .flow-step-line.highlight { border-left-color:var(--fw-orange); color:var(--fw-orange); }
+    .flow-step-line.pass-line { border-left-color:var(--fw-green); color:var(--fw-green); }
+    .flow-step-line.block-line { border-left-color:var(--fw-red); color:var(--fw-red); }
+
+    /* ---- rule table ---- */
+    .rule-table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:8px; }
+    .rule-table th {
+      background:var(--bg); color:var(--muted); padding:6px 8px; text-align:left;
+      border-bottom:1px solid var(--border); font-weight:600; white-space:nowrap;
+    }
+    .rule-table td { padding:5px 8px; border-bottom:1px solid rgba(255,255,255,0.04); white-space:nowrap; }
+    .rule-table tr.matched-pass td { background:rgba(79,255,176,0.1); color:var(--fw-green); }
+    .rule-table tr.matched-block td { background:rgba(239,68,68,0.1); color:var(--fw-red); }
+    .rule-table tr.no-match td { color:var(--muted); }
+    .rule-table tr.no-match td .action-badge { opacity:0.4; }
+
+    .action-badge {
+      font-size:10px; padding:2px 6px; border-radius:3px; font-weight:600;
+      display:inline-block; white-space:nowrap;
+    }
+    .action-pass  { background:rgba(79,255,176,0.12); color:var(--fw-green); border:1px solid rgba(79,255,176,0.3); }
+    .action-block { background:rgba(239,68,68,0.12);  color:var(--fw-red);   border:1px solid rgba(239,68,68,0.3);  }
+    .match-arrow { color:var(--fw-orange); font-weight:600; margin-left:4px; }
+
+    /* ---- nat visualization ---- */
+    .nat-viz {
+      display:flex; align-items:center; gap:12px; padding:12px;
+      background:var(--bg); border:1px solid var(--border); border-radius:6px;
+      margin-top:8px; flex-wrap:wrap;
+    }
+    .nat-box {
+      background:var(--bg2); border:1px solid var(--border); border-radius:4px;
+      padding:8px 12px; font-family:'JetBrains Mono',monospace; font-size:11px; text-align:center;
+    }
+    .nat-box-label { font-size:9px; color:var(--muted); text-transform:uppercase; margin-bottom:3px; }
+    .nat-box-ip { font-weight:600; }
+    .nat-before .nat-box-ip { color:var(--fw-orange); }
+    .nat-after  .nat-box-ip { color:var(--fw-green); }
+    .nat-arrow { font-size:18px; color:var(--fw-gold); }
+
+    /* ---- state table ---- */
+    .state-table-wrap {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      padding:16px; margin-bottom:20px;
+    }
+    .state-table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:11px; }
+    .state-table th { background:var(--bg); color:var(--muted); padding:6px 8px; text-align:left; border-bottom:1px solid var(--border); font-weight:600; }
+    .state-table td { padding:5px 8px; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .state-table tr.state-estab td { color:var(--fw-green); }
+    .state-table tr.state-blocked td { color:var(--fw-red); opacity:0.7; }
+    .state-empty { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); padding:12px 0; text-align:center; }
+    .state-stats { display:flex; gap:16px; margin-top:10px; }
+    .state-stat { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .state-stat span { font-weight:600; }
+    .state-stat .s-active { color:var(--fw-green); }
+    .state-stat .s-blocked { color:var(--fw-red); }
+    .state-stat .s-nat { color:var(--fw-gold); }
+
+    /* ---- rule editor ---- */
+    .rule-editor-wrap {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      padding:16px; margin-bottom:20px;
+    }
+    .rule-editor-table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:11px; margin-bottom:12px; }
+    .rule-editor-table th { background:var(--bg); color:var(--muted); padding:6px 8px; text-align:left; border-bottom:1px solid var(--border); }
+    .rule-editor-table td { padding:5px 8px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+    .rule-editor-table tr:hover td { background:rgba(255,255,255,0.02); }
+
+    .rule-del-btn {
+      font-family:'JetBrains Mono',monospace; font-size:10px;
+      background:transparent; border:1px solid rgba(239,68,68,0.3); color:var(--fw-red);
+      padding:2px 7px; border-radius:3px; cursor:pointer; transition:all 0.15s;
+    }
+    .rule-del-btn:hover { background:rgba(239,68,68,0.1); }
+    .rule-up-btn, .rule-down-btn {
+      font-family:'JetBrains Mono',monospace; font-size:10px; background:transparent;
+      border:1px solid var(--border); color:var(--muted); padding:2px 6px;
+      border-radius:3px; cursor:pointer; transition:all 0.15s; margin:0 1px;
+    }
+    .rule-up-btn:hover, .rule-down-btn:hover { border-color:var(--fw-orange); color:var(--fw-orange); }
+
+    .add-rule-form {
+      display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; padding:12px;
+      background:var(--bg); border-radius:6px; border:1px solid var(--border);
+    }
+    .add-rule-field { display:flex; flex-direction:column; gap:3px; }
+    .add-rule-label { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+    .add-rule-select {
+      font-family:'JetBrains Mono',monospace; font-size:11px;
+      background:var(--bg2); border:1px solid var(--border); color:var(--text);
+      padding:5px 8px; border-radius:4px; outline:none; transition:border-color 0.15s;
+    }
+    .add-rule-select:focus { border-color:var(--fw-orange); }
+    .add-rule-btn {
+      font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+      background:var(--fw-orange); color:#000; border:none; padding:6px 14px;
+      border-radius:4px; cursor:pointer; transition:all 0.15s; align-self:flex-end;
+    }
+    .add-rule-btn:hover { background:#fda86c; }
+
+    /* ---- terms panel ---- */
+    .terms-panel {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      padding:16px; margin-bottom:20px; position:sticky; top:20px;
+    }
+    .terms-panel-title { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+    .term-item {
+      padding:8px 10px; border-radius:5px; cursor:pointer; margin-bottom:6px;
+      border:1px solid var(--border); transition:all 0.15s;
+    }
+    .term-item:hover, .term-item.active { border-color:var(--fw-orange); background:rgba(251,146,60,0.06); }
+    .term-item-label { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text); }
+    .term-detail {
+      display:none; margin-top:10px; padding:12px;
+      background:var(--bg); border:1px solid var(--border); border-radius:6px;
+      font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text); line-height:1.6;
+      white-space:pre-wrap;
+    }
+    .term-detail.visible { display:block; }
+    .term-detail-title { font-weight:600; color:var(--fw-orange); margin-bottom:8px; font-size:12px; }
+
+    /* ---- DHCP/DNS ---- */
+    .dhcp-dns-wrap {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      overflow:hidden; margin-bottom:20px;
+    }
+    .dhcp-dns-toggle {
+      padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between;
+      align-items:center; font-family:'JetBrains Mono',monospace; font-size:12px;
+      color:var(--text); user-select:none; transition:background 0.15s;
+    }
+    .dhcp-dns-toggle:hover { background:rgba(255,255,255,0.02); }
+    .dhcp-dns-toggle .chevron { transition:transform 0.2s; color:var(--muted); }
+    .dhcp-dns-toggle.open .chevron { transform:rotate(180deg); }
+    .dhcp-dns-body { display:none; padding:16px; border-top:1px solid var(--border); }
+    .dhcp-dns-body.open { display:block; }
+
+    .flow-timeline { margin:0; padding:0; list-style:none; }
+    .flow-timeline li {
+      display:flex; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.04);
+    }
+    .flow-timeline li:last-child { border-bottom:none; }
+    .ft-step { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); width:18px; flex-shrink:0; padding-top:2px; }
+    .ft-content { flex:1; }
+    .ft-msg { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--fw-orange); font-weight:600; margin-bottom:2px; }
+    .ft-from-to { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:2px; }
+    .ft-detail { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text); }
+
+    /* ---- homelab compare ---- */
+    .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media(max-width:700px) { .compare-grid { grid-template-columns:1fr; } }
+    .compare-box {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:16px;
+    }
+    .compare-box.now { border-left:3px solid var(--fw-red); }
+    .compare-box.planned { border-left:3px solid var(--fw-green); }
+    .compare-box-title { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; margin-bottom:10px; }
+    .compare-box.now .compare-box-title { color:var(--fw-red); }
+    .compare-box.planned .compare-box-title { color:var(--fw-green); }
+    .compare-item { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text); margin-bottom:5px; padding-left:8px; border-left:2px solid var(--border); }
+    .compare-item.warn { border-left-color:var(--fw-red); color:rgba(239,68,68,0.8); }
+    .compare-item.good { border-left-color:var(--fw-green); color:rgba(79,255,176,0.8); }
+  </style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+<main class="container" style="padding-top:32px; padding-bottom:48px;">
+  <!-- Breadcrumb -->
+  <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:16px;">
+    <a href="../index.html" style="color:var(--muted); text-decoration:none;">Dashboard</a>
+    <span style="margin:0 6px;">›</span>
+    <a href="../academy.html" style="color:var(--muted); text-decoration:none;">Academy</a>
+    <span style="margin:0 6px;">›</span>
+    <span style="color:var(--fw-orange);">Firewall-Simulator</span>
+  </div>
+
+  <a href="../academy.html" class="demo-back">← Zurück zur Akademie</a>
+
+  <h1 style="font-size:22px; margin-bottom:6px; color:var(--fw-orange);">🔥 Firewall-Simulator</h1>
+  <p style="color:var(--muted); font-size:13px; margin-bottom:24px;">
+    Schicke Pakete durch deine OPNsense — und sieh live: Welche Regel greift? Wird NAT angewendet? Kommt das Paket an?
+  </p>
+
+  <!-- Scenario Strip -->
+  <div class="fw-section">
+    <div class="fw-section-title"><span class="fw-bar"></span>Szenario wählen</div>
+    <div class="scenario-strip" id="scenario-strip"></div>
+    <div class="scenario-desc" id="scenario-desc"></div>
+  </div>
+
+  <div class="fw-layout">
+    <!-- Left column: main content -->
+    <div>
+
+      <!-- Network Topology -->
+      <div class="fw-section">
+        <div class="fw-section-title"><span class="fw-bar"></span>Netzwerk-Topologie</div>
+        <div class="topo-container">
+          <div class="topo-grid">
+            <!-- WAN row -->
+            <div class="topo-wan-row" id="topo-wan"></div>
+            <!-- FW connector -->
+            <div class="topo-fw-row">
+              <div style="display:flex; align-items:center; gap:12px; flex-direction:column;">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-align:center;">│ WAN │</div>
+                <div class="topo-fw-box" id="topo-fw-box">
+                  <span class="topo-fw-icon">🔥</span>
+                  <div class="topo-fw-label">OPNsense</div>
+                  <div class="topo-fw-sub">vtnet0–vtnet4 · Default Deny</div>
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-align:center;">│ MGMT · SVC · LAB · DMZ │</div>
+              </div>
+            </div>
+            <!-- Zones row -->
+            <div class="topo-zones-row" id="topo-zones"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Packet Simulator -->
+      <div class="fw-section">
+        <div class="fw-section-title"><span class="fw-bar"></span>Paket simulieren</div>
+        <div class="sim-panel">
+          <div class="sim-row">
+            <div class="sim-field">
+              <span class="sim-label">Von (Quelle)</span>
+              <select class="sim-select" id="sim-src"></select>
+            </div>
+            <div class="sim-field">
+              <span class="sim-label">Nach (Ziel)</span>
+              <select class="sim-select" id="sim-dst"></select>
+            </div>
+          </div>
+          <div class="sim-row">
+            <div class="sim-field">
+              <span class="sim-label">Ziel-Port / Dienst</span>
+              <select class="sim-select" id="sim-port" onchange="FWS.onPortChange()"></select>
+              <input class="sim-select sim-custom-port" id="sim-port-custom" type="number" placeholder="Port-Nummer" min="1" max="65535">
+            </div>
+            <div class="sim-field">
+              <span class="sim-label">Protokoll</span>
+              <select class="sim-select" id="sim-proto">
+                <option value="TCP">TCP</option>
+                <option value="UDP">UDP</option>
+                <option value="ICMP">ICMP</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <button class="sim-btn" onclick="FWS.sendPacket()">🚀 Paket senden</button>
+              <button class="sim-clear-btn" onclick="FWS.clearResult()">✕ Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="fw-result"></div>
+
+      <!-- Rule Editor -->
+      <div class="fw-section">
+        <div class="fw-section-title"><span class="fw-bar"></span>Regelwerk (interaktiv bearbeiten)</div>
+        <div class="rule-editor-wrap">
+          <div id="rule-editor-note" class="scenario-desc" style="margin-bottom:12px;">
+            Ändere die Regeln und teste — beachte: die REIHENFOLGE ist entscheidend. Erste passende Regel gewinnt!
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="rule-editor-table" id="rule-editor-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Action</th><th>Interface</th><th>Source</th>
+                  <th>Destination</th><th>Port</th><th>Proto</th><th>Beschreibung</th><th>↕</th><th>✕</th>
+                </tr>
+              </thead>
+              <tbody id="rule-editor-body"></tbody>
+            </table>
+          </div>
+          <!-- Add rule form -->
+          <div class="add-rule-form" id="add-rule-form">
+            <div class="add-rule-field">
+              <span class="add-rule-label">Action</span>
+              <select class="add-rule-select" id="nr-action">
+                <option value="pass">pass</option>
+                <option value="block">block</option>
+              </select>
+            </div>
+            <div class="add-rule-field">
+              <span class="add-rule-label">Interface</span>
+              <select class="add-rule-select" id="nr-iface">
+                <option value="any">any</option>
+                <option value="mgmt">mgmt</option>
+                <option value="svc">svc</option>
+                <option value="lab">lab</option>
+                <option value="dmz">dmz</option>
+                <option value="wan">wan</option>
+              </select>
+            </div>
+            <div class="add-rule-field">
+              <span class="add-rule-label">Source</span>
+              <select class="add-rule-select" id="nr-src">
+                <option value="any">any</option>
+                <option value="mgmt">mgmt</option>
+                <option value="svc">svc</option>
+                <option value="lab">lab</option>
+                <option value="dmz">dmz</option>
+                <option value="wan">wan</option>
+              </select>
+            </div>
+            <div class="add-rule-field">
+              <span class="add-rule-label">Destination</span>
+              <select class="add-rule-select" id="nr-dst">
+                <option value="any">any</option>
+                <option value="mgmt">mgmt</option>
+                <option value="svc">svc</option>
+                <option value="lab">lab</option>
+                <option value="dmz">dmz</option>
+                <option value="wan">wan</option>
+              </select>
+            </div>
+            <div class="add-rule-field">
+              <span class="add-rule-label">Port</span>
+              <select class="add-rule-select" id="nr-port">
+                <option value="any">any</option>
+                <option value="22">22 (SSH)</option>
+                <option value="53">53 (DNS)</option>
+                <option value="80">80 (HTTP)</option>
+                <option value="443">443 (HTTPS)</option>
+                <option value="8006">8006 (Proxmox)</option>
+                <option value="51820">51820 (WG)</option>
+              </select>
+            </div>
+            <div class="add-rule-field">
+              <span class="add-rule-label">Proto</span>
+              <select class="add-rule-select" id="nr-proto">
+                <option value="any">any</option>
+                <option value="TCP">TCP</option>
+                <option value="UDP">UDP</option>
+              </select>
+            </div>
+            <div class="add-rule-field" style="flex:2; min-width:120px;">
+              <span class="add-rule-label">Beschreibung</span>
+              <input class="add-rule-select" id="nr-desc" type="text" placeholder="Regel-Beschreibung" style="min-width:120px;">
+            </div>
+            <button class="add-rule-btn" onclick="FWS.addRule()">+ Hinzufügen</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- State Table -->
+      <div class="fw-section">
+        <div class="fw-section-title"><span class="fw-bar"></span>State Table</div>
+        <div class="state-table-wrap">
+          <div style="overflow-x:auto;">
+            <table class="state-table" id="state-table-el">
+              <thead>
+                <tr>
+                  <th>#</th><th>Proto</th><th>Source</th><th>Destination</th><th>NAT</th><th>State</th>
+                </tr>
+              </thead>
+              <tbody id="state-tbody">
+                <tr><td colspan="6" class="state-empty">— Noch keine Pakete gesendet —</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="state-stats" id="state-stats"></div>
+        </div>
+      </div>
+
+      <!-- DHCP & DNS -->
+      <div class="fw-section">
+        <div class="fw-section-title"><span class="fw-bar"></span>DHCP &amp; DNS — Wie bekommen Geräte ihre IP und DNS?</div>
+        <div class="dhcp-dns-wrap">
+          <div class="dhcp-dns-toggle" id="dhcp-toggle" onclick="FWS.toggleDhcp()">
+            <span>📡 DHCP-Flow — neues Gerät im MGMT-Netz</span>
+            <span class="chevron">▼</span>
+          </div>
+          <div class="dhcp-dns-body" id="dhcp-body"></div>
+        </div>
+        <div class="dhcp-dns-wrap">
+          <div class="dhcp-dns-toggle" id="dns-toggle" onclick="FWS.toggleDns()">
+            <span>🔍 DNS-Flow — Gerät will google.com auflösen</span>
+            <span class="chevron">▼</span>
+          </div>
+          <div class="dhcp-dns-body" id="dns-body"></div>
+        </div>
+      </div>
+
+      <!-- Homelab Compare -->
+      <div class="fw-section">
+        <div class="fw-section-title"><span class="fw-bar"></span>Dein Homelab — Aktuell vs. Geplant</div>
+        <div class="compare-grid">
+          <div class="compare-box now">
+            <div class="compare-box-title">⚠ AKTUELL (Phase 1)</div>
+            <div class="compare-item warn">Alle Geräte im gleichen Netz (192.168.0.0/24)</div>
+            <div class="compare-item warn">Gateway: TP-Link Router (192.168.0.1)</div>
+            <div class="compare-item warn">Keine Firewall-Regeln → alles kann alles erreichen</div>
+            <div class="compare-item">DNS: AdGuard (192.168.0.201)</div>
+            <div class="compare-item warn">Keine Segmentierung, keine VLAN-Isolation</div>
+            <div class="compare-item warn">Kali kann Proxmox direkt erreichen!</div>
+          </div>
+          <div class="compare-box planned">
+            <div class="compare-box-title">✓ GEPLANT (Phase 2 — OPNsense)</div>
+            <div class="compare-item good">OPNsense als zentrales Gateway (10.0.1.1)</div>
+            <div class="compare-item good">4 VLANs: MGMT · SVC · LAB · DMZ</div>
+            <div class="compare-item good">Firewall-Regeln pro Zone (Default Deny)</div>
+            <div class="compare-item good">NAT für ausgehenden Traffic</div>
+            <div class="compare-item good">DHCP pro Subnetz · DNS durch AdGuard erzwungen</div>
+            <div class="compare-item good">VPN: WireGuard · IDS: Suricata</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left col -->
+
+    <!-- Right column: terms panel -->
+    <div>
+      <div class="terms-panel" id="terms-panel">
+        <div class="terms-panel-title">📖 Begriffe im Kontext</div>
+        <div id="terms-list"></div>
+        <div class="term-detail" id="term-detail">
+          <div class="term-detail-title" id="term-detail-title"></div>
+          <div id="term-detail-body"></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /fw-layout -->
+
+</main>
+
+<script src="../assets/nav.js"></script>
+<script src="../assets/demos/firewall.js"></script>
+<script>
+/* ================================================================
+   FIREWALL SIMULATOR — UI Controller
+   ================================================================ */
+var FWS = (function() {
+
+  var activeScenario = 'homelab';
+  var currentRules   = [];
+  var activeTerm     = null;
+
+  /* ---- helpers ---- */
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function el(id) { return document.getElementById(id); }
+
+  /* ----------------------------------------------------------------
+     INIT
+  ---------------------------------------------------------------- */
+  function init() {
+    initNav();
+    buildScenarioStrip();
+    loadScenario('homelab');
+    buildTopology();
+    buildSelects();
+    buildTerms();
+    buildDhcpDns();
+  }
+
+  function initNav() {
+    if (typeof initNavbar === 'function') initNavbar('academy');
+  }
+
+  /* ----------------------------------------------------------------
+     SCENARIOS
+  ---------------------------------------------------------------- */
+  function buildScenarioStrip() {
+    var strip = el('scenario-strip');
+    strip.innerHTML = '';
+    Object.keys(FW.SCENARIOS).forEach(function(key) {
+      var sc = FW.SCENARIOS[key];
+      var btn = document.createElement('button');
+      btn.className = 'scenario-btn' + (key === activeScenario ? ' active' : '');
+      btn.textContent = sc.label;
+      btn.onclick = function() { loadScenario(key); };
+      strip.appendChild(btn);
+    });
+  }
+
+  function loadScenario(key) {
+    activeScenario = key;
+    var sc = FW.SCENARIOS[key];
+    currentRules   = sc.rules.map(function(r) { return Object.assign({}, r); });
+
+    document.querySelectorAll('.scenario-btn').forEach(function(b) {
+      b.classList.toggle('active', b.textContent === sc.label);
+    });
+    el('scenario-desc').textContent = sc.desc;
+    renderRuleEditor();
+    FWS.clearResult();
+  }
+
+  /* ----------------------------------------------------------------
+     TOPOLOGY
+  ---------------------------------------------------------------- */
+  function buildTopology() {
+    // WAN
+    var wanDiv = el('topo-wan');
+    wanDiv.innerHTML = '';
+    FW.HOSTS.filter(function(h) { return h.zone === 'wan'; }).forEach(function(h) {
+      wanDiv.appendChild(makeHostChip(h, 'wan', FW.ZONES.wan.color));
+    });
+
+    // Zone boxes
+    var zonesDiv = el('topo-zones');
+    zonesDiv.innerHTML = '';
+    ['mgmt','svc','lab','dmz'].forEach(function(zid) {
+      var z = FW.ZONES[zid];
+      var box = document.createElement('div');
+      box.className = 'topo-zone';
+      box.style.borderColor = z.color + '66';
+      box.style.background  = z.color + '08';
+      box.dataset.zone = zid;
+
+      var lbl = document.createElement('div');
+      lbl.className = 'topo-zone-label';
+      lbl.style.color = z.color;
+      lbl.textContent = z.label;
+      box.appendChild(lbl);
+
+      var sub = document.createElement('div');
+      sub.className = 'topo-zone-subnet';
+      sub.textContent = z.subnet;
+      box.appendChild(sub);
+
+      FW.HOSTS.filter(function(h) { return h.zone === zid; }).forEach(function(h) {
+        box.appendChild(makeHostChip(h, zid, z.color));
+      });
+      zonesDiv.appendChild(box);
+    });
+  }
+
+  function makeHostChip(h, zid, color) {
+    var chip = document.createElement('div');
+    chip.className = 'topo-host';
+    chip.style.color = color;
+    chip.dataset.hostId = h.id;
+    chip.title = h.desc + '\nPorts: ' + (h.ports.length ? h.ports.join(', ') : '—');
+    chip.innerHTML = '<span>' + h.icon + '</span>' +
+      '<span>' + h.label + '</span>' +
+      '<span class="topo-host-ip">' + h.ip + '</span>';
+    chip.onclick = function() { quickFillHost(h); };
+    return chip;
+  }
+
+  function quickFillHost(h) {
+    // If src is empty or same as current dst, set as src; else set dst
+    var srcSel = el('sim-src');
+    var dstSel = el('sim-dst');
+    if (!srcSel.value || srcSel.value === h.id) {
+      // set as src
+      srcSel.value = h.id;
+    } else {
+      dstSel.value = h.id;
+    }
+    highlightTopologyNodes();
+  }
+
+  function highlightTopologyNodes() {
+    document.querySelectorAll('.topo-host').forEach(function(c) {
+      c.classList.remove('pkt-src','pkt-dst');
+    });
+    var src = el('sim-src').value;
+    var dst = el('sim-dst').value;
+    document.querySelectorAll('[data-host-id="' + src + '"]').forEach(function(c) { c.classList.add('pkt-src'); });
+    document.querySelectorAll('[data-host-id="' + dst + '"]').forEach(function(c) { c.classList.add('pkt-dst'); });
+  }
+
+  /* ----------------------------------------------------------------
+     SELECTS
+  ---------------------------------------------------------------- */
+  function buildSelects() {
+    var srcSel  = el('sim-src');
+    var dstSel  = el('sim-dst');
+    var portSel = el('sim-port');
+    srcSel.innerHTML  = '';
+    dstSel.innerHTML  = '';
+    portSel.innerHTML = '';
+
+    var hostsByZone = {};
+    FW.HOSTS.forEach(function(h) {
+      var z = h.zone || 'firewall';
+      if (!hostsByZone[z]) hostsByZone[z] = [];
+      hostsByZone[z].push(h);
+    });
+
+    function fillHostSelect(sel, skipId) {
+      sel.innerHTML = '';
+      Object.keys(hostsByZone).forEach(function(z) {
+        var grp = document.createElement('optgroup');
+        grp.label = z.toUpperCase();
+        hostsByZone[z].forEach(function(h) {
+          if (h.id === skipId) return;
+          var opt = document.createElement('option');
+          opt.value = h.id;
+          opt.textContent = h.icon + ' ' + h.label + ' (' + h.ip + ')';
+          grp.appendChild(opt);
+        });
+        if (grp.children.length) sel.appendChild(grp);
+      });
+    }
+
+    fillHostSelect(srcSel);
+    fillHostSelect(dstSel);
+
+    // Default: jumphost → internet
+    var jh = FW.HOSTS.find(function(h) { return h.id === 'jumphost'; });
+    var inet = FW.HOSTS.find(function(h) { return h.id === 'internet'; });
+    if (jh) srcSel.value = jh.id;
+    if (inet) dstSel.value = inet.id;
+
+    FW.PORTS.forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p.value;
+      opt.textContent = p.label;
+      portSel.appendChild(opt);
+    });
+    portSel.value = 443;
+
+    srcSel.addEventListener('change', highlightTopologyNodes);
+    dstSel.addEventListener('change', highlightTopologyNodes);
+    highlightTopologyNodes();
+  }
+
+  /* ----------------------------------------------------------------
+     PORT CHANGE
+  ---------------------------------------------------------------- */
+  function onPortChange() {
+    var v = parseInt(el('sim-port').value);
+    var customEl = el('sim-port-custom');
+    if (v === 0) {
+      customEl.style.display = 'block';
+    } else {
+      customEl.style.display = 'none';
+      // auto-set proto
+      var p = FW.PORTS.find(function(x) { return x.value === v; });
+      if (p && p.proto) el('sim-proto').value = p.proto;
+    }
+  }
+
+  /* ----------------------------------------------------------------
+     SEND PACKET
+  ---------------------------------------------------------------- */
+  function sendPacket() {
+    var srcId   = el('sim-src').value;
+    var dstId   = el('sim-dst').value;
+    var portEl  = el('sim-port');
+    var port    = parseInt(portEl.value) === 0
+      ? parseInt(el('sim-port-custom').value) || 80
+      : parseInt(portEl.value);
+    var proto   = el('sim-proto').value;
+
+    if (srcId === dstId) {
+      el('fw-result').innerHTML = '<div class="scenario-desc" style="border-color:var(--fw-red)">⚠ Quelle und Ziel sind identisch — bitte verschiedene Hosts wählen.</div>';
+      return;
+    }
+
+    var result = FW.simulate(srcId, dstId, port, proto, currentRules);
+    if (!result) return;
+
+    renderResult(result);
+    renderStateTable();
+
+    // Pulse FW box
+    var fwBox = el('topo-fw-box');
+    fwBox.classList.remove('pkt-active');
+    void fwBox.offsetWidth;
+    if (!result.sameSubnet) fwBox.classList.add('pkt-active');
+    setTimeout(function() { fwBox.classList.remove('pkt-active'); }, 2000);
+
+    // Show relevant term
+    if (result.sameSubnet) {
+      showTerm('samesubnet');
+    } else if (result.nat) {
+      showTerm('nat');
+    } else if (result.allowed) {
+      showTerm('stateful');
+    } else {
+      showTerm('rules');
+    }
+  }
+
+  /* ----------------------------------------------------------------
+     RENDER RESULT
+  ---------------------------------------------------------------- */
+  function renderResult(r) {
+    var overallClass = r.sameSubnet ? 'bypass' : (r.allowed ? 'pass' : 'block');
+    var overallLabel = r.sameSubnet
+      ? '✓ DIREKT ZUGESTELLT (gleiche Zone — kein Firewall-Check)'
+      : (r.allowed ? '✅ PAKET ZUGESTELLT (Firewall: PASS)' : '🔴 PAKET GEBLOCKT (Firewall: BLOCK)');
+
+    var html = '<div class="flow-header ' + overallClass + '">';
+    html += '<span>PAKET-FLOW: ' + esc(r.src.label) + ' (' + esc(r.src.ip) + ')';
+    html += ' → ' + esc(r.dst.label) + ' (' + esc(r.dst.ip) + ':' + esc(r.port) + '/' + esc(r.proto) + ')</span>';
+    html += '</div>';
+    html += '<div class="flow-steps">';
+
+    r.steps.forEach(function(step) {
+      html += '<div class="flow-step">';
+      html += '<div class="flow-step-title">' + esc(step.title) + '</div>';
+
+      if (step.type === 'rules') {
+        html += renderRuleTableForFlow(step);
+      } else if (step.type === 'nat') {
+        html += renderNatViz(step);
+      } else {
+        (step.content || []).forEach(function(line) {
+          var cls = 'flow-step-line';
+          if (line.indexOf('✅') !== -1 || line.indexOf('PASS') !== -1) cls += ' pass-line';
+          else if (line.indexOf('🔴') !== -1 || line.indexOf('BLOCK') !== -1 || line.indexOf('GEBLOCKT') !== -1) cls += ' block-line';
+          else if (line.indexOf('→') !== -1 || line.indexOf('MATCH') !== -1) cls += ' highlight';
+          html += '<div class="' + cls + '">' + esc(line) + '</div>';
+        });
+      }
+      html += '</div>';
+    });
+
+    html += '<div class="flow-step">';
+    html += '<div class="flow-step-title" style="color:' + (overallClass === 'block' ? 'var(--fw-red)' : 'var(--fw-green)') + '">';
+    html += overallLabel + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    el('fw-result').innerHTML = html;
+    el('fw-result').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function renderRuleTableForFlow(step) {
+    var html = '<div style="overflow-x:auto"><table class="rule-table">';
+    html += '<thead><tr><th>#</th><th>Interface</th><th>Source</th><th>Dest</th><th>Port</th><th>Proto</th><th>Action</th><th>Beschreibung</th></tr></thead><tbody>';
+    step.ruleRows.forEach(function(r) {
+      var cls = r.matched
+        ? (r.action === 'pass' ? 'matched-pass' : 'matched-block')
+        : 'no-match';
+      html += '<tr class="' + cls + '">';
+      html += '<td>' + r.num + '</td>';
+      html += '<td>' + esc(r.src) + '</td>';
+      html += '<td>' + esc(r.src) + '</td>';
+      html += '<td>' + esc(r.dst) + '</td>';
+      html += '<td>' + esc(r.port) + '</td>';
+      html += '<td>' + esc(r.proto) + '</td>';
+      html += '<td><span class="action-badge action-' + r.action + '">' + r.action.toUpperCase() + '</span>';
+      if (r.matched) html += '<span class="match-arrow">← MATCH</span>';
+      html += '</td>';
+      html += '<td>' + esc(r.desc) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    (step.content || []).forEach(function(line) {
+      var cls = 'flow-step-line';
+      if (line.indexOf('✅') !== -1 || line.indexOf('PASS') !== -1) cls += ' pass-line';
+      else if (line.indexOf('🔴') !== -1 || line.indexOf('BLOCK') !== -1) cls += ' block-line';
+      else cls += ' highlight';
+      html += '<div class="' + cls + '" style="margin-top:8px">' + esc(line) + '</div>';
+    });
+    return html;
+  }
+
+  function renderNatViz(step) {
+    var se = step.stateEntry;
+    var html = '<div class="nat-viz">';
+    html += '<div class="nat-box nat-before"><div class="nat-box-label">Intern (vorher)</div><div class="nat-box-ip">' + esc(se.src) + '</div></div>';
+    html += '<span class="nat-arrow">→</span>';
+    html += '<div class="nat-box" style="border-color:var(--fw-gold)"><div class="nat-box-label">OPNsense</div><div class="nat-box-ip" style="color:var(--fw-gold)">NAT ↔</div></div>';
+    html += '<span class="nat-arrow">→</span>';
+    html += '<div class="nat-box nat-after"><div class="nat-box-label">Extern (nachher)</div><div class="nat-box-ip">' + esc(se.nat || se.src) + '</div></div>';
+    html += '</div>';
+    (step.content || []).forEach(function(line) {
+      if (!line.trim()) return;
+      html += '<div class="flow-step-line highlight" style="margin-top:6px">' + esc(line) + '</div>';
+    });
+    return html;
+  }
+
+  /* ----------------------------------------------------------------
+     STATE TABLE
+  ---------------------------------------------------------------- */
+  function renderStateTable() {
+    var rows = FW.getStateTable();
+    var tbody = el('state-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="state-empty">— Noch keine Pakete gesendet —</td></tr>';
+      el('state-stats').innerHTML = '';
+      return;
+    }
+    tbody.innerHTML = '';
+    rows.forEach(function(r) {
+      var tr = document.createElement('tr');
+      tr.className = r.state === 'BLOCKED' ? 'state-blocked' : 'state-estab';
+      tr.innerHTML = '<td>' + r.id + '</td><td>' + esc(r.proto) + '</td><td>' + esc(r.src) + '</td><td>' + esc(r.dst) + '</td><td>' + esc(r.nat || '—') + '</td><td>' + esc(r.state) + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    var active  = rows.filter(function(r) { return r.state === 'ESTABLISHED'; }).length;
+    var blocked = rows.filter(function(r) { return r.state === 'BLOCKED'; }).length;
+    var nat     = rows.filter(function(r) { return r.nat; }).length;
+    el('state-stats').innerHTML =
+      '<div class="state-stat">Aktive: <span class="s-active">' + active + '</span></div>' +
+      '<div class="state-stat">Geblockt: <span class="s-blocked">' + blocked + '</span></div>' +
+      '<div class="state-stat">NAT-Einträge: <span class="s-nat">' + nat + '</span></div>';
+  }
+
+  /* ----------------------------------------------------------------
+     RULE EDITOR
+  ---------------------------------------------------------------- */
+  function renderRuleEditor() {
+    var tbody = el('rule-editor-body');
+    tbody.innerHTML = '';
+    currentRules.forEach(function(r, i) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + (i + 1) + '</td>' +
+        '<td><span class="action-badge action-' + r.action + '">' + r.action.toUpperCase() + '</span></td>' +
+        '<td>' + esc(r.iface) + '</td>' +
+        '<td>' + esc(r.src) + '</td>' +
+        '<td>' + esc(r.dst) + '</td>' +
+        '<td>' + esc(r.port) + '</td>' +
+        '<td>' + esc(r.proto) + '</td>' +
+        '<td style="max-width:200px; white-space:normal">' + esc(r.desc) + '</td>' +
+        '<td><button class="rule-up-btn" onclick="FWS.moveRule(' + i + ',-1)" title="Hoch">↑</button>' +
+             '<button class="rule-down-btn" onclick="FWS.moveRule(' + i + ',1)" title="Runter">↓</button></td>' +
+        '<td><button class="rule-del-btn" onclick="FWS.deleteRule(' + i + ')">✕</button></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function addRule() {
+    var rule = {
+      iface: el('nr-iface').value,
+      action: el('nr-action').value,
+      src:   el('nr-src').value,
+      dst:   el('nr-dst').value,
+      port:  el('nr-port').value === 'any' ? 'any' : parseInt(el('nr-port').value),
+      proto: el('nr-proto').value,
+      desc:  el('nr-desc').value || 'Neue Regel'
+    };
+    // Insert before last rule (Default Deny stays last)
+    var insertIdx = currentRules.length > 0 ? currentRules.length - 1 : 0;
+    currentRules.splice(insertIdx, 0, rule);
+    renderRuleEditor();
+    el('nr-desc').value = '';
+  }
+
+  function deleteRule(idx) {
+    currentRules.splice(idx, 1);
+    renderRuleEditor();
+  }
+
+  function moveRule(idx, dir) {
+    var target = idx + dir;
+    if (target < 0 || target >= currentRules.length) return;
+    var tmp = currentRules[idx];
+    currentRules[idx] = currentRules[target];
+    currentRules[target] = tmp;
+    renderRuleEditor();
+  }
+
+  /* ----------------------------------------------------------------
+     TERMS PANEL
+  ---------------------------------------------------------------- */
+  function buildTerms() {
+    var list = el('terms-list');
+    list.innerHTML = '';
+    Object.keys(FW.TERMS).forEach(function(key) {
+      var t = FW.TERMS[key];
+      var item = document.createElement('div');
+      item.className = 'term-item';
+      item.dataset.key = key;
+      item.innerHTML = '<div class="term-item-label">' + esc(t.title.split('(')[0].trim()) + '</div>';
+      item.onclick = function() { showTerm(key); };
+      list.appendChild(item);
+    });
+  }
+
+  function showTerm(key) {
+    var t = FW.TERMS[key];
+    if (!t) return;
+    activeTerm = key;
+    document.querySelectorAll('.term-item').forEach(function(item) {
+      item.classList.toggle('active', item.dataset.key === key);
+    });
+    el('term-detail-title').textContent = t.title;
+    el('term-detail-body').textContent  = t.body;
+    el('term-detail').classList.add('visible');
+    el('terms-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  /* ----------------------------------------------------------------
+     DHCP / DNS
+  ---------------------------------------------------------------- */
+  function buildDhcpDns() {
+    // DHCP
+    var dhcpHtml = '<ul class="flow-timeline">';
+    FW.DHCP_FLOW.forEach(function(s) {
+      dhcpHtml += '<li><div class="ft-step">' + s.step + '.</div><div class="ft-content">' +
+        '<div class="ft-msg">' + esc(s.msg) + '</div>' +
+        '<div class="ft-from-to">' + esc(s.from) + ' → ' + esc(s.to) + '</div>' +
+        '<div class="ft-detail">' + esc(s.detail) + '</div>' +
+        '</div></li>';
+    });
+    dhcpHtml += '</ul>';
+    el('dhcp-body').innerHTML = dhcpHtml;
+
+    // DNS
+    var dnsHtml = '<ul class="flow-timeline">';
+    FW.DNS_FLOW.forEach(function(s) {
+      dnsHtml += '<li><div class="ft-step">' + s.step + '.</div><div class="ft-content">' +
+        '<div class="ft-msg">' + esc(s.msg) + '</div>' +
+        '<div class="ft-from-to">' + esc(s.from) + ' → ' + esc(s.to) + '</div>' +
+        '<div class="ft-detail">' + esc(s.detail) + '</div>' +
+        '</div></li>';
+    });
+    dnsHtml += '</ul>';
+    el('dns-body').innerHTML = dnsHtml;
+  }
+
+  function toggleDhcp() {
+    var body = el('dhcp-body');
+    var toggle = el('dhcp-toggle');
+    var isOpen = body.classList.toggle('open');
+    toggle.classList.toggle('open', isOpen);
+    if (isOpen) showTerm('dhcp');
+  }
+
+  function toggleDns() {
+    var body = el('dns-body');
+    var toggle = el('dns-toggle');
+    var isOpen = body.classList.toggle('open');
+    toggle.classList.toggle('open', isOpen);
+    if (isOpen) showTerm('dns');
+  }
+
+  /* ----------------------------------------------------------------
+     CLEAR
+  ---------------------------------------------------------------- */
+  function clearResult() {
+    el('fw-result').innerHTML = '';
+    FW.clearStateTable();
+    renderStateTable();
+  }
+
+  /* ----------------------------------------------------------------
+     PUBLIC
+  ---------------------------------------------------------------- */
+  document.addEventListener('DOMContentLoaded', init);
+
+  return {
+    sendPacket:  sendPacket,
+    clearResult: clearResult,
+    addRule:     addRule,
+    deleteRule:  deleteRule,
+    moveRule:    moveRule,
+    onPortChange: onPortChange,
+    toggleDhcp:  toggleDhcp,
+    toggleDns:   toggleDns,
+    showTerm:    showTerm
+  };
+})();
+</script>
+</body>
+</html>

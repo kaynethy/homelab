@@ -67,55 +67,100 @@
       margin-left: auto;
     }
 
+    /* List-view article container */
+    .wiki-articles {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     /* Article cards */
     .wiki-article {
       background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 12px;
+      border-radius: 8px;
       overflow: hidden;
       transition: border-color 0.15s;
+      width: 100%;
     }
 
     .wiki-article:hover { border-color: var(--border2); }
-    .wiki-article.open { border-color: var(--accent2); }
+
+    /* Lessons Learned: amber accent */
+    .wiki-article[data-type="lesson"] { border-left: 3px solid rgba(251,146,60,0.4); }
+    .wiki-article[data-type="lesson"]:hover { border-left-color: #fb923c; }
+    .wiki-article[data-type="lesson"].open { border-left-color: #fb923c; border-color: #fb923c; }
+
+    /* Reference: green accent */
+    .wiki-article[data-type="reference"] { border-left: 3px solid rgba(79,255,176,0.3); }
+    .wiki-article[data-type="reference"]:hover { border-left-color: var(--accent); }
+    .wiki-article[data-type="reference"].open { border-left-color: var(--accent); border-color: var(--accent); }
 
     .wiki-article-header {
       padding: 16px 20px;
       cursor: pointer;
       display: flex;
       align-items: flex-start;
-      gap: 12px;
+      gap: 16px;
     }
 
     .wiki-article-meta { flex: 1; min-width: 0; }
 
-    .wiki-article-ns {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      margin-bottom: 6px;
+    .wiki-article-top-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      margin-bottom: 6px;
       flex-wrap: wrap;
     }
 
-    .wiki-article-title {
-      font-size: 15px;
+    .wiki-article-namespace {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .wiki-article-type-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 3px;
       font-weight: 600;
-      color: #fff;
+    }
+    .wiki-article-type-badge.ref {
+      background: rgba(79,255,176,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(79,255,176,0.2);
+    }
+    .wiki-article-type-badge.lesson {
+      background: rgba(251,146,60,0.1);
+      color: #fb923c;
+      border: 1px solid rgba(251,146,60,0.2);
+    }
+
+    .wiki-article-actions {
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    .wiki-article-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
       margin-bottom: 4px;
     }
 
     .wiki-article-summary {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--muted);
       line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .wiki-article-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
     }
 
     .wiki-toggle-btn {
@@ -288,6 +333,7 @@
       border-color: var(--accent);
       color: var(--accent);
     }
+
   </style>
 </head>
 <body>
@@ -316,11 +362,6 @@
     <aside class="wiki-sidebar">
       <div class="section-label">Namespaces</div>
       <div id="wiki-namespaces"></div>
-      <div style="border-top:1px solid var(--border);margin:12px 0"></div>
-      <div class="section-label">Referenz</div>
-      <a href="academy.html" class="wiki-ns-item" style="text-decoration:none;border-left-color:transparent">
-        🎓 Netz-Akademie →
-      </a>
     </aside>
 
     <!-- Article area -->
@@ -454,7 +495,7 @@
       return;
     }
 
-    container.innerHTML = articles.map(a => renderArticleCard(a)).join('');
+    container.innerHTML = '<div class="wiki-articles">' + articles.map(a => renderArticleCard(a)).join('') + '</div>';
 
     // Re-open previously open article
     if (openArticleId) {
@@ -489,9 +530,11 @@
     const ns = W.namespaces.find(n => article.namespace.startsWith(n.id));
     const nsColor = ns ? (COLOR_MAP[ns.color] || 'var(--muted)') : 'var(--muted)';
     const tags = (article.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
-    const typeLabel = article.type === 'lesson'
-      ? '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(234,179,8,0.1);color:var(--wip);border:1px solid rgba(234,179,8,0.2);margin-left:6px">📝 LESSON</span>'
-      : '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(77,184,255,0.1);color:var(--phase2);border:1px solid rgba(77,184,255,0.2);margin-left:6px">📚 REF</span>';
+    const isLesson = article.type === 'lesson';
+    const dataType = article.type || 'reference';
+    const typeLabel = isLesson
+      ? '<span class="wiki-article-type-badge lesson">📝 LESSON</span>'
+      : '<span class="wiki-article-type-badge ref">📗 REF</span>';
     const isOpen = openArticleId === article.id;
 
     const snippetsHtml = (article.snippets || []).map(s => `
@@ -520,19 +563,20 @@
     `).join('');
 
     return `
-      <div class="wiki-article${isOpen ? ' open' : ''}" id="art-${article.id}" data-id="${article.id}">
+      <div class="wiki-article${isOpen ? ' open' : ''}" id="art-${article.id}" data-id="${article.id}" data-type="${dataType}">
         <div class="wiki-article-header">
           <div class="wiki-article-meta">
-            <div class="wiki-article-ns">
-              <span style="color:${nsColor};font-size:11px">⬡</span>
-              ${article.namespace}
+            <div class="wiki-article-top-row">
+              <span class="wiki-article-namespace" style="color:${nsColor}">○ ${article.namespace}</span>
               ${typeLabel}
-              <span style="margin-left:4px;display:flex;gap:4px;flex-wrap:wrap">${tags}</span>
             </div>
             <div class="wiki-article-title">${escHtml(article.title)}</div>
             <div class="wiki-article-summary">${escHtml(article.summary || '')}</div>
+            ${tags ? `<div class="wiki-article-tags">${tags}</div>` : ''}
           </div>
-          <button class="wiki-toggle-btn">${isOpen ? 'Schließen ▴' : 'Öffnen ▾'}</button>
+          <div class="wiki-article-actions">
+            <button class="wiki-toggle-btn">${isOpen ? 'Schließen ▴' : 'Öffnen →'}</button>
+          </div>
         </div>
         <div class="wiki-article-body">
           <div class="wiki-article-body-inner">
@@ -551,7 +595,7 @@
     document.querySelectorAll('.wiki-article.open').forEach(el => {
       el.classList.remove('open');
       const btn = el.querySelector('.wiki-toggle-btn');
-      if (btn) btn.textContent = 'Öffnen ▾';
+      if (btn) btn.textContent = 'Öffnen →';
     });
     if (!isOpen) {
       expandArticle(artEl, id);

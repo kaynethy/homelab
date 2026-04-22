@@ -1,9 +1,9 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-19",
+    "updated": "2026-04-22",
     "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, Migrations-Mapping",
-    "status": "Übergangsphase – alles noch in 192.168.0.0/24 bis OPNsense läuft",
+    "status": "VLANs konfiguriert, Jumphost (10.0.1.4) hat Internet via OPNsense NAT. Migration pending.",
     "current_subnet": "192.168.0.0/24",
     "target_subnets": "10.0.1-4.0/24",
     "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans)"
@@ -22,8 +22,9 @@
           "ip": ".1",
           "name": "OPNsense",
           "role": "Gateway / Firewall",
-          "status": "planned",
-          "core": true
+          "status": "active",
+          "core": true,
+          "current_ip": "192.168.0.202"
         },
         {
           "ip": ".2",
@@ -45,9 +46,10 @@
           "ip": ".4",
           "name": "Admin-Jumphost",
           "role": "Debian 13 – SSH-Sprungbrett, Ansible, Docker-Tests",
-          "status": "planned",
+          "status": "active",
           "core": true,
-          "step_id": "p1-linux-vm"
+          "step_id": "p1-linux-vm",
+          "current_ip": "192.168.0.204"
         },
         {
           "ip": ".5",
@@ -95,7 +97,9 @@
           "status": "reserved",
           "core": false
         }
-      ]
+      ],
+      "vlan_tag": 10,
+      "opnsense_interface": "vlan01"
     },
     {
       "id": "svc",
@@ -110,8 +114,9 @@
           "ip": ".1",
           "name": "OPNsense",
           "role": "Gateway",
-          "status": "planned",
-          "core": true
+          "status": "active",
+          "core": true,
+          "current_ip": "192.168.0.202"
         },
         {
           "ip": ".10",
@@ -206,7 +211,9 @@
           "status": "reserved",
           "core": false
         }
-      ]
+      ],
+      "vlan_tag": 20,
+      "opnsense_interface": "vlan02"
     },
     {
       "id": "lab",
@@ -221,8 +228,9 @@
           "ip": ".1",
           "name": "OPNsense",
           "role": "Gateway",
-          "status": "planned",
-          "core": true
+          "status": "active",
+          "core": true,
+          "current_ip": "192.168.0.202"
         },
         {
           "ip": ".10",
@@ -293,7 +301,9 @@
           "status": "reserved",
           "core": false
         }
-      ]
+      ],
+      "vlan_tag": 30,
+      "opnsense_interface": "vlan03"
     },
     {
       "id": "dmz",
@@ -308,8 +318,9 @@
           "ip": ".1",
           "name": "OPNsense",
           "role": "Gateway (ext. Firewall)",
-          "status": "planned",
-          "core": true
+          "status": "active",
+          "core": true,
+          "current_ip": "192.168.0.202"
         },
         {
           "ip": ".10",
@@ -341,57 +352,109 @@
           "status": "reserved",
           "core": false
         }
-      ]
+      ],
+      "vlan_tag": 40,
+      "opnsense_interface": "vlan04"
     }
   ],
   "firewall_rules": [
     {
       "from": "MGMT",
-      "to": "alle Subnetze",
+      "to": "alle Subnetze + Internet",
       "rule": "ERLAUBT",
-      "note": "Admin-Zugang"
+      "note": "Admin-Zugang – voller Zugriff",
+      "vlan_tag": 10
     },
     {
       "from": "SVC",
       "to": "Internet",
       "rule": "ERLAUBT",
-      "note": ""
+      "note": "",
+      "vlan_tag": 20
     },
     {
       "from": "SVC",
+      "to": "MGMT (DNS)",
+      "rule": "ERLAUBT Port 53 TCP/UDP",
+      "note": "Nur DNS-Auflösung via AdGuard",
+      "vlan_tag": 20
+    },
+    {
+      "from": "SVC",
+      "to": "MGMT (NTP)",
+      "rule": "ERLAUBT Port 123 UDP",
+      "note": "Nur Zeitsynchronisation via Chrony",
+      "vlan_tag": 20
+    },
+    {
+      "from": "SVC",
+      "to": "MGMT (rest)",
+      "rule": "GEBLOCKT",
+      "note": "Kein weiterer Zugang zu Management-Infra",
+      "vlan_tag": 20
+    },
+    {
+      "from": "LAB",
+      "to": "Internet",
+      "rule": "ERLAUBT",
+      "note": "",
+      "vlan_tag": 30
+    },
+    {
+      "from": "LAB",
       "to": "MGMT",
-      "rule": "nur DNS/NTP (Port 53, 123)",
-      "note": "Kein voller Zugang zu Management"
-    },
-    {
-      "from": "LAB",
-      "to": "Internet",
-      "rule": "ERLAUBT",
-      "note": ""
-    },
-    {
-      "from": "LAB",
-      "to": "SVC / MGMT",
       "rule": "GEBLOCKT",
-      "note": "Lab ist isoliert — darf nichts in Produktion anfassen"
+      "note": "Lab isoliert von Management",
+      "vlan_tag": 30
+    },
+    {
+      "from": "LAB",
+      "to": "SVC",
+      "rule": "GEBLOCKT",
+      "note": "Lab isoliert von Services",
+      "vlan_tag": 30
     },
     {
       "from": "DMZ",
       "to": "Internet",
       "rule": "ERLAUBT",
-      "note": ""
+      "note": "",
+      "vlan_tag": 40
     },
     {
       "from": "DMZ",
-      "to": "LAN (alle)",
+      "to": "MGMT",
       "rule": "GEBLOCKT",
-      "note": "Außer definierte Rückkanäle — kompromittierte DMZ-Dienste kein LAN-Zugang"
+      "note": "Kompromittierte DMZ-Dienste kein MGMT-Zugang",
+      "vlan_tag": 40
+    },
+    {
+      "from": "DMZ",
+      "to": "SVC",
+      "rule": "GEBLOCKT",
+      "note": "Kompromittierte DMZ-Dienste kein SVC-Zugang",
+      "vlan_tag": 40
+    },
+    {
+      "from": "DMZ",
+      "to": "LAB",
+      "rule": "GEBLOCKT",
+      "note": "DMZ komplett isoliert von internen Netzen",
+      "vlan_tag": 40
     },
     {
       "from": "LAN (alle)",
       "to": "DMZ",
       "rule": "ERLAUBT",
-      "note": ""
+      "note": "Interne Netze dürfen auf DMZ-Dienste zugreifen",
+      "vlan_tag": null
+    },
+    {
+      "from": "alle VLANs (10.0.0.0/8)",
+      "to": "Internet",
+      "rule": "NAT Outbound via LAN-Interface",
+      "note": "Übergangsphase: NAT auf LAN (vtnet0) statt WAN (vtnet1), weil beide NICs auf vmbr0. Wird auf WAN umgestellt wenn OPNsense direkt am Modem.",
+      "vlan_tag": null
     }
   ],
   "migration": [
@@ -426,6 +489,7 @@
     "DHCP immer .100 – .200, darunter nur statische Zuweisungen",
     "OPNsense ist .1 in jedem Subnetz (konsistentes Gateway)",
     "Lab isoliert — darf nichts in MGMT/SVC anfassen",
-    "DMZ isoliert — kompromittierte Dienste kein Zugang zum LAN"
+    "DMZ isoliert — kompromittierte Dienste kein Zugang zum LAN",
+    "Übergangsphase: Outbound-NAT auf LAN-Interface (vtnet0) weil Default-Route über vtnet0 geht — beide NICs auf vmbr0"
   ]
 }

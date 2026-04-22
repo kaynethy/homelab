@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Port Scanner Visualizer</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ── BACK LINK ──────────────────────────────────────────── */
+    .demo-back {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); text-decoration: none; display: inline-block;
+      margin-bottom: 20px; transition: color 0.15s;
+    }
+    .demo-back:hover { color: #ef4444; }
+
+    /* ── SECTION LABELS ─────────────────────────────────────── */
+    .ps-section {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    }
+    .ps-section-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ps-section-title .ps-title-bar {
+      width: 20px; height: 2px; display: inline-block; background: #ef4444;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    .ps-layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 16px; align-items: start;
+    }
+
+    /* ── PORT CONFIG TABLE ──────────────────────────────────── */
+    .port-table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .port-table th {
+      text-align: left; padding: 6px 8px; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .port-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .port-table tr:last-child td { border-bottom: none; }
+
+    /* ── PRESET BUTTONS ─────────────────────────────────────── */
+    .preset-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .preset-btn {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); background: var(--bg);
+      border: 1px solid var(--border); padding: 5px 12px;
+      border-radius: 4px; cursor: pointer; transition: all 0.15s;
+    }
+    .preset-btn:hover { border-color: #ef4444; color: #ef4444; }
+    .preset-btn.active { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.08); }
+
+    /* ── SCAN TYPE BAR ──────────────────────────────────────── */
+    .scan-type-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .scan-type-btn {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); background: var(--bg2);
+      border: 1px solid var(--border); padding: 7px 14px;
+      border-radius: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .scan-type-btn:hover { border-color: #ef4444; color: #ef4444; }
+    .scan-type-btn.active {
+      border-color: #ef4444; color: #ef4444;
+      background: rgba(239,68,68,0.08);
+    }
+    .scan-type-desc {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 14px; margin-bottom: 16px;
+    }
+
+    /* ── CONTROLS ───────────────────────────────────────────── */
+    .scan-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .btn-scan {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      padding: 8px 18px; border-radius: 6px; cursor: pointer; transition: all 0.15s;
+      border: 1px solid;
+    }
+    .btn-scan-start { color: #4fffb0; background: rgba(79,255,176,0.08); border-color: rgba(79,255,176,0.3); }
+    .btn-scan-start:hover { background: rgba(79,255,176,0.16); }
+    .btn-scan-start:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-scan-pause { color: #fb923c; background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.3); }
+    .btn-scan-pause:hover { background: rgba(251,146,60,0.15); }
+    .btn-scan-pause:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-scan-reset { color: var(--muted); background: var(--bg); border-color: var(--border); }
+    .btn-scan-reset:hover { color: var(--text); border-color: var(--border2); }
+
+    .ctrl-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); margin-left: 8px; margin-right: 4px;
+    }
+    .ctrl-btn {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted); background: var(--bg2);
+      border: 1px solid var(--border); padding: 4px 10px;
+      border-radius: 4px; cursor: pointer; transition: all 0.15s;
+    }
+    .ctrl-btn:hover { color: var(--text); border-color: var(--border2); }
+    .ctrl-btn.active { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.08); }
+
+    /* ── VISUALIZATION ──────────────────────────────────────── */
+    .viz-row {
+      display: grid;
+      grid-template-columns: 1fr 120px 1fr;
+      gap: 16px; align-items: start; min-height: 260px;
+    }
+    .viz-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; min-height: 200px;
+      position: relative;
+    }
+    .viz-scanner { border-color: rgba(167,139,250,0.4); }
+    .viz-scanner:hover { border-color: rgba(167,139,250,0.7); }
+    .viz-target { border-color: rgba(77,184,255,0.4); }
+    .viz-target:hover { border-color: rgba(77,184,255,0.7); }
+    .viz-box-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px;
+    }
+    .viz-box-sub { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .viz-box-ip {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--accent); margin-bottom: 12px;
+    }
+    .viz-port-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .viz-port-item:last-child { border-bottom: none; }
+    .viz-port-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-left: auto; flex-shrink: 0; transition: background 0.3s;
+    }
+    .viz-result-list { margin-top: 12px; font-size: 11px; max-height: 160px; overflow-y: auto; }
+
+    /* ── MIDDLE COLUMN ──────────────────────────────────────── */
+    .viz-middle {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; padding-top: 8px;
+    }
+    .viz-fw-box {
+      background: var(--bg); border: 1px solid rgba(251,146,60,0.4);
+      border-radius: 8px; padding: 12px; text-align: center;
+      width: 100%; transition: border-color 0.3s;
+    }
+    .viz-packet-lane {
+      width: 100%; min-height: 40px; position: relative;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+
+    /* ── PACKETS ────────────────────────────────────────────── */
+    @keyframes pktRight { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes pktLeft  { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .viz-packet {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 3px 8px; border-radius: 3px; border: 1px solid;
+      white-space: nowrap; cursor: pointer; user-select: none;
+      transition: opacity 0.3s;
+      border-color: currentColor; background: rgba(0,0,0,0.3);
+    }
+    .viz-packet--out { animation: pktRight 0.4s ease; }
+    .viz-packet--in  { animation: pktLeft  0.4s ease; }
+
+    /* ── RESULTS TABLE ──────────────────────────────────────── */
+    .results-terminal {
+      background: #0a0c10; border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .results-terminal-header {
+      color: var(--accent); margin-bottom: 12px; font-size: 11px;
+    }
+    .results-table {
+      width: 100%; border-collapse: collapse;
+    }
+    .results-table th {
+      text-align: left; padding: 4px 12px; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    .results-table td { padding: 5px 12px; }
+    .scan-summary {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--muted);
+    }
+
+    /* ── COMPARE ────────────────────────────────────────────── */
+    .compare-wrap {
+      overflow-x: auto; background: #0a0c10;
+      border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+    }
+
+    /* ── PACKET DETAIL OVERLAY ──────────────────────────────── */
+    #packet-detail-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .pkt-popup {
+      background: var(--bg2); border: 1px solid #ef4444;
+      border-radius: 10px; padding: 24px; min-width: 380px; max-width: 520px;
+      font-family: 'JetBrains Mono', monospace; position: relative;
+    }
+    .pkt-popup-title {
+      font-size: 13px; color: #ef4444; margin-bottom: 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .pkt-popup-close {
+      cursor: pointer; color: var(--muted); font-size: 16px;
+      background: none; border: none; transition: color 0.15s;
+    }
+    .pkt-popup-close:hover { color: var(--text); }
+    .pkt-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px;
+    }
+    .pkt-box-title {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .pkt-row { display: flex; gap: 8px; padding: 3px 0; font-size: 12px; align-items: baseline; }
+    .pkt-key { color: var(--muted); width: 60px; flex-shrink: 0; }
+    .pkt-val { color: var(--text); }
+    .pkt-sep { color: var(--muted); }
+
+    /* ── DEFENDER PANEL ─────────────────────────────────────── */
+    #defender-panel {
+      display: none; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px; margin-top: 12px;
+      font-size: 13px; color: var(--muted); line-height: 1.8;
+    }
+    .defender-section { margin-bottom: 16px; }
+    .defender-section-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: #ef4444; text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .defender-code {
+      background: #0a0c10; border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px 14px; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text); white-space: pre-wrap; margin-top: 6px;
+    }
+
+    /* ── HOMELAB BOX ────────────────────────────────────────── */
+    .homelab-box {
+      background: rgba(79,255,176,0.04); border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0; padding: 16px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.9;
+    }
+
+    /* ── NMAP CMD BOX ───────────────────────────────────────── */
+    .nmap-cmd-box {
+      background: #0a0c10; border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .nmap-cmd-line { color: #4fffb0; margin-bottom: 4px; }
+    .nmap-prompt { color: var(--muted); margin-right: 8px; }
+    .nmap-variant { color: var(--text); padding: 2px 0; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .ps-layout { grid-template-columns: 1fr; }
+      .viz-row { grid-template-columns: 1fr; }
+      .viz-middle { flex-direction: row; flex-wrap: wrap; }
+    }
+    @media (max-width: 640px) {
+      .scan-type-bar { gap: 4px; }
+      .scan-type-btn { font-size: 10px; padding: 5px 10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb">
+    <a href="../index.html">Dashboard</a><span class="sep">›</span>
+    <a href="../academy.html">Academy</a><span class="sep">›</span>
+    <a href="../academy.html?tab=demos">Demos</a><span class="sep">›</span>
+    <span>Port Scanner Visualizer</span>
+  </div>
+
+  <a href="../academy.html?tab=demos" class="demo-back">← Zurück zur Akademie</a>
+
+  <header>
+    <div class="header-left">
+      <h1>// port<span>_scanner</span></h1>
+      <p style="color:var(--muted);font-size:14px;max-width:700px">
+        nmap SYN, Connect, XMAS, UDP und NULL Scans simuliert — verstehe wie Port Scanning funktioniert und was auf dem Zielserver passiert.
+      </p>
+    </div>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 12px;border-radius:4px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#ef4444">💀 Hacking &amp; Security</span>
+  </header>
+
+  <div class="ps-layout">
+
+    <!-- ====== LEFT: Config ====== -->
+    <div>
+
+      <!-- Ziel-Server Config -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Ziel-Server konfigurieren</div>
+        <div class="preset-bar">
+          <button class="preset-btn active" data-preset="proxmox">Proxmox Default</button>
+          <button class="preset-btn" data-preset="webserver">Webserver</button>
+          <button class="preset-btn" data-preset="hardened">Hardened SSH-Only</button>
+          <button class="preset-btn" data-preset="open">Alles offen ⚠</button>
+        </div>
+        <table class="port-table" id="port-config-table">
+          <thead><tr><th>Port</th><th>Service</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button id="btn-add-port" style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);background:none;border:1px dashed var(--border);padding:5px 12px;border-radius:4px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--border2)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Port hinzufügen</button>
+      </div>
+
+      <!-- Firewall -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Firewall</div>
+        <div id="fw-status" style="font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:10px"></div>
+        <button id="fw-toggle" class="ctrl-btn">Deaktivieren</button>
+      </div>
+
+      <!-- nmap Command -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>nmap-Befehl</div>
+        <div class="nmap-cmd-box" id="nmap-command"></div>
+      </div>
+
+      <!-- Homelab -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar" style="background:var(--accent)"></span>Dein Homelab</div>
+        <div class="homelab-box">
+          <div style="color:var(--accent);margin-bottom:6px">Scan dein eigenes Netz:</div>
+          <div style="color:var(--muted)">nmap -sS 192.168.0.0/24</div>
+          <div style="color:#6b7280;margin-left:8px">→ SYN Scan aller Geräte</div>
+          <div style="color:var(--muted)">nmap -sV 192.168.0.200</div>
+          <div style="color:#6b7280;margin-left:8px">→ Service-Detection auf Proxmox</div>
+          <div style="color:var(--muted)">nmap -O 192.168.0.200</div>
+          <div style="color:#6b7280;margin-left:8px">→ OS-Detection</div>
+          <div style="color:var(--muted)">nmap -p- 192.168.0.200</div>
+          <div style="color:#6b7280;margin-left:8px">→ Full Port Scan (alle 65535)</div>
+          <div style="margin-top:10px;color:var(--muted)">Erwartetes Ergebnis Proxmox:</div>
+          <div style="color:#4fffb0">22/tcp open ssh (OpenSSH 9.x)</div>
+          <div style="color:#4fffb0">8006/tcp open http (Proxmox Web-UI)</div>
+          <div style="margin-top:8px;color:#fb923c">⚠ Mehr offene Ports → prüfen ob nötig!</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ====== RIGHT: Main ====== -->
+    <div>
+
+      <!-- Scan Type -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Scan-Typ auswählen</div>
+        <div class="scan-type-bar">
+          <button class="scan-type-btn active" data-scan-type="syn">SYN Scan (-sS)</button>
+          <button class="scan-type-btn" data-scan-type="connect">Connect Scan (-sT)</button>
+          <button class="scan-type-btn" data-scan-type="xmas">XMAS Scan (-sX)</button>
+          <button class="scan-type-btn" data-scan-type="udp">UDP Scan (-sU)</button>
+          <button class="scan-type-btn" data-scan-type="null">NULL Scan (-sN)</button>
+        </div>
+        <div class="scan-type-desc" id="scan-type-desc"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Scan steuern</div>
+        <div class="scan-controls">
+          <button id="btn-scan-start" class="btn-scan btn-scan-start">▶ Scan starten</button>
+          <button id="btn-scan-pause" class="btn-scan btn-scan-pause" disabled>⏸ Pause</button>
+          <button id="btn-scan-reset" class="btn-scan btn-scan-reset">↺ Reset</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">
+          <span class="ctrl-label">Modus:</span>
+          <button class="ctrl-btn active" data-mode="sequential">Port für Port</button>
+          <button class="ctrl-btn" data-mode="parallel">Alle gleichzeitig</button>
+          <span class="ctrl-label" style="margin-left:12px">Speed:</span>
+          <button class="ctrl-btn" data-speed="0.5">0.5x</button>
+          <button class="ctrl-btn active" data-speed="1">1x</button>
+          <button class="ctrl-btn" data-speed="2">2x</button>
+        </div>
+      </div>
+
+      <!-- Visualization -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Scan-Visualisierung</div>
+        <div id="viz-area"></div>
+      </div>
+
+      <!-- Results -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Scan-Ergebnis</div>
+        <div class="results-terminal">
+          <div class="results-terminal-header" id="results-header">SCAN ERGEBNIS — warte auf Scan...</div>
+          <table class="results-table" id="results-table">
+            <thead>
+              <tr>
+                <th>PORT</th><th>STATE</th><th>SERVICE</th><th>REASON</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="scan-summary" id="scan-summary"></div>
+        </div>
+      </div>
+
+      <!-- Compare -->
+      <div class="ps-section">
+        <div class="ps-section-title"><span class="ps-title-bar"></span>Scan-Typen vergleichen</div>
+        <button id="btn-compare" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);padding:8px 18px;border-radius:6px;cursor:pointer;transition:all 0.15s;margin-bottom:14px" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='rgba(239,68,68,0.08)'">📊 Alle Scan-Typen vergleichen</button>
+        <div class="compare-wrap" id="compare-results" style="display:none"></div>
+        <div id="compare-insights"></div>
+      </div>
+
+      <!-- Defender -->
+      <div class="ps-section">
+        <button id="btn-defender" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">🔒 Was sieht die Gegenseite? ▾</button>
+        <div id="defender-panel">
+          <div class="defender-section">
+            <div class="defender-section-title">SYN Scan (-sS)</div>
+            <ul style="margin:0;padding-left:18px;color:var(--muted)">
+              <li>Weniger Logs als Connect Scan (Verbindung wird nie aufgebaut)</li>
+              <li>ABER: IDS (Suricata) erkennt SYN Scan Patterns</li>
+              <li>auth.log zeigt NICHTS — kein Login-Versuch</li>
+              <li>Firewall-Log zeigt: viele SYN-Pakete von einer IP an verschiedene Ports</li>
+            </ul>
+            <div class="defender-code">alert tcp any any -&gt; $HOME_NET any (msg:"SCAN nmap SYN";
+  flags:S; threshold:type both,track by_src,count 20,seconds 5; sid:2000001;)</div>
+          </div>
+          <div class="defender-section">
+            <div class="defender-section-title">Connect Scan (-sT)</div>
+            <ul style="margin:0;padding-left:18px;color:var(--muted)">
+              <li>VOLLER Handshake = normaler Verbindungsaufbau</li>
+              <li>Hinterlässt Logs (access.log, auth.log)</li>
+              <li>Einfacher zu erkennen, aber sieht "normaler" aus</li>
+            </ul>
+          </div>
+          <div class="defender-section">
+            <div class="defender-section-title">XMAS / NULL Scan</div>
+            <ul style="margin:0;padding-left:18px;color:var(--muted)">
+              <li>Setzt ungewöhnliche TCP-Flags (FIN+PSH+URG oder keine)</li>
+              <li>IDS erkennt das sofort — kein normaler Traffic hat diese Flags</li>
+              <li>Wird von modernen Firewalls geblockt</li>
+              <li>Ambiguität: offene und gefilterte Ports beide zeigen keine Antwort</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer style="margin-top:40px;padding:16px 0;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--border2);text-align:center">
+    homelab_roadmap · port_scanner · nur für eigene Systeme verwenden
+  </footer>
+</div>
+
+<!-- Packet Detail Overlay -->
+<div id="packet-detail-overlay">
+  <div class="pkt-popup">
+    <div class="pkt-popup-title">
+      TCP PACKET DETAIL
+      <button class="pkt-popup-close" onclick="window.PortScanner && window.PortScanner.closePacketDetail()">✕</button>
+    </div>
+    <div id="packet-detail-content"></div>
+  </div>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script src="../assets/demos/port-scanner.js"></script>
+<script>
+  // Init after state is ready (nav.js triggers on state-ready)
+  function startApp() {
+    if (window.PortScanner) window.PortScanner.init();
+  }
+  if (window.STATE) startApp();
+  else window.addEventListener('state-ready', startApp);
+</script>
+</body>
+</html>
