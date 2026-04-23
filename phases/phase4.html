@@ -35,9 +35,10 @@
   var PHASE_NUM = { phase1: 1, phase2: 2, phase3: 3, phase4: 4 };
 
   function getPhaseSteps(phase) {
-    if (phase.steps) return phase.steps;
-    if (phase.sections) return phase.sections.reduce(function(acc, s) { return acc.concat(s.steps); }, []);
-    return [];
+    var flat = (phase.steps && phase.steps.length ? phase.steps : []).concat(
+      (phase.sections || []).reduce(function(acc, s) { return acc.concat(s.steps || []); }, [])
+    );
+    return flat;
   }
 
   function escHtml(str) {
@@ -71,17 +72,7 @@
 
     var hwHtml = (phase.id === 'phase1' && window.STATE.hardware) ? renderHardware() : '';
 
-    var stepsHtml = '';
-    if (phase.steps) {
-      stepsHtml += '<div class="section-label">Setup-Schritte</div>';
-      stepsHtml += renderStepCards(phase.steps, pNum);
-    }
-    if (phase.sections) {
-      for (var i = 0; i < phase.sections.length; i++) {
-        stepsHtml += '<div class="section-label">' + phase.sections[i].label + '</div>';
-        stepsHtml += renderStepCards(phase.sections[i].steps, pNum, i);
-      }
-    }
+    var stepsHtml = renderStatusGroups(phase, pNum);
 
     var deferredSectionHtml = renderDeferredSection(phase, pNum);
 
@@ -138,98 +129,104 @@
     bindDragDrop();
   }
 
-  // ===== DRAG & DROP =====
-  var dragSrcId = null;
-  var dragSrcContainer = null;
+  // ===== TODO ORDER PERSISTENCE =====
+  function getSavedTodoOrder(phaseId) {
+    try { return JSON.parse(localStorage.getItem('phase-' + phaseId + '-todo-order') || '[]'); } catch(e) { return []; }
+  }
+  function saveTodoOrder(phaseId) {
+    var ids = Array.from(document.querySelectorAll('#todo-section .card[draggable="true"]')).map(function(c) {
+      return c.getAttribute('data-step-id');
+    });
+    localStorage.setItem('phase-' + phaseId + '-todo-order', JSON.stringify(ids));
+  }
 
+  // ===== STATUS GROUPING =====
+  function renderStatusGroups(phase, pNum) {
+    var allEntries = [];
+    (phase.steps || []).forEach(function(s) { allEntries.push({ step: s, section: null }); });
+    (phase.sections || []).forEach(function(sec) {
+      (sec.steps || []).forEach(function(s) { allEntries.push({ step: s, section: sec.label }); });
+    });
+    allEntries = allEntries.filter(function(e) { return e.step.status !== 'deferred'; });
+    var wip  = allEntries.filter(function(e) { return e.step.status === 'wip' || e.step.status === 'in-progress'; });
+    var done = allEntries.filter(function(e) { return e.step.status === 'done'; });
+    var todo = allEntries.filter(function(e) { return e.step.status !== 'wip' && e.step.status !== 'in-progress' && e.step.status !== 'done'; });
+    var savedOrder = getSavedTodoOrder(phase.id);
+    if (savedOrder.length > 0) {
+      var orderMap = {};
+      savedOrder.forEach(function(id, idx) { orderMap[id] = idx; });
+      todo.sort(function(a, b) {
+        var ai = orderMap[a.step.id] !== undefined ? orderMap[a.step.id] : 9999;
+        var bi = orderMap[b.step.id] !== undefined ? orderMap[b.step.id] : 9999;
+        return ai - bi;
+      });
+    }
+    var html = '';
+    if (wip.length > 0) {
+      html += '<div class="status-group-header status-group-wip">⚡ In Arbeit (' + wip.length + ')</div>';
+      html += '<div class="cards cards-wip">';
+      wip.forEach(function(e) { html += renderCard(e.step, e.section, pNum, false); });
+      html += '</div>';
+    }
+    if (todo.length > 0) {
+      html += '<div class="status-group-header status-group-todo">◯ Ausstehend (' + todo.length + ')</div>';
+      html += '<div class="cards cards-todo" id="todo-section">';
+      todo.forEach(function(e) { html += renderCard(e.step, e.section, pNum, true); });
+      html += '</div>';
+    }
+    if (done.length > 0) {
+      html += '<div class="status-group-header status-group-done">✓ Erledigt (' + done.length + ')</div>';
+      html += '<div class="cards cards-done">';
+      done.forEach(function(e) { html += renderCard(e.step, e.section, pNum, false); });
+      html += '</div>';
+    }
+    return html;
+  }
+
+  function renderCard(step, section, pNum, draggable) {
+    var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
+    var sectionTag = section ? '<span class="tag tag-section">' + escHtml(section) + '</span>' : '';
+    var dragAttr = draggable ? ' draggable="true"' : '';
+    var dragHandle = draggable ? '<span class="drag-handle" title="Verschieben">⠿</span>' : '';
+    var extraClass = step.status === 'done' ? ' card-done' : (step.status === 'wip' || step.status === 'in-progress' ? ' card-wip' : '');
+    return '<a href="../steps/step.html?id=' + encodeURIComponent(step.id) + '" class="card phase' + pNum + '-accent' + extraClass + '" style="text-decoration:none;display:block"' + dragAttr + ' data-step-id="' + escHtml(step.id) + '">' +
+      dragHandle +
+      '<div class="card-status status-' + escHtml(step.status) + '" title="' + escHtml(step.status) + '"></div>' +
+      '<div class="card-title">' + escHtml(step.title) + '</div>' +
+      '<div class="card-desc">' + escHtml(step.desc || '') + '</div>' +
+      '<div class="tags">' + sectionTag + tags + '</div>' +
+    '</a>';
+  }
+
+  // ===== DRAG & DROP (TODO only, persists via localStorage) =====
   function bindDragDrop() {
-    document.querySelectorAll('.cards').forEach(function(container) {
-      container.querySelectorAll('.card[draggable="true"]').forEach(function(card) {
-        card.addEventListener('dragstart', function(e) {
-          if (!e.target.closest('.drag-handle') && e.target.className !== 'drag-handle') {
-            e.preventDefault();
-            return;
-          }
-          dragSrcId = card.getAttribute('data-step-id');
-          dragSrcContainer = container;
-          card.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', dragSrcId);
-        });
-        card.addEventListener('dragend', function() {
-          card.classList.remove('dragging');
-          container.querySelectorAll('.card').forEach(function(c) { c.classList.remove('drag-over'); });
-          dragSrcId = null;
-          dragSrcContainer = null;
-        });
-        card.addEventListener('dragover', function(e) {
-          if (!dragSrcId || dragSrcContainer !== container) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          container.querySelectorAll('.card').forEach(function(c) { c.classList.remove('drag-over'); });
-          card.classList.add('drag-over');
-        });
-        card.addEventListener('dragleave', function() {
-          card.classList.remove('drag-over');
-        });
-        card.addEventListener('drop', function(e) {
-          e.preventDefault();
-          card.classList.remove('drag-over');
-          if (!dragSrcId || dragSrcContainer !== container) return;
-          var targetId = card.getAttribute('data-step-id');
-          if (dragSrcId === targetId) return;
-          var sectionIdx = container.hasAttribute('data-section-idx') ? parseInt(container.getAttribute('data-section-idx')) : null;
-          reorderStep(PHASE_ID, dragSrcId, targetId, sectionIdx);
-        });
-        card.querySelector('.drag-handle').addEventListener('mousedown', function(e) {
-          e.stopPropagation();
-        });
+    var container = document.getElementById('todo-section');
+    if (!container) return;
+    var dragSrc = null;
+    container.querySelectorAll('.card[draggable="true"]').forEach(function(card) {
+      card.addEventListener('dragstart', function(e) {
+        if (!e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+        dragSrc = card; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', function() {
+        card.classList.remove('dragging');
+        container.querySelectorAll('.card').forEach(function(c) { c.classList.remove('drag-over'); });
+        saveTodoOrder(PHASE_ID); dragSrc = null;
+      });
+      card.addEventListener('dragover', function(e) {
+        if (!dragSrc || dragSrc === card) return; e.preventDefault();
+        container.querySelectorAll('.card').forEach(function(c) { c.classList.remove('drag-over'); });
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', function() { card.classList.remove('drag-over'); });
+      card.addEventListener('drop', function(e) {
+        e.preventDefault(); card.classList.remove('drag-over');
+        if (!dragSrc || dragSrc === card) return;
+        var rect = card.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) { container.insertBefore(dragSrc, card); }
+        else { container.insertBefore(dragSrc, card.nextSibling); }
       });
     });
-  }
-
-  function reorderStep(phaseId, draggedId, targetId, sectionIdx) {
-    var phase = window.STATE.phases.find(function(p) { return p.id === phaseId; });
-    if (!phase) return;
-    var steps;
-    if (sectionIdx !== null && phase.sections && phase.sections[sectionIdx]) {
-      steps = phase.sections[sectionIdx].steps;
-    } else if (phase.steps) {
-      steps = phase.steps;
-    } else {
-      return;
-    }
-    var oldIndex = steps.findIndex(function(s) { return s.id === draggedId; });
-    var newIndex = steps.findIndex(function(s) { return s.id === targetId; });
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
-    var moved = steps.splice(oldIndex, 1)[0];
-    steps.splice(newIndex, 0, moved);
-    window.saveState();
-    init();
-  }
-
-  function renderHardware() {
-    var hw = window.STATE.hardware;
-    var rows = Object.keys(hw).map(function(k) {
-      var label = k.replace(/_/g,' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-      return '<div class="hw-row"><span class="hw-key">' + escHtml(label) + '</span><span class="hw-val">' + escHtml(String(hw[k])) + '</span></div>';
-    }).join('');
-    return '<div class="section-label">Hardware</div><div class="hw-box" style="margin-bottom:20px">' + rows + '</div>';
-  }
-
-  function renderStepCards(steps, pNum, sectionIdx) {
-    var cards = steps.filter(function(s) { return s.status !== 'deferred'; }).map(function(step) {
-      var tags = (step.tags || []).map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('');
-      return '<a href="../steps/step.html?id=' + encodeURIComponent(step.id) + '" class="card phase' + pNum + '-accent" style="text-decoration:none;display:block" draggable="true" data-step-id="' + escHtml(step.id) + '">' +
-        '<span class="drag-handle" title="Verschieben">⠿</span>' +
-        '<div class="card-status status-' + step.status + '" title="' + step.status + '"></div>' +
-        '<div class="card-title">' + escHtml(step.title) + '</div>' +
-        '<div class="card-desc">' + escHtml(step.desc || '') + '</div>' +
-        '<div class="tags">' + tags + '</div>' +
-      '</a>';
-    }).join('');
-    var sidx = sectionIdx !== undefined ? ' data-section-idx="' + sectionIdx + '"' : '';
-    return '<div class="cards"' + sidx + '>' + cards + '</div>';
   }
 
   var IDEAS_KEY = 'homelab_ideas_data';
@@ -242,8 +239,10 @@
   }
 
   function renderDeferredSection(phase, pNum) {
-    var allSteps = getPhaseSteps(phase);
-    var dSteps = allSteps.filter(function(s) { return s.status === 'deferred'; });
+    // Liest aus window.DEFERRED (homelab-deferred.json), nicht aus phase.steps
+    var dSteps = (window.DEFERRED && window.DEFERRED.items || []).filter(function(s) {
+      return s.phase_id === phase.id && s.status === 'deferred';
+    });
     var allIdeas = _getIdeas();
     var dIdeas = allIdeas.filter(function(i) { return i.phase_id === phase.id && i.status === 'deferred'; });
     var total = dSteps.length + dIdeas.length;
@@ -278,6 +277,13 @@
 
   function renderIdeasPreview(phaseId, ideas) {
     if (ideas.length === 0) return '';
+    var PRIO_ORDER = { high: 0, medium: 1, low: 2 };
+    ideas = ideas.slice().sort(function(a, b) {
+      var pa = PRIO_ORDER[a.prio] !== undefined ? PRIO_ORDER[a.prio] : 3;
+      var pb = PRIO_ORDER[b.prio] !== undefined ? PRIO_ORDER[b.prio] : 3;
+      if (pa !== pb) return pa - pb;
+      return (a.title || '').localeCompare(b.title || '');
+    });
     var items = ideas.map(function(i) {
       return '<li><a href="../ideas.html?highlight=' + encodeURIComponent(i.id) + '" class="idea-row">' +
         '<span class="prio-badge ' + i.prio + '" style="margin:0;flex-shrink:0">' + i.prio + '</span>' +

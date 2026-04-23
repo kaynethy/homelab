@@ -124,9 +124,10 @@
   const PHASE_NUM = { phase1: 1, phase2: 2, phase3: 3, phase4: 4 };
 
   function getPhaseSteps(phase) {
-    if (phase.steps) return phase.steps;
-    if (phase.sections) return phase.sections.flatMap(function(s) { return s.steps; });
-    return [];
+    var flat = (phase.steps && phase.steps.length ? phase.steps : []).concat(
+      (phase.sections || []).flatMap(function(s) { return s.steps || []; })
+    );
+    return flat;
   }
 
   function init() {
@@ -396,7 +397,7 @@
     .catch(function() {});
 
   // Network card counter
-  fetch('./homelab-network.json', { cache: 'no-cache' })
+  fetch('./phasen-ideen-deferred/homelab-network.json', { cache: 'no-cache' })
     .then(function(r) { return r.json(); })
     .then(function(n) {
       var subnets = n.subnets || [];

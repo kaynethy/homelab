@@ -152,27 +152,14 @@
         base.diary = [];
       }
 
-      // Step 5: Deferred Items laden und in Phasen injizieren
-      // (damit getDeferredSteps(), renderDeferredSection() und getPhaseSteps() weiterhin funktionieren)
+      // Step 5: Deferred Items laden — NUR in window.DEFERRED speichern, NICHT in Phasen injizieren.
+      // Deferred Items gehören ausschließlich auf das Deferred-Board (deferred.html).
+      // Phase-Boards und Fortschrittsbalken sind damit sauber getrennt.
       if (deferredResp.ok) {
         const deferredData = await deferredResp.json();
         window.DEFERRED = deferredData;
-        const items = deferredData.items || [];
-        for (const item of items) {
-          const phase = base.phases.find(p => p.id === item.phase_id);
-          if (!phase) continue;
-          // Nur hinzufügen wenn noch nicht vorhanden (Duplikate vermeiden)
-          const allIds = [
-            ...(phase.steps || []),
-            ...((phase.sections || []).flatMap(s => s.steps || []))
-          ].map(s => s.id);
-          if (allIds.includes(item.id)) continue;
-          if (phase.steps) {
-            phase.steps.push({ ...item });
-          } else if (phase.sections && phase.sections[0]) {
-            phase.sections[0].steps.push({ ...item });
-          }
-        }
+      } else {
+        window.DEFERRED = { items: [] };
       }
 
       // Step 6: Ideas laden
@@ -328,7 +315,7 @@
     location.reload();
   };
 
-  // Find a step by ID across all phases
+  // Find a step by ID — sucht in STATE.phases und zusätzlich in window.DEFERRED
   window.findStep = function (stepId) {
     if (!window.STATE) return null;
     for (const phase of window.STATE.phases) {
@@ -341,6 +328,15 @@
           const step = section.steps.find((s) => s.id === stepId);
           if (step) return { step, phase };
         }
+      }
+    }
+    // Fallback: auch in window.DEFERRED suchen (damit step.html?id=... für deferred Steps funktioniert)
+    if (window.DEFERRED) {
+      const item = (window.DEFERRED.items || []).find(i => i.id === stepId);
+      if (item) {
+        const phase = window.STATE.phases.find(p => p.id === item.phase_id)
+          || { id: item.phase_id, title: item.phase_id };
+        return { step: item, phase };
       }
     }
     return null;
@@ -370,18 +366,14 @@
     return result.step.status;
   };
 
-  // Get all deferred steps with their phase info
+  // Get all deferred steps with their phase info (liest aus window.DEFERRED, nicht aus STATE.phases)
   window.getDeferredSteps = function () {
-    if (!window.STATE) return [];
+    if (!window.STATE || !window.DEFERRED) return [];
     const result = [];
-    for (const phase of window.STATE.phases) {
-      const collect = (steps) => {
-        for (const step of steps) {
-          if (step.status === 'deferred') result.push({ step, phase });
-        }
-      };
-      if (phase.steps) collect(phase.steps);
-      if (phase.sections) phase.sections.forEach(s => collect(s.steps));
+    for (const item of (window.DEFERRED.items || [])) {
+      if (item.status !== 'deferred') continue;
+      const phase = window.STATE.phases.find(p => p.id === item.phase_id);
+      result.push({ step: item, phase: phase || { id: item.phase_id, title: item.phase_id } });
     }
     return result;
   };

@@ -1058,6 +1058,16 @@
       color: var(--bg);
     }
 
+    /* === HIGHLIGHT FLASH === */
+    @keyframes highlightFlash {
+      0%   { box-shadow: 0 0 0 3px rgba(79,255,176,0.8), 0 0 24px rgba(79,255,176,0.4); border-color: var(--accent); }
+      60%  { box-shadow: 0 0 0 3px rgba(79,255,176,0.4), 0 0 16px rgba(79,255,176,0.2); border-color: var(--accent); }
+      100% { box-shadow: none; border-color: var(--border); }
+    }
+    .cmd-card.highlighted {
+      animation: highlightFlash 2.5s ease forwards;
+    }
+
     /* === FAB (mobile only) === */
     .fab-mobile {
       display: none;
@@ -2456,14 +2466,14 @@
 
     // If highlight param set, ensure the right phase filter is active so the card is visible
     if (highlightId) {
-      var hlIdea = getAll().find(function(i) { return i.id === highlightId; });
+      var hlIdea = getIdeas().find(function(i) { return i.id === highlightId; });
       if (hlIdea && hlIdea.phase_id) {
         activePhase = hlIdea.phase_id;
       } else {
         activePhase = 'all';
       }
       activePrio = 'all';
-      activeTag = null;
+      activeTags = [];
       hideDone = false;
     }
 

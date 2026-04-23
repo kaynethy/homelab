@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.5",
-    "updated": "2026-04-19"
+    "updated": "2026-04-23"
   },
   "ideas": [
     {
@@ -309,22 +309,6 @@
       ]
     },
     {
-      "id": "idea-020",
-      "title": "DHCP Server (interner Adressvergabe)",
-      "desc": "Eigener DHCP-Server statt Router-DHCP. Feste IP-Reservierungen per MAC-Adresse, DHCP-Scopes pro VLAN/Subnetz. Kea DHCP oder direkt in AdGuard/OPNsense integriert.",
-      "phase_id": "phase2",
-      "step_id": "p2-dns",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "DHCP",
-        "Netzwerk",
-        "Kea",
-        "IP-Management"
-      ],
-      "comments": []
-    },
-    {
       "id": "idea-021",
       "title": "WLAN Controller (Wireless Management)",
       "desc": "Zentrales Management für WLAN-Geräte. OpenWRT Access Points via Controller verwalten, SSIDs pro VLAN, WPA Enterprise mit RADIUS. Mögliche Lösungen: OpenWRT + LuCI, hostapd, oder Unifi Controller selbst gehosted.",
@@ -365,22 +349,6 @@
       ]
     },
     {
-      "id": "idea-023",
-      "title": "PuTTY / SSH-Zugang für Windows",
-      "desc": "PuTTY oder Windows Terminal für direkten SSH-Zugang zu VMs statt Proxmox Browser-Console. ssh root@192.168.0.201 direkt aus Windows Terminal. Schneller, komfortabler, Copy-Paste funktioniert korrekt. Basis für alle weiteren SSH-basierten Operationen.",
-      "phase_id": "phase1",
-      "step_id": "p1-ssh-hardening",
-      "prio": "high",
-      "status": "done",
-      "tags": [
-        "SSH",
-        "PuTTY",
-        "Windows",
-        "Terminal"
-      ],
-      "comments": []
-    },
-    {
       "id": "idea-025",
       "title": "Home Assistant – Smarthome Integration",
       "desc": "Home Assistant als VM/Container in Proxmox. Philips Hue Bridge ersetzen oder integrieren, Automationen, lokale Steuerung ohne Cloud. Später erweiterbar auf weitere Smarthome-Geräte.",
@@ -395,41 +363,6 @@
         "Automation"
       ],
       "comments": []
-    },
-    {
-      "id": "idea-026",
-      "title": "AdGuard Autostart & Fallback DNS",
-      "desc": "Proxmox VM auf Autostart setzen (Hyper-V), AdGuard Container auf Autostart in Proxmox. Router-DNS als Fallback (8.8.8.8) damit bei Ausfall kein kompletter DNS-Ausfall entsteht.",
-      "phase_id": "phase2",
-      "step_id": "p2-dns",
-      "prio": "high",
-      "status": "done",
-      "tags": [
-        "AdGuard",
-        "Autostart",
-        "Redundanz",
-        "DNS"
-      ],
-      "comments": [
-        {
-          "id": "c-005",
-          "date": "2026-04-17",
-          "text": "Single Point of Failure wenn Proxmox VM down ist. Fallback-DNS am Router als Absicherung eintragen.",
-          "edited": false
-        },
-        {
-          "id": "c-006",
-          "date": "2026-04-18",
-          "text": "Autostart-Versuch führte zu Proxmox-Ausfall – nicht durch Set-VM selbst, sondern weil vorher existierende nic0/eth0 Inkonsistenz in /etc/network/interfaces nach Neustart sichtbar wurde. Nach Fix (p1-recovery): Hyper-V-Seite via Set-VM gesetzt, Container-Seite via pct set 100 --onboot 1 --startup order=1,up=10,down=60. Reboot-Test steht aus.",
-          "edited": false
-        },
-        {
-          "id": "c-026-3",
-          "date": "2026-04-19",
-          "text": "Erledigt: pct set 100 --onboot 1 --startup order=1,up=30,down=60. Reboot-Test bestanden – Proxmox VM und AdGuard Container starten automatisch nach Windows-Neustart. Boot-Kette dauert ~90-120s.",
-          "edited": false
-        }
-      ]
     },
     {
       "id": "idea-027",
@@ -471,29 +404,6 @@
       "comments": []
     },
     {
-      "id": "idea-029",
-      "title": "Snapshot vor Netzwerk-Änderungen",
-      "desc": "Proxmox-VM-Snapshot in Hyper-V anlegen bevor kritische Config-Änderungen (interfaces, DNS, Firewall) gemacht werden. Checkpoint-VM -VMName 'Proxmox' -SnapshotName 'pre-<aktion>-<datum>'. Rollback in Sekunden wenn was schiefgeht.",
-      "phase_id": "phase1",
-      "step_id": null,
-      "prio": "high",
-      "status": "done",
-      "tags": [
-        "Backup",
-        "Snapshot",
-        "Hyper-V",
-        "Safety"
-      ],
-      "comments": [
-        {
-          "id": "c-008",
-          "date": "2026-04-18",
-          "text": "Hätte heutigen Recovery-Marathon auf 30s reduziert: Snapshot → nic0/eth0 Fix versuchen → wenn broken: Restore. Snapshots NICHT als Backup-Ersatz nutzen, aber für operative Änderungen Gold wert.",
-          "edited": false
-        }
-      ]
-    },
-    {
       "id": "idea-030",
       "title": "vim-Konfiguration .vimrc für Admin-Komfort",
       "desc": "Minimale .vimrc auf Proxmox und allen Admin-VMs: syntax on, set number, set hlsearch, set incsearch, set expandtab, set tabstop=4. Macht vim nutzbar ohne vim-Guru zu sein.",
@@ -530,31 +440,6 @@
         "Boot-Performance"
       ],
       "comments": []
-    },
-    {
-      "id": "idea-032",
-      "title": "IPAM – IP Address Management (NetBox)",
-      "desc": "NetBox als zentrales IPAM. Alle IP-Ranges, Prefixes, VLANs und Devices dokumentieren und planen. REST-API für spätere Ansible/Terraform-Integration. Branchenstandard im Network Engineering – direkter Lernwert für den Job.",
-      "phase_id": "phase2",
-      "step_id": "p2-ipam",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "IPAM",
-        "NetBox",
-        "Netzwerk",
-        "IP-Management",
-        "Ansible",
-        "Terraform"
-      ],
-      "comments": [
-        {
-          "id": "c-010",
-          "date": "2026-04-19",
-          "text": "Als echter Step p2-ipam in Phase 2 verankert. IP-Management-Dreieck: DHCP (Vergabe) + DNS (Auflösung) + IPAM (Planung & Dokumentation). NetBox braucht PostgreSQL + Redis – Docker Compose Stack empfohlen. Ressourcen: 1-2 Cores, 2 GB RAM, 10 GB Disk.",
-          "edited": false
-        }
-      ]
     },
     {
       "id": "idea-033",
@@ -601,31 +486,6 @@
           "id": "c-011",
           "date": "2026-04-19",
           "text": "Hintergrund: JSON wird lokal bearbeitet (via AI oder manuell), aber Repo-Stand hinkt immer hinterher. Einfachster Ansatz für jetzt: post-commit Hook in Y:/HomeLab/Dokumentation/.git/hooks/post-commit der automatisch git push origin main ausführt. Sobald Gitea läuft (p3-git) kann das auch intern gehostet werden.",
-          "edited": false
-        }
-      ]
-    },
-    {
-      "id": "idea-035",
-      "title": "DMZ – Demilitarized Zone für öffentliche Dienste",
-      "desc": "Eigenes Subnetz 10.0.4.0/24 für öffentlich erreichbare Dienste (Webserver, Reverse Proxy, DDNS-Endpunkt, später Mailserver). Isoliert vom Management- und Lab-Netz durch Firewall-Regeln auf OPNsense/pfSense. Klassisches Enterprise-Pattern: Internet → Firewall → DMZ → interne Firewall → LAN. Direkter Lernwert für Network Engineering: Firewall-Zonen, Port-Forwarding, Stateful Inspection, asymmetrisches Routing vermeiden.",
-      "phase_id": "phase2",
-      "step_id": "p2-firewall",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "DMZ",
-        "Netzwerk",
-        "Firewall",
-        "Security",
-        "Segmentierung",
-        "OPNsense"
-      ],
-      "comments": [
-        {
-          "id": "c-012",
-          "date": "2026-04-19",
-          "text": "Voraussetzung: OPNsense/pfSense muss zuerst laufen (p2-firewall). DMZ ist Zielbild für alle Dienste aus Phase 3 die von außen erreichbar sein sollen: Webserver (p3-webserver), Mailserver (p3-mail), DDNS (p2-ddns). Regeln: DMZ → Internet = erlaubt, DMZ → LAN = geblockt (außer definierte Rückkanäle), LAN → DMZ = erlaubt. So sind kompromittierte DMZ-Dienste nicht sofort Zugang zum internen Netz.",
           "edited": false
         }
       ]
