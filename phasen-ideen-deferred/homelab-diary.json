@@ -1,10 +1,10 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-22",
+    "updated": "2026-04-23",
     "description": "Homelab Tagebuch – Session-Protokolle aller Arbeitssitzungen",
-    "current_session": 10,
-    "total_sessions": 11
+    "current_session": 11,
+    "total_sessions": 12
   },
   "sessions": [
     {
@@ -227,6 +227,35 @@
         "vim geübt: gg dG i (alles löschen + Insert), resolv.conf bearbeitet",
         "Deferred Step p2-mgmt-port-hardening erstellt: MGMT später auf Ports 443/53/22/123 einschränken",
         "Hyper-V Snapshot: vlan-internet-working-2026-04-22"
+      ]
+    },
+    {
+      "date": "2026-04-23",
+      "session": 11,
+      "title": "Kea DHCP Server – Installation, Config, DORA-Test, Relay",
+      "entries": [
+        "Ideas bereinigt: 6 Ideas entfernt die bereits als Roadmap-Steps existieren (DHCP, IPAM, DMZ, PuTTY, Autostart, Snapshots). 31 Ideas verbleiben.",
+        "idea-035 (DMZ) auf done gesetzt — VLAN 40 konfiguriert, FW-Regeln stehen",
+        "idea-020 (DHCP) step_id korrigiert: p2-dns → p2-dhcp",
+        "p2-vlans auf done gesetzt — VLANs konfiguriert, FW-Regeln pro Interface, Jumphost im MGMT-VLAN mit Internet",
+        "p2-firewall auf done gesetzt — OPNsense installiert, VLANs, FW-Regeln, NAT funktioniert",
+        "p2-dhcp gestartet: Kea DHCP als nächsten Step gewählt (moderner ISC-Nachfolger, JSON-Config, REST-API)",
+        "Hyper-V Snapshot: pre-kea-dhcp-2026-04-23",
+        "LXC Container CT103 erstellt: Debian 13, 256 MB RAM, VLAN Tag 10, IP 10.0.1.5, unprivileged",
+        "Template-Gotcha: pveam list local zeigt debian-13-standard_13.1-2, nicht 13.4-1 wie angenommen",
+        "Kea 2.6.3 installiert via apt (kea-dhcp4-server). Modularer Aufbau: DHCPv4, DHCPv6, Ctrl-Agent, DDNS separat",
+        "Config-Datei /etc/kea/kea-dhcp4.conf: MGMT-Subnetz mit Pool .100-.200 und 3 MAC-Reservierungen (Proxmox, AdGuard, Jumphost)",
+        "vim Copy-Paste-Fehler: Erste Zeichen abgeschnitten. Lösung: cat heredoc oder sauberes gg dG i",
+        "kea-dhcp4 -t Syntax-Check bestanden. Service gestartet, lauscht auf eth0, Subnetz 10.0.1.0/24 geladen",
+        "DORA-Test live: dhclient -v -1 ens18 → Discover → Offer 10.0.1.4 → Request → Acknowledge. MAC-Reservierung funktioniert!",
+        "Lease in kea-leases4.csv bestätigt: IP, MAC, Hostname korrekt",
+        "Config auf 4 Subnetze erweitert (MGMT/SVC/LAB/DMZ). Syntax-Check zeigt 4 NEW_SUBNET4",
+        "OPNsense DHCP-Relay: Destination Kea-DHCP (10.0.1.5), Relays auf SVC/LAB/DMZ Interfaces",
+        "TP-Link Address Reservation: PC .10, Mac .20, iPhone .21, iPad .22, Watch .23, OPNsense .30",
+        "Unbekanntes Gerät im Netz identifiziert: MAC C0:8D:51 = Amazon Technologies Inc. (Echo/Fire TV/Ring)",
+        "Security: Unprivileged Container, MAC-Reservierungen, DHCP-Logging, Relay nur wo nötig",
+        "Bash gelernt: pveam list, pct create mit VLAN-Tag, kea-dhcp4 -t, dhclient -v, cat heredoc, ip -br link show",
+        "OUI-Lookup als Security-Tool: Unbekannte Geräte im Netz identifizieren via MAC-Hersteller-Datenbank"
       ]
     }
   ]

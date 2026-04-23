@@ -1,9 +1,9 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-22",
+    "updated": "2026-04-23",
     "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, Migrations-Mapping",
-    "status": "VLANs konfiguriert, Jumphost (10.0.1.4) hat Internet via OPNsense NAT. Migration pending.",
+    "status": "VLANs + DHCP konfiguriert, Jumphost + Kea im MGMT-VLAN. Migration pending.",
     "current_subnet": "192.168.0.0/24",
     "target_subnets": "10.0.1-4.0/24",
     "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans)"
@@ -53,11 +53,12 @@
         },
         {
           "ip": ".5",
-          "name": "DHCP Server",
+          "name": "Kea DHCP",
           "role": "Kea DHCP – Statische Leases + dynamische Vergabe alle Subnetze",
-          "status": "planned",
+          "status": "active",
           "core": true,
-          "step_id": "p2-dhcp"
+          "step_id": "p2-dhcp",
+          "current_ip": "10.0.1.5"
         },
         {
           "ip": ".6",
@@ -477,10 +478,10 @@
       "status": "pending"
     },
     {
-      "current": "192.168.0.155",
-      "target": "bleibt 192.168.0.x",
+      "current": "192.168.0.10",
+      "target": "192.168.0.10",
       "host": "Windows Host",
-      "status": "no-change"
+      "status": "done"
     }
   ],
   "principles": [

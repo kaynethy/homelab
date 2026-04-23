@@ -5,20 +5,6 @@
   },
   "ideas": [
     {
-      "id": "idea-001",
-      "title": "Eigene Domain kaufen",
-      "desc": "Eine eigene Domain registrieren (z.B. bei Cloudflare oder Namecheap) als Basis für DDNS, Let's Encrypt Wildcard-Zertifikate und öffentlich erreichbare Dienste. Voraussetzung für alles was nach außen zeigt.",
-      "phase_id": "phase2",
-      "step_id": "p2-ddns",
-      "prio": "high",
-      "status": "idea",
-      "tags": [
-        "DNS",
-        "Web"
-      ],
-      "comments": []
-    },
-    {
       "id": "idea-002",
       "title": "Let's Encrypt Wildcard Zertifikate",
       "desc": "Let's Encrypt Wildcard-Zertifikate via DNS-Challenge (Cloudflare API). Ein Zertifikat für *.homelab.domain deckt alle Subdomains ab – kein separates Cert pro Dienst nötig. Automatische Erneuerung via certbot oder acme.sh.",

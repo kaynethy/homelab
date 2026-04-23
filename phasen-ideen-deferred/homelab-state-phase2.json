@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-22",
+    "updated": "2026-04-23",
     "phase_id": "phase2",
     "label": "PHASE 2",
     "title": "Netz & Erreichbarkeit",
@@ -9,11 +9,11 @@
     "status": "active",
     "color": "blue",
     "progress": {
-      "done": 3,
-      "wip": 1,
-      "todo": 4,
-      "total": 8,
-      "pct": 38
+      "done": 4,
+      "wip": 0,
+      "todo": 6,
+      "total": 10,
+      "pct": 40
     }
   },
   "steps": [
@@ -455,7 +455,7 @@
     {
       "id": "p2-dhcp",
       "title": "DHCP Server – Kea DHCP",
-      "status": "wip",
+      "status": "done",
       "tags": [
         "DHCP",
         "Kea",
@@ -463,36 +463,155 @@
         "IP-Management"
       ],
       "desc": "Eigener DHCP-Server als LXC Container (10.0.1.10). Kea DHCP als moderner ISC-Nachfolger. Statische Leases für alle Kern-Hosts, DHCP-Range für dynamische Vergabe (.100-.200). Ablösung des TP-Link DHCP – OPNsense übernimmt als Relay falls nötig.",
-      "notes": "",
+      "notes": "Kea DHCP 2.6.3 als LXC Container (CT103) im MGMT-VLAN. 4 Subnetze konfiguriert (MGMT/SVC/LAB/DMZ). MAC-Reservierungen für Proxmox, AdGuard, Jumphost. OPNsense DHCP-Relay für SVC/LAB/DMZ eingerichtet. DORA-Test vom Jumphost erfolgreich: Reservierung greift, Lease wird korrekt vergeben.",
       "details": {
-        "why_own_dhcp": "Security by Design: Eigener DHCP erlaubt volle Kontrolle über IP-Vergabe, MAC-Bindung (DHCP Snooping), statische Leases pro Host und Logging aller Vergaben. TP-Link DHCP ist eine Blackbox.",
-        "tool": "Kea DHCP (ISC-Nachfolger, aktiv maintained, REST-API, modernes JSON-Config-Format)",
-        "alternative": "OPNsense hat integrierten DHCP-Server (ISC dhcpd) – einfacher für den Start, weniger Lernwert",
-        "deployment": "LXC Container, Debian 13, 1 Core, 256 MB RAM, 4 GB Disk",
-        "target_ip": "10.0.1.10",
-        "static_leases": [
-          "10.0.1.2 → Proxmox (MAC binden)",
-          "10.0.1.3 → AdGuard DNS (MAC binden)",
-          "10.0.1.4 → Jumphost (MAC binden)"
-        ],
-        "dhcp_ranges_per_subnet": {
-          "mgmt": "10.0.1.100 – 10.0.1.200",
-          "svc": "10.0.2.100 – 10.0.2.200",
-          "lab": "10.0.3.100 – 10.0.3.200",
-          "dmz": "10.0.4.100 – 10.0.4.150"
+        "container": {
+          "id": 103,
+          "ip": "10.0.1.5",
+          "os": "debian-13",
+          "ram_mb": 256,
+          "disk_gb": 4,
+          "vlan_tag": 10
         },
-        "security_concepts": [
-          "MAC-Bindung: Jeder Kern-Host bekommt immer dieselbe IP – kein IP-Spoofing durch DHCP-Manipulation",
-          "DHCP Logging: Alle Vergaben werden geloggt – wer hat wann welche IP bekommen",
-          "Lease-Time: Kurze Lease-Time (1h) für dynamische Bereiche, lange (infinite) für statische Hosts",
-          "DHCP Snooping Vorbereitung: Basis für späteres Switch-Level DHCP Snooping via OPNsense"
+        "kea_version": "2.6.3",
+        "config_file": "/etc/kea/kea-dhcp4.conf",
+        "lease_file": "/var/lib/kea/kea-leases4.csv",
+        "subnets_configured": [
+          {
+            "id": 1,
+            "subnet": "10.0.1.0/24",
+            "pool": "10.0.1.100-200",
+            "gateway": "10.0.1.1",
+            "reservations": 3
+          },
+          {
+            "id": 2,
+            "subnet": "10.0.2.0/24",
+            "pool": "10.0.2.100-200",
+            "gateway": "10.0.2.1",
+            "reservations": 0
+          },
+          {
+            "id": 3,
+            "subnet": "10.0.3.0/24",
+            "pool": "10.0.3.100-200",
+            "gateway": "10.0.3.1",
+            "reservations": 0
+          },
+          {
+            "id": 4,
+            "subnet": "10.0.4.0/24",
+            "pool": "10.0.4.100-150",
+            "gateway": "10.0.4.1",
+            "reservations": 0
+          }
         ],
-        "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans) müssen laufen"
+        "mac_reservations": [
+          {
+            "mac": "00:15:5d:00:9b:01",
+            "ip": "10.0.1.2",
+            "host": "pve"
+          },
+          {
+            "mac": "BC:24:11:6B:5E:86",
+            "ip": "10.0.1.3",
+            "host": "adguard"
+          },
+          {
+            "mac": "BC:24:11:E3:E0:8B",
+            "ip": "10.0.1.4",
+            "host": "jumphost"
+          }
+        ],
+        "dhcp_relay": {
+          "tool": "OPNsense DHCRelay",
+          "destination": "10.0.1.5 (Kea-DHCP)",
+          "interfaces": [
+            "SVC",
+            "LAB",
+            "DMZ"
+          ],
+          "note": "MGMT braucht kein Relay — Kea ist direkt im selben Subnetz"
+        },
+        "security_notes": [
+          "Unprivileged Container: Root im CT ≠ Root auf Proxmox-Host — Container-Breakout hat keine Host-Rechte",
+          "MAC-Reservierungen: Kern-Hosts bekommen immer feste IP, unbekannte Geräte landen im Pool (.100-.200)",
+          "DHCP-Logging: Alle Lease-Vergaben in kea-leases4.csv — wer hat wann welche IP bekommen",
+          "DHCP-Relay nur auf nötigen Interfaces — kein Relay auf MGMT = weniger Angriffsfläche",
+          "Kea JSON-Config: maschinenlesbar, versionierbar, später per Ansible automatisierbar"
+        ],
+        "bash_learned": [
+          "pveam list local — verfügbare LXC-Templates anzeigen",
+          "pct create mit --net0 tag=10 — Container direkt im VLAN erstellen",
+          "kea-dhcp4 -t — Config-Syntax-Check vor dem Neustart",
+          "dhclient -v -1 ens18 — DORA-Prozess live beobachten",
+          "cat > file << 'EOF' — Here Document für sauberes Config-Schreiben ohne Copy-Paste-Probleme",
+          "ip -br link show — kompakte Interface-Übersicht mit Status und MAC"
+        ],
+        "vim_learned": [
+          ":set filetype=json — JSON-Syntax-Highlighting in vim aktivieren"
+        ]
       },
       "log": [
         {
           "date": "2026-04-23",
-          "entry": "Step auf wip gesetzt. Kea DHCP Server als nächsten Phase-2-Step gestartet."
+          "entry": "Step auf wip gesetzt. Kea DHCP als nächsten Phase-2-Step gestartet."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Hyper-V Snapshot: pre-kea-dhcp-2026-04-23."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "LXC Container CT103 erstellt: Debian 13, 1 Core, 256 MB RAM, 4 GB Disk, VLAN Tag 10, IP 10.0.1.5/24, GW 10.0.1.1, DNS 192.168.0.201."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Container unprivileged, onboot=1, startup order=3 delay=30. Nesting aktiviert."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "apt update && apt install kea-dhcp4-server — Kea 2.6.3 installiert."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Template-Gotcha: debian-13-standard_13.1-2 statt 13.4-1 — pveam list local zeigt verfügbare Templates."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Kea-Config erstellt: /etc/kea/kea-dhcp4.conf — MGMT-Subnetz (10.0.1.0/24) mit Pool .100-.200 und 3 MAC-Reservierungen."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "vim Copy-Paste-Gotcha: Erste Zeichen abgeschnitten beim Einfügen. Fix: cat heredoc (cat > file << 'EOF') oder sauberes gg dG i in vim."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "kea-dhcp4 -t → Syntax OK. systemctl restart kea-dhcp4-server → läuft auf eth0, Subnetz 10.0.1.0/24."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "DORA-Test vom Jumphost: sudo dhclient -v -1 ens18 → DISCOVER → OFFER 10.0.1.4 from 10.0.1.5 → REQUEST → ACK. MAC-Reservierung greift!"
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Lease in /var/lib/kea/kea-leases4.csv bestätigt: 10.0.1.4, bc:24:11:e3:e0:8b, hostname jumphost."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Config erweitert auf 4 Subnetze: MGMT, SVC (10.0.2.0/24), LAB (10.0.3.0/24), DMZ (10.0.4.0/24). Syntax-Check zeigt 4 NEW_SUBNET4."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "OPNsense DHCP-Relay konfiguriert: Destination Kea-DHCP (10.0.1.5), Relays auf SVC/LAB/DMZ Interfaces."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "TP-Link Address Reservation eingerichtet: PC .10, iPhone .21, Mac .20, Watch .23, iPad .22, OPNsense .30, ecb5fa94f509 .40."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Unbekanntes Gerät C0:8D:51 identifiziert via OUI-Lookup: Amazon Technologies Inc. (Echo/Fire TV/Ring)."
         }
       ],
       "deferred_reason": ""
@@ -509,6 +628,80 @@
       "desc": "Externe Erreichbarkeit trotz wechselnder Heim-IP. Cloudflare DDNS oder DuckDNS.",
       "log": [],
       "notes": "",
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-domain",
+      "title": "Eigene Domain registrieren",
+      "status": "todo",
+      "tags": [
+        "DNS",
+        "Domain",
+        "Cloudflare"
+      ],
+      "desc": "Eigene Domain registrieren (Cloudflare) als Basis für DDNS, externe Erreichbarkeit und später Wildcard-Zertifikate. Voraussetzung für DDNS, Reverse Proxy und WireGuard.",
+      "notes": "",
+      "details": {
+        "provider": "Cloudflare empfohlen: DNS-Management + API für DDNS + spätere Let's Encrypt DNS-Challenge in einem",
+        "cost": "~10€/Jahr für eine .de oder .com Domain",
+        "prerequisite_for": [
+          "p2-ddns",
+          "p2-reverseproxy",
+          "p2-wireguard"
+        ],
+        "lets_encrypt_later": "Wildcard-Zertifikate (idea-002) kommen erst mit dem Reverse Proxy — nicht Teil dieses Steps",
+        "security_notes": [
+          "Cloudflare API Token mit minimalen Rechten (Zone:DNS:Edit) — Least Privilege",
+          "Domain-Registrar-Account mit 2FA absichern — Domain-Hijacking ist ein realer Angriffsvektor"
+        ]
+      },
+      "log": [
+        {
+          "date": "2026-04-23",
+          "entry": "Step erstellt aus idea-001. Let's Encrypt (idea-002) wieder entmerged — Certs kommen erst mit Reverse Proxy."
+        }
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-syslog-ntp",
+      "title": "Syslog-Server + interner NTP (Chrony)",
+      "status": "todo",
+      "tags": [
+        "Syslog",
+        "NTP",
+        "Logging",
+        "Chrony",
+        "Security",
+        "Zeitserver"
+      ],
+      "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog). Interner NTP-Server via Chrony — Pflicht für konsistente Log-Timestamps, Zertifikate und später Kerberos. Kern-Infrastruktur im MGMT-VLAN.",
+      "notes": "",
+      "details": {
+        "merged_from": [
+          "idea-012 (Syslog-Server + interner NTP)"
+        ],
+        "syslog": {
+          "tool": "rsyslog (auf jeder Debian-VM vorinstalliert) oder Graylog (wenn Web-UI gewünscht)",
+          "target_ip": "10.0.1.7",
+          "purpose": "Alle VMs loggen zentral → ein Ort für Debugging, Security-Audit, Compliance",
+          "security": "Ohne zentrales Logging sind Einbrüche unsichtbar. Angreifer löschen lokale Logs — zentraler Syslog überlebt das."
+        },
+        "ntp": {
+          "tool": "Chrony (moderner ntpd-Ersatz, schnellere Synchronisation, besser für VMs)",
+          "target_ip": "10.0.1.6",
+          "purpose": "Konsistente Timestamps über alle VMs. Pflicht für: TLS-Zertifikate (Gültigkeitszeitraum), Log-Korrelation, Kerberos (max 5 Min Drift)",
+          "security": "Zeitmanipulation ist ein realer Angriffsvektor: abgelaufene Zertifikate wieder gültig machen, Replay-Angriffe, Log-Timestamps fälschen"
+        },
+        "deployment": "Beide als LXC Container im MGMT-VLAN. Minimal: 1 Core, 256 MB RAM, 4 GB Disk pro Container. Oder kombiniert in einem Container.",
+        "firewall_impact": "SVC-Regel erlaubt bereits NTP (Port 123) zu MGMT. Syslog (Port 514 UDP/TCP) muss noch als Regel für alle VLANs hinzugefügt werden."
+      },
+      "log": [
+        {
+          "date": "2026-04-23",
+          "entry": "Step erstellt aus idea-012. Syslog + NTP sind Kern-Infrastruktur, nicht nur eine Idee."
+        }
+      ],
       "deferred_reason": ""
     }
   ]

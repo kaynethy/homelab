@@ -1,12 +1,12 @@
 {
   "meta": {
     "version": "2.0",
-    "updated": "2026-04-23",
+    "updated": "2026-04-22",
     "description": "Homelab Roadmap – Hauptdatei mit Gesamtfortschritt und Referenzen auf Phase-Dateien",
-    "progress_pct": 36,
-    "progress_done": 13,
-    "progress_wip": 0,
-    "progress_total": 36,
+    "progress_pct": 32,
+    "progress_done": 12,
+    "progress_wip": 2,
+    "progress_total": 37,
     "repository": {
       "url": "https://github.com/kaynethy/homelab",
       "ssh": "git@github.com:kaynethy/homelab.git",
@@ -21,7 +21,7 @@
     },
     "network": {
       "home_subnet": "192.168.0.0/24",
-      "host_ip": "192.168.0.155",
+      "host_ip": "192.168.0.10",
       "gateway": "192.168.0.1",
       "proxmox_ip": "192.168.0.200",
       "proxmox_ui": "https://192.168.0.200:8006",
