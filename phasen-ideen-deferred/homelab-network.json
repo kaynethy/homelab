@@ -62,11 +62,11 @@
         },
         {
           "ip": ".6",
-          "name": "NTP / Chrony",
-          "role": "Zeitserver",
-          "status": "planned",
-          "core": false,
-          "idea_id": "idea-012"
+          "name": "NTP / OpenNTPD",
+          "role": "Zeitserver (VM104, OpenNTPD, listen on 10.0.1.6, de.pool.ntp.org)",
+          "status": "active",
+          "core": true,
+          "step_id": "p2-syslog-ntp"
         },
         {
           "ip": ".7",

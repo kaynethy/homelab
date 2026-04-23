@@ -10,8 +10,8 @@
     "color": "blue",
     "progress": {
       "done": 4,
-      "wip": 0,
-      "todo": 6,
+      "wip": 1,
+      "todo": 5,
       "total": 10,
       "pct": 40
     }
@@ -637,46 +637,143 @@
       "tags": [
         "DNS",
         "Domain",
-        "Cloudflare"
+        "Cloudflare",
+        ".dev",
+        "HSTS"
       ],
-      "desc": "Eigene Domain registrieren (Cloudflare) als Basis für DDNS, externe Erreichbarkeit und später Wildcard-Zertifikate. Voraussetzung für DDNS, Reverse Proxy und WireGuard.",
-      "notes": "",
+      "desc": "mynooblab.dev bei Cloudflare Registrar kaufen (~12$/Jahr). .dev TLD erzwingt HTTPS (HSTS preloaded). Basis für DDNS, Reverse Proxy, WireGuard und Split-DNS.",
+      "notes": "Domain entschieden: mynooblab.dev (Cloudflare Registrar). Zweite Domain equinox151.de kommt später separat (INWX, da Cloudflare .de noch nicht unterstützt). Beide Domains können im selben Cloudflare-Account verwaltet werden.",
       "details": {
-        "provider": "Cloudflare empfohlen: DNS-Management + API für DDNS + spätere Let's Encrypt DNS-Challenge in einem",
-        "cost": "~10€/Jahr für eine .de oder .com Domain",
+        "provider": "Cloudflare Registrar — at-cost Pricing, DNS automatisch konfiguriert, DNSSEC per Klick, WHOIS Privacy inklusive",
+        "domain": "mynooblab.dev",
+        "tld_security_bonus": ".dev ist auf der HSTS-Preload-Liste: Browser erzwingen HTTPS, kein HTTP möglich, kein Downgrade-Angriff",
+        "cost": "~12$/Jahr für .dev bei Cloudflare (at-cost, keine Aufschläge)",
+        "future_domain": {
+          "domain": "equinox151.de",
+          "registrar": "INWX empfohlen (deutscher Registrar, ~5€/Jahr für .de). Cloudflare unterstützt .de noch nicht (angekündigt für 2026).",
+          "integration": "Bei INWX kaufen → Nameserver auf Cloudflare umstellen → gleicher Cloudflare-Account, gleiche API, gleicher Workflow",
+          "timeline": "Kommt deutlich später — erst Homelab-Infra fertig, dann Kollektiv-Website"
+        },
         "prerequisite_for": [
           "p2-ddns",
           "p2-reverseproxy",
           "p2-wireguard"
         ],
         "lets_encrypt_later": "Wildcard-Zertifikate (idea-002) kommen erst mit dem Reverse Proxy — nicht Teil dieses Steps",
+        "preparation_checklist": {
+          "step_1_choose_domain": {
+            "desc": "Domain-Name gewählt ✓",
+            "chosen": "mynooblab.dev",
+            "why_dev": ".dev erzwingt HTTPS (HSTS preloaded) — Security-Bonus ohne Konfiguration. Google-Registry, stabil.",
+            "tip": "Subdomains kosten nichts extra: wiki.mynooblab.dev, git.mynooblab.dev, vpn.mynooblab.dev — alles nur DNS-Records"
+          },
+          "step_2_cloudflare_account": {
+            "desc": "Cloudflare Account erstellen (kostenlos)",
+            "url": "https://dash.cloudflare.com/sign-up",
+            "security": "Sofort 2FA aktivieren (TOTP oder Hardware-Key). Cloudflare-Account = Kontrolle über deine Domain = kritisch."
+          },
+          "step_3_register_domain": {
+            "desc": "Domain direkt bei Cloudflare Registrar kaufen",
+            "why_cloudflare_registrar": "At-cost Pricing (keine Aufschläge), DNS ist automatisch konfiguriert, kein Transfer nötig",
+            "alternative": "Bei Namecheap/INWX kaufen und dann Nameserver auf Cloudflare umstellen"
+          },
+          "step_4_api_token": {
+            "desc": "Cloudflare API Token erstellen (für DDNS + Let's Encrypt)",
+            "path": "Dashboard → My Profile → API Tokens → Create Token",
+            "permissions": "Zone:DNS:Edit — NUR DNS-Bearbeitung (Least Privilege)",
+            "storage": "Token in KeePassXC speichern, NICHT in Git oder Config-Dateien im Klartext"
+          },
+          "step_5_dns_records": {
+            "desc": "Basis-DNS-Records anlegen",
+            "external_records_cloudflare": [
+              "A Record: mynooblab.dev → öffentliche IP (wird per DDNS aktualisiert)",
+              "CNAME: *.mynooblab.dev → mynooblab.dev (Wildcard für Subdomains)",
+              "A Record: vpn.mynooblab.dev → öffentliche IP (für WireGuard)"
+            ],
+            "internal_records_adguard": [
+              "wiki.mynooblab.dev → 10.0.2.x (internes Wiki, nur im Heimnetz)",
+              "git.mynooblab.dev → 10.0.2.x (Gitea, nur im Heimnetz)",
+              "opnsense.mynooblab.dev → 10.0.1.1 (Firewall-UI, nur MGMT-VLAN)",
+              "pve.mynooblab.dev → 10.0.1.2 (Proxmox-UI, nur MGMT-VLAN)",
+              "adguard.mynooblab.dev → 10.0.1.3 (DNS-UI, nur MGMT-VLAN)"
+            ],
+            "split_dns_concept": "Extern (Cloudflare): nur 2-3 public Subdomains. Intern (AdGuard DNS-Rewrites): alle internen Services. Von außen unsichtbar = minimale Angriffsfläche."
+          },
+          "step_6_verify": {
+            "desc": "Testen ob DNS funktioniert",
+            "commands": [
+              "dig mynooblab.dev @1.1.1.1",
+              "dig vpn.mynooblab.dev @1.1.1.1",
+              "curl -s https://api.cloudflare.com/client/v4/user/tokens/verify -H 'Authorization: Bearer TOKEN'",
+              "curl -s https://mynooblab.dev -I | head -5"
+            ]
+          }
+        },
+        "domain_block_order": {
+          "desc": "Diese 4 Steps werden als Block nacheinander gemacht",
+          "order": [
+            "1. p2-domain — mynooblab.dev bei Cloudflare kaufen, 2FA, API Token",
+            "2. p2-ddns — DDNS-Client aktualisiert A-Record bei IP-Wechsel",
+            "3. p2-reverseproxy — Traefik + Let's Encrypt, Dienste über Subdomains",
+            "4. p2-wireguard — VPN über vpn.mynooblab.dev, Port-Forwarding UDP 51820"
+          ]
+        },
+        "what_to_prepare_now": [
+          "Cloudflare Account erstellen + sofort 2FA aktivieren",
+          "mynooblab.dev bei Cloudflare Registrar kaufen",
+          "Öffentliche IP herausfinden: curl -s https://ifconfig.me",
+          "TP-Link Port-Forwarding Menü finden (für WireGuard: UDP 51820)",
+          "OPNsense DDNS Plugin prüfen: System → Firmware → Plugins → os-ddclient"
+        ],
         "security_notes": [
           "Cloudflare API Token mit minimalen Rechten (Zone:DNS:Edit) — Least Privilege",
-          "Domain-Registrar-Account mit 2FA absichern — Domain-Hijacking ist ein realer Angriffsvektor"
+          "Domain-Registrar-Account mit 2FA absichern — Domain-Hijacking ist ein realer Angriffsvektor",
+          "WHOIS Privacy: Cloudflare Registrar hat das standardmäßig aktiv",
+          "API Token ≠ Global API Key: Token hat eingeschränkte Rechte, Global Key hat vollen Zugriff. Immer Token verwenden."
         ]
       },
       "log": [
         {
           "date": "2026-04-23",
           "entry": "Step erstellt aus idea-001. Let's Encrypt (idea-002) wieder entmerged — Certs kommen erst mit Reverse Proxy."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Vorbereitungs-Checkliste und Domain-Block-Plan dokumentiert."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Domain entschieden: mynooblab.dev — .dev TLD erzwingt HTTPS via HSTS Preload, ~12$/Jahr bei Cloudflare at-cost."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Cloudflare Registrar unterstützt .de noch nicht (Stand April 2026, angekündigt). equinox151.de wird später separat bei INWX registriert."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Split-DNS-Plan dokumentiert: Extern (Cloudflare) nur 2-3 public Subdomains, intern (AdGuard DNS-Rewrites) alle Services. Information Disclosure minimieren."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Subdomains kosten nichts extra — sind nur DNS-Records. Unbegrenzt viele möglich."
         }
       ],
       "deferred_reason": ""
     },
     {
       "id": "p2-syslog-ntp",
-      "title": "Syslog-Server + interner NTP (Chrony)",
-      "status": "todo",
+      "title": "Syslog-Server + interner NTP (OpenNTPD)",
+      "status": "wip",
       "tags": [
         "Syslog",
         "NTP",
         "Logging",
-        "Chrony",
+        "OpenNTPD",
         "Security",
         "Zeitserver"
       ],
-      "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog). Interner NTP-Server via Chrony — Pflicht für konsistente Log-Timestamps, Zertifikate und später Kerberos. Kern-Infrastruktur im MGMT-VLAN.",
-      "notes": "",
+      "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog). Interner NTP-Server via OpenNTPD — Pflicht für konsistente Log-Timestamps, Zertifikate und später Kerberos. Kern-Infrastruktur im MGMT-VLAN.",
+      "notes": "NTP-Server (OpenNTPD) läuft als VM104 auf 10.0.1.6. Chrony scheiterte an LXC adjtimex-Restriktion, OpenNTPD in LXC ebenfalls. VM war die Lösung — eigener Kernel = volle Syscall-Kontrolle. Syslog (rsyslog) steht noch aus.",
       "details": {
         "merged_from": [
           "idea-012 (Syslog-Server + interner NTP)"
@@ -685,21 +782,77 @@
           "tool": "rsyslog (auf jeder Debian-VM vorinstalliert) oder Graylog (wenn Web-UI gewünscht)",
           "target_ip": "10.0.1.7",
           "purpose": "Alle VMs loggen zentral → ein Ort für Debugging, Security-Audit, Compliance",
-          "security": "Ohne zentrales Logging sind Einbrüche unsichtbar. Angreifer löschen lokale Logs — zentraler Syslog überlebt das."
+          "security": "Ohne zentrales Logging sind Einbrüche unsichtbar. Angreifer löschen lokale Logs — zentraler Syslog überlebt das.",
+          "status": "todo"
         },
         "ntp": {
-          "tool": "Chrony (moderner ntpd-Ersatz, schnellere Synchronisation, besser für VMs)",
+          "tool": "OpenNTPD (OpenBSD-Projekt, Security-First, Privilege Separation eingebaut)",
           "target_ip": "10.0.1.6",
-          "purpose": "Konsistente Timestamps über alle VMs. Pflicht für: TLS-Zertifikate (Gültigkeitszeitraum), Log-Korrelation, Kerberos (max 5 Min Drift)",
-          "security": "Zeitmanipulation ist ein realer Angriffsvektor: abgelaufene Zertifikate wieder gültig machen, Replay-Angriffe, Log-Timestamps fälschen"
+          "purpose": "Konsistente Timestamps über alle VMs. Pflicht für: TLS-Zertifikate, Log-Korrelation, Kerberos (max 5 Min Drift)",
+          "security": "Zeitmanipulation ist ein realer Angriffsvektor: abgelaufene Zertifikate wieder gültig machen, Replay-Angriffe, Log-Timestamps fälschen. Listen only auf 10.0.1.6 (Least Privilege). Europäische NTP-Pools (de.pool.ntp.org) für niedrige Latenz.",
+          "status": "done",
+          "vm": {
+            "id": 104,
+            "type": "VM (nicht LXC — adjtimex braucht eigenen Kernel)",
+            "ip": "10.0.1.6",
+            "os": "Debian 13.4",
+            "ram_mb": 384,
+            "disk_gb": 4,
+            "cores": 1,
+            "vlan_tag": 10
+          },
+          "config_file": "/etc/openntpd/ntpd.conf",
+          "config_highlights": [
+            "listen on 10.0.1.6 (nicht wildcard — Least Privilege)",
+            "servers 0-3.de.pool.ntp.org (europäische Pools, niedrige Latenz)",
+            "16/20 Peers valid, clock synced, Offset < 1ms"
+          ],
+          "why_not_chrony": "Chrony und OpenNTPD scheitern beide an adjtimex() in LXC Containern — auch privilegiert, auch mit AppArmor unconfined + Seccomp disabled. LXC teilt den Host-Kernel und blockiert adjtimex auf Namespace-Ebene. VM ist die einzig saubere Lösung.",
+          "why_openntpd": "OpenBSD-Projekt, Security-First-Design, minimale Angriffsfläche, Privilege Separation eingebaut. Robuster als Chrony bei fehlenden Capabilities (crashed nicht, loggt Warning)."
         },
-        "deployment": "Beide als LXC Container im MGMT-VLAN. Minimal: 1 Core, 256 MB RAM, 4 GB Disk pro Container. Oder kombiniert in einem Container.",
-        "firewall_impact": "SVC-Regel erlaubt bereits NTP (Port 123) zu MGMT. Syslog (Port 514 UDP/TCP) muss noch als Regel für alle VLANs hinzugefügt werden."
+        "deployment": "NTP als VM (adjtimex braucht eigenen Kernel). Syslog als LXC Container (braucht keine speziellen Syscalls).",
+        "firewall_impact": "SVC-Regel erlaubt bereits NTP (Port 123) zu MGMT. Syslog (Port 514 UDP/TCP) muss noch als Regel für alle VLANs hinzugefügt werden.",
+        "lessons_learned": [
+          "LXC Container können adjtimex() nicht aufrufen — weder unprivileged noch privileged, weder mit AppArmor unconfined noch Seccomp disabled. Kernel-Namespace-Restriktion.",
+          "Debian 13 apt hat einen Pager-Bug: Dpkg::Pager '' als allerersten Schritt bei jedem neuen Container setzen.",
+          "systemd-timesyncd muss vor jedem anderen NTP-Daemon per dpkg --purge entfernt werden, sonst hängt apt.",
+          "Proxmox Default ist unprivileged=1 — explizit --unprivileged 0 setzen UND danach mit grep verifizieren.",
+          "unprivileged ist read-only nach pct create — kann nicht nachträglich geändert werden.",
+          "VM-Installer braucht mehr RAM als der Betrieb: 1 GB für Installation, 384 MB für Betrieb."
+        ]
       },
       "log": [
         {
           "date": "2026-04-23",
           "entry": "Step erstellt aus idea-012. Syslog + NTP sind Kern-Infrastruktur, nicht nur eine Idee."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Entscheidung: Zwei separate Container/VMs für NTP (10.0.1.6) und Syslog (10.0.1.7) — Separation of Concerns, Defense in Depth."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Chrony LXC (CT104, unprivileged): adjtimex failed — Kernel blockiert Syscall in Container-Namespaces."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "OpenNTPD LXC (CT104, unprivileged): Läuft, aber clock never synced — NTP-Clients lehnen unsynchronisierte Server ab."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Privilegierter Container mit AppArmor unconfined + Seccomp disabled: adjtimex immer noch geblockt. LXC ist fundamentale Sackgasse für NTP."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "VM104 erstellt (Debian 13.4, 384 MB RAM, VLAN 10). OpenNTPD installiert — keine Warnings, volle Kernel-Kontrolle."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Config: listen on 10.0.1.6, servers 0-3.de.pool.ntp.org. 16/20 Peers valid, clock synced."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Jumphost-Test: ntpdig 10.0.1.6 → Offset -0.000052ms, Stratum 6, no-leap. NTP-Server funktioniert netzwerkweit."
         }
       ],
       "deferred_reason": ""

@@ -3,7 +3,7 @@
     "version": "1.0",
     "updated": "2026-04-23",
     "description": "Homelab Tagebuch – Session-Protokolle aller Arbeitssitzungen",
-    "current_session": 11,
+    "current_session": 12,
     "total_sessions": 12
   },
   "sessions": [
@@ -256,6 +256,38 @@
         "Security: Unprivileged Container, MAC-Reservierungen, DHCP-Logging, Relay nur wo nötig",
         "Bash gelernt: pveam list, pct create mit VLAN-Tag, kea-dhcp4 -t, dhclient -v, cat heredoc, ip -br link show",
         "OUI-Lookup als Security-Tool: Unbekannte Geräte im Netz identifizieren via MAC-Hersteller-Datenbank"
+      ]
+    },
+    {
+      "date": "2026-04-23",
+      "session": 12,
+      "title": "NTP-Server – LXC-Sackgasse, VM-Lösung, OpenNTPD",
+      "entries": [
+        "Ziel: NTP-Server (10.0.1.6) und Syslog-Server (10.0.1.7) als separate Dienste deployen — Separation of Concerns",
+        "Entscheidung: Zwei getrennte Container/VMs statt kombiniert — granularere Firewall-Regeln, Defense in Depth",
+        "CT104 erstellt: Debian 13 LXC, unprivileged, VLAN 10, 256 MB RAM",
+        "Debian 13 Pager-Bug entdeckt: apt piped Ausgabe durch Pager, Installation hängt. Fix: Dpkg::Pager '' als allererstes setzen",
+        "systemd-timesyncd blockiert NTP-Daemon-Installation: dpkg --purge systemd-timesyncd als Workaround",
+        "Chrony LXC: adjtimex(0x8001) failed: Operation not permitted — Kernel blockiert Syscall in Container-Namespaces",
+        "Wechsel zu OpenNTPD: OpenBSD-Projekt, Security-First, robuster bei fehlenden Capabilities (crashed nicht)",
+        "OpenNTPD LXC unprivileged: Läuft, aber clock never synced — NTP-Clients lehnen unsynchronisierte Server ab (leap not in sync)",
+        "Privilegierter Container versucht: Proxmox Default ist unprivileged=1, --unprivileged 0 wird ignoriert, muss per sed in Config gefixt werden",
+        "Privilegierter Container + AppArmor unconfined + Seccomp disabled: adjtimex IMMER NOCH geblockt",
+        "Fundamentale Erkenntnis: LXC teilt Host-Kernel, adjtimex verändert globale Systemuhr — Kernel blockiert das auf Namespace-Ebene, unabhängig von Capabilities/AppArmor/Seccomp",
+        "Architektur-Entscheidung: VM statt LXC für NTP — eigener Kernel = volle Syscall-Kontrolle",
+        "VM104 erstellt: Debian 13.4 netinst, 1 Core, 384 MB RAM (1 GB für Installation), 4 GB Disk, VLAN 10",
+        "Debian Installer: DHCP griff durch Kea (10.0.1.101 zugeteilt), danach statische IP 10.0.1.6/24 gesetzt",
+        "Boot-Gotcha: ISO als Boot-Medium entfernen nach Installation (qm set --ide2 none --boot order=scsi0)",
+        "RAM-Gotcha: Debian netinst Installer braucht min. 512 MB (initramfs-Entpackung), Betrieb mit 384 MB ausreichend (87 MB used)",
+        "OpenNTPD auf VM104: KEINE Warnings! Kein adjtimex-Fehler, kein Priority-Fehler. Volle Kernel-Kontrolle.",
+        "Config: listen on 10.0.1.6 (Least Privilege, nicht wildcard), servers 0-3.de.pool.ntp.org (europäische Pools)",
+        "16/20 Peers valid (4 IPv6 Peers scheitern mangels IPv6-Konnektivität), clock synced nach ~5 Minuten",
+        "Jumphost-Test: ntpdig 10.0.1.6 → Offset -0.000052ms (+/- 0.000288ms), Stratum 6, no-leap — NTP funktioniert netzwerkweit",
+        "Proxmox Route-Gotcha: ip route add 10.0.0.0/8 via 192.168.0.202 nötig damit Proxmox-Host VLANs erreicht (flüchtig, nach Reboot weg)",
+        "Kea Lease-Debugging: cat /var/lib/kea/kea-leases4.csv zeigt zugeteilte DHCP-Adressen mit MAC und Hostname",
+        "Security-Lektionen: Separation of Concerns bei Container-Design, LXC vs VM Trade-offs (Isolation vs Ressourcen), Least Privilege bei NTP-Listen-Adresse",
+        "Bash gelernt: grep -v für negative Filter, VAR=wert befehl für temporäre Env-Overrides, dpkg -L für Paket-Dateien, cat -A für unsichtbare Zeichen, 2>/dev/null für Error-Suppression",
+        "vim gelernt: G (letzte Zeile), o (neue Zeile+Insert), /pattern (Suche), gg dG (alles löschen), relativenumber für Navigation"
       ]
     }
   ]
