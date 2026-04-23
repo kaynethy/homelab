@@ -2,7 +2,8 @@
 async function loadNetwork() {
   try {
     const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/');
-    const path = inSubdir ? '../homelab-network.json' : './homelab-network.json';
+    const root = inSubdir ? '../' : './';
+    const path = root + 'phasen-ideen-deferred/homelab-network.json';
     const res = await fetch(path, { cache: 'no-cache' });
     const data = await res.json();
     window.NETWORK = {

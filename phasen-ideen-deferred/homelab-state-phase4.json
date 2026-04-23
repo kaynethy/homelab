@@ -1,0 +1,155 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-22",
+    "phase_id": "phase4",
+    "label": "PHASE 4",
+    "title": "Security & Experimente",
+    "subtitle": "Auth · Zertifikate · Monitoring · Pentesting · Härtung",
+    "status": "locked",
+    "color": "amber",
+    "progress": {
+      "done": 0,
+      "wip": 0,
+      "todo": 8,
+      "total": 8,
+      "pct": 0
+    }
+  },
+  "steps": [],
+  "sections": [
+    {
+      "label": "Identity & Auth",
+      "steps": [
+        {
+          "id": "p4-sso",
+          "title": "SSO / Identity Provider",
+          "status": "todo",
+          "tags": [
+            "SSO",
+            "Authentik",
+            "Keycloak",
+            "OIDC"
+          ],
+          "desc": "Authentik oder Keycloak. Zentrales Login für alle Dienste. OIDC, SAML, LDAP testen.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p4-2fa",
+          "title": "2FA / MFA testen",
+          "status": "todo",
+          "tags": [
+            "2FA",
+            "TOTP",
+            "YubiKey",
+            "Passkeys"
+          ],
+          "desc": "TOTP, Hardware-Keys (YubiKey), Passkeys. Verschiedene Auth-Methoden im echten System testen.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p4-ca",
+          "title": "Certificate Authority",
+          "status": "todo",
+          "tags": [
+            "PKI",
+            "TLS",
+            "Step-CA",
+            "CFSSL"
+          ],
+          "desc": "Eigene interne CA mit Step-CA oder CFSSL. Interne TLS-Zertifikate für alle Dienste.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        }
+      ]
+    },
+    {
+      "label": "Monitoring & Observability",
+      "steps": [
+        {
+          "id": "p4-grafana",
+          "title": "Grafana + Prometheus",
+          "status": "todo",
+          "tags": [
+            "Grafana",
+            "Prometheus",
+            "Metrics",
+            "Alerting"
+          ],
+          "desc": "Metriken aller VMs und Dienste. Dashboards für CPU, RAM, Netz, Disk. Alerting.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p4-loki",
+          "title": "Loki / Logging Stack",
+          "status": "todo",
+          "tags": [
+            "Loki",
+            "Logging",
+            "SIEM"
+          ],
+          "desc": "Zentrales Log-Management. Alle Dienste loggen nach Loki, Suche in Grafana.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p4-uptime",
+          "title": "Uptime Kuma",
+          "status": "todo",
+          "tags": [
+            "Monitoring",
+            "Uptime",
+            "Alerts"
+          ],
+          "desc": "Status-Seite für alle eigenen Dienste. Alerting via Mail/Ntfy wenn ein Dienst down ist.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        }
+      ]
+    },
+    {
+      "label": "Security Lab",
+      "steps": [
+        {
+          "id": "p4-pentest",
+          "title": "Isoliertes Pentest-Netz",
+          "status": "todo",
+          "tags": [
+            "Kali",
+            "Pentest",
+            "Lab",
+            "Metasploitable"
+          ],
+          "desc": "Separates VLAN/Netz für Security-Experimente. Kali Linux VM, Metasploitable, DVWA.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p4-ids",
+          "title": "IDS / Intrusion Detection",
+          "status": "todo",
+          "tags": [
+            "IDS",
+            "Suricata",
+            "Zeek",
+            "Security"
+          ],
+          "desc": "Suricata oder Zeek. Netzwerkverkehr analysieren, Angriffsmuster erkennen.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        }
+      ]
+    }
+  ]
+}

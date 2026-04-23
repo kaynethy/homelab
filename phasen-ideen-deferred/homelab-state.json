@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "version": "2.0",
+    "updated": "2026-04-22",
+    "description": "Homelab Roadmap – Hauptdatei mit Gesamtfortschritt und Referenzen auf Phase-Dateien",
+    "progress_pct": 32,
+    "progress_done": 12,
+    "progress_wip": 2,
+    "progress_total": 37,
+    "repository": {
+      "url": "https://github.com/kaynethy/homelab",
+      "ssh": "git@github.com:kaynethy/homelab.git",
+      "branch": "main",
+      "local": "Y:/HomeLab/Dokumentation"
+    },
+    "wiki": {
+      "state_file": "wiki/homelab-wiki.json",
+      "tool": "DokuWiki",
+      "step_id": "p3-dokuwiki",
+      "preview_page": "wiki-preview.html"
+    },
+    "network": {
+      "home_subnet": "192.168.0.0/24",
+      "host_ip": "192.168.0.155",
+      "gateway": "192.168.0.1",
+      "proxmox_ip": "192.168.0.200",
+      "proxmox_ui": "https://192.168.0.200:8006",
+      "jumphost_ip": "192.168.0.204"
+    }
+  },
+  "hardware": {
+    "cpu": "AMD Ryzen 7 5800X (8C/16T)",
+    "ram": "64 GB DDR4 (Proxmox: 20 GB zugewiesen)",
+    "gpu": "RTX 3060 OC 12 GB",
+    "disk": "1 TB NVMe (Proxmox VHDX: 300 GB, davon 249 GB LVM-Thin-Pool) + 4 TB NVMe (Y: Drive)",
+    "host_os": "Windows 11 (bleibt, kein Dualboot)",
+    "router": "TP-Link Archer C80",
+    "strategy": "Proxmox läuft als nested VM unter Hyper-V. Windows 11 bleibt unangetastet. Ressourcen dynamisch anpassbar."
+  },
+  "files": {
+    "phases": [
+      "homelab-state-phase1.json",
+      "homelab-state-phase2.json",
+      "homelab-state-phase3.json",
+      "homelab-state-phase4.json"
+    ],
+    "diary": "homelab-diary.json",
+    "deferred": "homelab-deferred.json",
+    "ideas": "homelab-ideas.json",
+    "network": "homelab-network.json",
+    "wiki": "homelab-wiki.json"
+  },
+  "phases": [
+    {
+      "id": "phase1",
+      "label": "PHASE 1",
+      "title": "Fundament",
+      "subtitle": "Hypervisor · Erstes Netz · Linux-Grundlagen · IP-Planung",
+      "status": "active",
+      "color": "teal",
+      "file": "homelab-state-phase1.json"
+    },
+    {
+      "id": "phase2",
+      "label": "PHASE 2",
+      "title": "Netz & Erreichbarkeit",
+      "subtitle": "VPN · Reverse Proxy · DNS · VLANs · Firewall · IPAM",
+      "status": "active",
+      "color": "blue",
+      "file": "homelab-state-phase2.json"
+    },
+    {
+      "id": "phase3",
+      "label": "PHASE 3",
+      "title": "Dienste & Intranet",
+      "subtitle": "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
+      "status": "locked",
+      "color": "purple",
+      "file": "homelab-state-phase3.json"
+    },
+    {
+      "id": "phase4",
+      "label": "PHASE 4",
+      "title": "Security & Experimente",
+      "subtitle": "Auth · Zertifikate · Monitoring · Pentesting · Härtung",
+      "status": "locked",
+      "color": "amber",
+      "file": "homelab-state-phase4.json"
+    }
+  ]
+}

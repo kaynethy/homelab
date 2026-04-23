@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-22",
+    "description": "Homelab Deferred – Zurückgestellte Aufgaben die nicht im Fortschrittsbalken zählen",
+    "count": 5
+  },
+  "items": [
+    {
+      "id": "p1-ssh-remaining",
+      "title": "SSH Hardening – Offene Restaufgaben",
+      "status": "deferred",
+      "deferred_reason": "Erst Grundinfra fertig, dann sshd_config Hardening + AdGuard Key-Auth",
+      "phase_id": "phase1",
+      "tags": [
+        "SSH",
+        "Hardening",
+        "Backlog"
+      ],
+      "desc": "Restaufgaben aus p1-ssh-hardening: sshd_config PasswordAuthentication=no setzen, AdGuard Key-Auth fixen (Access Denied trotz deployed Key), Pageant Autostart verifizieren nach Windows-Reboot.",
+      "log": [
+        {
+          "date": "2026-04-19",
+          "entry": "Ausgelagert aus p1-ssh-hardening – PuTTY/Keys/KeePassXC/Pageant erledigt, passwortloses Login und sshd Hardening auf später verschoben."
+        }
+      ]
+    },
+    {
+      "id": "p2-wan-private-fix",
+      "title": "WAN Block Private Networks Fix + NAT-Korrektur",
+      "status": "done",
+      "phase_id": "phase2",
+      "tags": [
+        "Firewall",
+        "NAT",
+        "OPNsense",
+        "Routing",
+        "Debugging"
+      ],
+      "desc": "Block private networks auf WAN deaktiviert (Übergangsphase: beide NICs auf vmbr0). Outbound-NAT von WAN auf LAN-Interface umgestellt, weil Default-Route über vtnet0 (LAN) statt vtnet1 (WAN) läuft. DNS auf Jumphost manuell auf AdGuard gesetzt.",
+      "notes": "Kein eigener Roadmap-Eintrag — Details in p2-firewall.details.wan_fix_details dokumentiert.",
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Block private networks deaktiviert, NAT auf LAN umgestellt, DNS auf Jumphost gesetzt. Alle Details in p2-firewall Step."
+        }
+      ]
+    },
+    {
+      "id": "p2-wan-private-reactivate",
+      "title": "WAN Block Private Networks + NAT wieder auf WAN umstellen",
+      "status": "deferred",
+      "deferred_reason": "Erst wenn OPNsense direkt am ISP-Modem hängt (vtnet1 = echtes WAN-Interface mit eigenem Subnetz)",
+      "phase_id": "phase2",
+      "tags": [
+        "Firewall",
+        "NAT",
+        "OPNsense",
+        "Migration"
+      ],
+      "desc": "Block private networks auf WAN wieder aktivieren und Outbound-NAT von LAN zurück auf WAN-Interface umstellen. Voraussetzung: OPNsense direkt am Modem, vtnet1 hat eigenes Subnetz.",
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Erstellt. Workaround für Übergangsphase (beide NICs auf vmbr0)."
+        }
+      ]
+    },
+    {
+      "id": "p2-mgmt-port-hardening",
+      "title": "MGMT Firewall-Regeln verschärfen – Least Privilege",
+      "status": "deferred",
+      "deferred_reason": "Erst wenn Grundinfra stabil läuft und alle MGMT-Dienste migriert sind. Aktuell Pass-all für Lernphase OK.",
+      "phase_id": "phase2",
+      "tags": [
+        "Firewall",
+        "Hardening",
+        "Least Privilege",
+        "Security"
+      ],
+      "desc": "MGMT-Subnetz von 'Pass → any' auf spezifische erlaubte Ports einschränken. Nur noch 443 (HTTPS/apt), 53 (DNS), 22 (SSH outbound für Git), 123 (NTP).",
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Erstellt nach WAN-Fix-Session. MGMT hat aktuell Pass → any."
+        }
+      ]
+    },
+    {
+      "id": "p2-firewall-remaining",
+      "title": "OPNsense – Offene Restaufgaben",
+      "status": "deferred",
+      "deferred_reason": "SSH-Fallback und Gateway-Migration sind keine Blocker für weitere Phase-2-Steps.",
+      "phase_id": "phase2",
+      "tags": [
+        "OPNsense",
+        "SSH",
+        "Hardening",
+        "Migration",
+        "Backlog"
+      ],
+      "desc": "Restaufgaben aus p2-firewall: (1) SSH auf OPNsense aktivieren + Ed25519 Key deployen. (2) OPNsense als Default-Gateway setzen — TP-Link ablösen.",
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Ausgelagert aus p2-firewall. Hauptaufgaben erledigt."
+        }
+      ]
+    }
+  ]
+}

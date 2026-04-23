@@ -102,18 +102,80 @@
     try {
       const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/') || window.location.pathname.includes('/demos/');
       const root = inSubdir ? '../' : './';
+      const dataDir = root + 'phasen-ideen-deferred/';
 
-      const fetches = [
-        fetch(root + 'homelab-state.json', { cache: 'no-cache' }),
-        fetch(root + 'homelab-ideas.json', { cache: 'no-cache' })
+      // Step 1: Hauptdatei laden (meta, hardware, phase-summaries, file-index)
+      const mainResp = await fetch(dataDir + 'homelab-state.json', { cache: 'no-cache' });
+      if (!mainResp.ok) throw new Error('Failed to load homelab-state.json');
+      const base = await mainResp.json();
+
+      // Step 2: Alle abhängigen Dateien parallel laden
+      const files = base.files || {};
+      const phaseFiles = files.phases || [
+        'homelab-state-phase1.json',
+        'homelab-state-phase2.json',
+        'homelab-state-phase3.json',
+        'homelab-state-phase4.json'
       ];
+      const diaryFile    = files.diary    || 'homelab-diary.json';
+      const deferredFile = files.deferred || 'homelab-deferred.json';
+      const ideasFile    = files.ideas    || 'homelab-ideas.json';
 
-      const [stateResp, ideasResp] = await Promise.all(fetches);
+      const [phaseResults, diaryResp, deferredResp, ideasResp] = await Promise.all([
+        Promise.all(phaseFiles.map(f =>
+          fetch(dataDir + f, { cache: 'no-cache' })
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        )),
+        fetch(dataDir + diaryFile,    { cache: 'no-cache' }),
+        fetch(dataDir + deferredFile, { cache: 'no-cache' }),
+        fetch(dataDir + ideasFile,    { cache: 'no-cache' })
+      ]);
 
-      if (!stateResp.ok) throw new Error('Failed to load homelab-state.json');
-      const base = await stateResp.json();
+      // Step 3: Phase-Steps in base.phases einmergen
+      phaseResults.forEach((phaseData, i) => {
+        if (!phaseData) return;
+        const phaseId = phaseData.meta && phaseData.meta.phase_id;
+        const phase = (phaseId && base.phases.find(p => p.id === phaseId)) || base.phases[i];
+        if (!phase) return;
+        if (phaseData.steps)    phase.steps    = phaseData.steps;
+        if (phaseData.sections) phase.sections = phaseData.sections;
+        if (phaseData.meta && phaseData.meta.progress) phase.progress = phaseData.meta.progress;
+      });
 
-      // Ideas aus separater Datei
+      // Step 4: Diary laden → STATE.diary = sessions[]
+      if (diaryResp.ok) {
+        const diaryData = await diaryResp.json();
+        window.DIARY = diaryData;
+        base.diary = diaryData.sessions || [];
+      } else {
+        base.diary = [];
+      }
+
+      // Step 5: Deferred Items laden und in Phasen injizieren
+      // (damit getDeferredSteps(), renderDeferredSection() und getPhaseSteps() weiterhin funktionieren)
+      if (deferredResp.ok) {
+        const deferredData = await deferredResp.json();
+        window.DEFERRED = deferredData;
+        const items = deferredData.items || [];
+        for (const item of items) {
+          const phase = base.phases.find(p => p.id === item.phase_id);
+          if (!phase) continue;
+          // Nur hinzufügen wenn noch nicht vorhanden (Duplikate vermeiden)
+          const allIds = [
+            ...(phase.steps || []),
+            ...((phase.sections || []).flatMap(s => s.steps || []))
+          ].map(s => s.id);
+          if (allIds.includes(item.id)) continue;
+          if (phase.steps) {
+            phase.steps.push({ ...item });
+          } else if (phase.sections && phase.sections[0]) {
+            phase.sections[0].steps.push({ ...item });
+          }
+        }
+      }
+
+      // Step 6: Ideas laden
       if (ideasResp.ok) {
         const ideasData = await ideasResp.json();
         window.IDEAS = ideasData;
@@ -137,10 +199,13 @@
       window.STATE.meta.progress_wip = progress.wip;
       window.STATE.meta.progress_total = progress.total;
 
+      const p1 = window.STATE.phases[0];
+      const p1Steps = p1 ? (p1.steps ? p1.steps.length : (p1.sections || []).reduce((a,s)=>a+(s.steps||[]).length,0)) : 0;
       console.log(
         '[STATE] loaded v' + window.STATE.meta.version,
-        window.STATE.phases[0].steps ? window.STATE.phases[0].steps.length + ' steps p1' : '',
+        p1Steps + ' steps p1',
         (window.STATE.ideas || []).length + ' ideas',
+        (window.STATE.diary || []).length + ' diary sessions',
         'progress ' + progress.pct + '% (' + progress.done + '/' + progress.total + ' done, ' + progress.wip + ' wip)'
       );
     }
@@ -223,33 +288,25 @@
 
   window.exportJSON = function () {
     if (!window.STATE) return;
-    // Deep-clone nur die relevanten Teile (ohne ideas)
+    // Export nur die Hauptdatei (meta, hardware, phases-summaries ohne Steps)
     const exportData = JSON.parse(JSON.stringify({
       meta: window.STATE.meta,
       hardware: window.STATE.hardware,
-      phases: window.STATE.phases,
-      diary: window.STATE.diary
+      files: window.STATE.files,
+      phases: window.STATE.phases.map(function(p) {
+        // Nur Summary-Felder exportieren, keine Steps/Sections (die liegen in eigenen Dateien)
+        return {
+          id: p.id, label: p.label, title: p.title, subtitle: p.subtitle,
+          status: p.status, color: p.color, file: p.file
+        };
+      })
     }));
 
-    // Dynamisch berechnete Felder entfernen (werden von calcProgress() beim Laden neu berechnet)
+    // Dynamisch berechnete Felder entfernen
     delete exportData.meta.progress_pct;
     delete exportData.meta.progress_done;
     delete exportData.meta.progress_wip;
     delete exportData.meta.progress_total;
-
-    // Leere Felder bereinigen die durch localStorage-Merge entstanden sind
-    for (const phase of exportData.phases) {
-      if (phase.notes === '') delete phase.notes;
-      const cleanSteps = function(steps) {
-        for (const step of steps) {
-          if (step.deferred_reason === '') delete step.deferred_reason;
-          if (step.notes === '') delete step.notes;
-          if (Array.isArray(step.log) && step.log.length === 0) delete step.log;
-        }
-      };
-      if (phase.steps) cleanSteps(phase.steps);
-      if (phase.sections) phase.sections.forEach(function(s) { cleanSteps(s.steps || []); });
-    }
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
       type: 'application/json',

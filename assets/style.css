@@ -949,6 +949,10 @@ footer {
 footer span { color: var(--accent); }
 
 /* === RESPONSIVE === */
+@media (max-width: 900px) {
+  .phase-cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 640px) {
   .wrap { padding: 20px 16px 60px; }
   .nav { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -958,6 +962,7 @@ footer span { color: var(--accent); }
   .hw-box { grid-template-columns: 1fr; }
   .side-panel { width: 100vw; }
   .progress-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .phase-cards-grid { grid-template-columns: 1fr; }
   table { font-size: 12px; }
   th, td { padding: 8px 10px; }
 }
@@ -1034,7 +1039,7 @@ footer span { color: var(--accent); }
 .phase-notes:focus { border-color: var(--accent); }
 
 /* Dashboard phase cards */
-.phase-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.phase-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
 .phase-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; text-decoration: none; display: block; }
 .phase-card:hover { border-color: var(--border2); transform: translateY(-2px); text-decoration: none; }
 .phase-card.active-phase { border-color: var(--accent); }

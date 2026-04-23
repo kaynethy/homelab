@@ -167,9 +167,9 @@
       // Phase completion badge
       var statusBadge = '';
       if (isComplete) {
-        statusBadge = '<span style="margin-left:6px;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--done);border:1px solid rgba(34,197,94,0.3)">✓ abgeschlossen</span>';
+        statusBadge = '<span style="white-space:nowrap;font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--done);border:1px solid rgba(34,197,94,0.3)">✓ abgeschlossen</span>';
       } else if (isActive) {
-        statusBadge = '<span class="current-tag" style="margin-left:6px">← aktiv</span>';
+        statusBadge = '<span class="current-tag" style="white-space:nowrap">← aktiv</span>';
       }
 
       var card = document.createElement('a');
@@ -178,8 +178,10 @@
       var particlesHtml = isComplete ? '<div class="phase-complete-particles"><span></span><span></span><span></span><span></span></div>' : '';
       card.innerHTML =
         particlesHtml +
-        '<span class="phase-num p' + pNum + '" style="display:inline-block;margin-bottom:10px">PHASE ' + pNum + '</span>' +
-        statusBadge +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
+          '<span class="phase-num p' + pNum + '">PHASE ' + pNum + '</span>' +
+          statusBadge +
+        '</div>' +
         '<div class="phase-card-title">' + phase.title + '</div>' +
         '<div class="phase-card-subtitle">' + (phase.subtitle || '') + '</div>' +
         '<div class="phase-card-step-count">' + doneCount + '/' + steps.length + ' done</div>' +

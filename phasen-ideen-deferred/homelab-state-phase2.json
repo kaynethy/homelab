@@ -1,0 +1,655 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-22",
+    "phase_id": "phase2",
+    "label": "PHASE 2",
+    "title": "Netz & Erreichbarkeit",
+    "subtitle": "VPN · Reverse Proxy · DNS · VLANs · Firewall · IPAM",
+    "status": "active",
+    "color": "blue",
+    "progress": {
+      "done": 2,
+      "wip": 2,
+      "todo": 5,
+      "total": 9,
+      "pct": 22
+    }
+  },
+  "steps": [
+    {
+      "id": "p2-wireguard",
+      "title": "WireGuard VPN",
+      "status": "todo",
+      "tags": [
+        "VPN",
+        "WireGuard",
+        "Security"
+      ],
+      "desc": "Homelab von außen erreichbar machen. Eigener VPN-Endpunkt, sichere Verbindung von unterwegs.",
+      "log": [],
+      "notes": "",
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-reverseproxy",
+      "title": "Reverse Proxy",
+      "status": "todo",
+      "tags": [
+        "Nginx",
+        "Traefik",
+        "TLS"
+      ],
+      "desc": "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
+      "log": [],
+      "notes": "",
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-dns",
+      "title": "Interner DNS",
+      "status": "done",
+      "tags": [
+        "DNS",
+        "AdGuard"
+      ],
+      "desc": "AdGuard Home als LXC Container. Interne Hostnamen auflösen, DNS-Filter, DoH Upstream.",
+      "notes": "AdGuard Home läuft auf 192.168.0.201. DoH via 1.1.1.1 und 1.0.0.1 (Cloudflare). Router DHCP gibt 192.168.0.201 als DNS aus. 71+ Anfragen bereits verarbeitet.",
+      "details": {
+        "container": {
+          "id": 100,
+          "ip": "192.168.0.201",
+          "os": "debian-13",
+          "ram_mb": 512,
+          "disk_gb": 4
+        },
+        "upstream_dns": [
+          "https://1.1.1.1/dns-query",
+          "https://1.0.0.1/dns-query"
+        ],
+        "upstream_why": "Cloudflare 1.1.1.1 – keine DNS-Logs, keine Datenweitergabe. Bewusst kein Google 8.8.8.8 als Upstream.",
+        "router": {
+          "model": "TP-Link Archer C80",
+          "primary_dns": "192.168.0.201",
+          "secondary_dns": "8.8.8.8"
+        },
+        "admin_ui": "http://192.168.0.201",
+        "blocklists_todo": [
+          "AdGuard DNS filter",
+          "AdGuard Tracking Protection",
+          "OISD Blocklist"
+        ]
+      },
+      "log": [
+        {
+          "date": "2026-04-18",
+          "entry": "AdGuard LXC Container erstellt (CT100, debian-13, 192.168.0.201)."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "MAC Spoofing auf Proxmox VM aktiviert – LXC Container hatten sonst kein Netz."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "DNS Port 53 vom Router geblockt – /etc/hosts Workaround für Installation genutzt."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "AdGuard installiert, Setup abgeschlossen, Admin-UI auf Port 80."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "DoH Upstream: https://1.1.1.1/dns-query + https://1.0.0.1/dns-query (Cloudflare, privacy-first)."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "TP-Link Archer C80 DHCP: Primary DNS 192.168.0.201, Secondary 8.8.8.8 als Fallback."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "DNS-Ausfall durch Set-DnsClientServerAddress – Windows schaltet DHCP auf manuell. Fix: GUI ncpa.cpl, DNS automatisch beziehen."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "AdGuard aktiv: 71 DNS-Anfragen verarbeitet. Microsoft-Telemetrie und Tracking sichtbar."
+        },
+        {
+          "date": "2026-04-18",
+          "entry": "Erkenntnis: Cloudflare DoH über IP (1.1.1.1) statt Hostname nötig weil DNS noch nicht vollständig aufgelöst."
+        }
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-ipam",
+      "title": "IPAM – IP Address Management (NetBox)",
+      "status": "todo",
+      "tags": [
+        "IPAM",
+        "NetBox",
+        "Netzwerk",
+        "IP-Management"
+      ],
+      "desc": "NetBox als zentrales IPAM. Alle IP-Ranges, Prefixes, VLANs und Devices dokumentieren und planen. REST-API für spätere Ansible/Terraform-Integration.",
+      "notes": "",
+      "details": {
+        "why_netbox": "Branchenstandard im Network Engineering – direkter Lernwert für den Job. REST-API ermöglicht Ansible Dynamic Inventory und automatische IP-Vergabe beim VM-Deployment via Terraform.",
+        "alternative": "phpIPAM – leichtgewichtiger, nur IP-Management ohne DCIM. Sinnvoll wenn NetBox zu viel Overhead ist für den Start.",
+        "deployment": "Docker Compose Stack empfohlen. Ressourcen: 1-2 Cores, 2 GB RAM, 10 GB Disk.",
+        "ip_management_triad": "DHCP (Vergabe) + DNS (Auflösung) + IPAM (Planung & Dokumentation) – alle drei zusammen = vollständiges IP-Management.",
+        "initial_data_to_enter": [
+          "Prefix 192.168.0.0/24 – aktuelles Heimnetz (Home LAN)",
+          "Prefix 10.0.1.0/24 – Management VLAN (geplant)",
+          "Prefix 10.0.2.0/24 – Services VLAN (geplant)",
+          "Prefix 10.0.3.0/24 – Lab VLAN (geplant)",
+          "Prefix 10.0.4.0/24 – DMZ (geplant)",
+          "IP 192.168.0.155 – Windows Host",
+          "IP 192.168.0.200 – Proxmox (pve.homelab.local)",
+          "IP 192.168.0.201 – AdGuard LXC (adguard.homelab.local)"
+        ],
+        "later_integration": "Ansible: netbox.netbox Collection für Dynamic Inventory. Terraform: netbox Provider für automatische IP-Zuweisung beim VM-Deployment.",
+        "related_ideas": [
+          "idea-032",
+          "idea-020"
+        ]
+      },
+      "log": [],
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-vlans",
+      "title": "VLANs konfigurieren",
+      "status": "wip",
+      "tags": [
+        "VLAN",
+        "Segmentierung",
+        "OPNsense",
+        "Proxmox",
+        "Security"
+      ],
+      "desc": "Netzwerksegmentierung via VLANs auf OPNsense. 4 VLAN-Subinterfaces (MGMT/SVC/LAB/DMZ) mit Gateway-IPs und eigenen Firewall-Regeln pro Interface.",
+      "log": [
+        {
+          "date": "2026-04-21",
+          "entry": "vmbr1 in Proxmox angelegt (VLAN-aware, kein IP, kein Bridge-Port)."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Erster Ansatz: OPNsense net1 auf vmbr1 umgestellt → Web-UI nicht erreichbar, SSH nicht aktiviert, kein Fallback-Zugang."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Rollback auf Snapshot opnsense-basis-config-2026-04-20."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Besserer Ansatz: vmbr0 auf VLAN-aware gesetzt, beide NICs auf vmbr0 belassen."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "VLANs in OPNsense erstellt: MGMT(10), SVC(20), LAB(30), DMZ(40) auf vtnet1."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Alle 4 VLAN-Interfaces aktiviert mit Gateway-IPs: 10.0.1.1, 10.0.2.1, 10.0.3.1, 10.0.4.1."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Interface Assignments: WAN=vtnet0, LAN=vtnet0, MGMT=vlan01, SVC=vlan02, LAB=vlan03, DMZ=vlan04."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Firewall-Regeln pro VLAN-Interface: MGMT pass all, LAB block MGMT+SVC, DMZ block MGMT+SVC+LAB, SVC nur DNS+NTP zu MGMT."
+        },
+        {
+          "date": "2026-04-21",
+          "entry": "Proxmox Snapshot: opnsense-vlans-configured-2026-04-21."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "VLAN-Parent von vtnet1 auf vtnet0 umgestellt – VLANs müssen auf LAN-Interface laufen, nicht WAN."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "SSH auf OPNsense aktiviert: Enable Secure Shell + Permit root login + Permit password login. KeePassXC cmd:// Eintrag erstellt."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "vmbr0 bridge-vlan-aware: Config in /etc/network/interfaces korrekt, aber ifreload -a reicht nicht – Proxmox Reboot nötig."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Verifiziert: ip -d link show vmbr0 zeigt vlan_filtering 1 – Bridge ist VLAN-aware nach Reboot."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Jumphost (VM 101) auf VLAN Tag 10 gesetzt, IP auf 10.0.1.4/24, Gateway 10.0.1.1."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "ERFOLG: ping 10.0.1.1 funktioniert – VLAN-Routing durch OPNsense bestätigt!"
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Internet-Zugang (ping 1.1.1.1) scheitert – NAT Outbound Regel für 10.0.0.0/8 → WAN erstellt (Hybrid Mode)."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Root Cause gefunden: OPNsense WAN-Interface hat \"Block private networks\" aktiv – blockt allen RFC1918 Traffic (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) auf WAN bevor NAT greift."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Fix: WAN → \"Block private networks\" deaktivieren. Deferred als eigenen Step weil es Security-Implikationen hat."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Jumphost (10.0.1.4) hat Internet-Zugang via OPNsense NAT. VLAN-Routing + NAT + DNS funktionieren Ende-zu-Ende."
+        }
+      ],
+      "notes": "VLANs in OPNsense angelegt und Firewall-Regeln pro Interface konfiguriert. vmbr0 auf VLAN-aware gesetzt. Nächster Schritt: VMs in VLANs verschieben.",
+      "deferred_reason": "",
+      "details": {
+        "proxmox_bridge": {
+          "vmbr0": "VLAN-aware gesetzt, Bridge für alle VMs",
+          "vmbr1": "Angelegt aber nicht aktiv genutzt (erster Ansatz fehlgeschlagen, Rollback auf vmbr0-only)"
+        },
+        "vlans": [
+          {
+            "tag": 10,
+            "name": "MGMT",
+            "interface": "vlan01",
+            "parent": "vtnet1",
+            "gateway": "10.0.1.1/24"
+          },
+          {
+            "tag": 20,
+            "name": "SVC",
+            "interface": "vlan02",
+            "parent": "vtnet1",
+            "gateway": "10.0.2.1/24"
+          },
+          {
+            "tag": 30,
+            "name": "LAB",
+            "interface": "vlan03",
+            "parent": "vtnet1",
+            "gateway": "10.0.3.1/24"
+          },
+          {
+            "tag": 40,
+            "name": "DMZ",
+            "interface": "vlan04",
+            "parent": "vtnet1",
+            "gateway": "10.0.4.1/24"
+          }
+        ],
+        "firewall_rules_per_interface": {
+          "MGMT": [
+            "Pass → any (Admin darf alles)"
+          ],
+          "SVC": [
+            "Pass DNS(53) → MGMT",
+            "Pass NTP(123) → MGMT",
+            "Block → MGMT (rest)",
+            "Pass → Internet"
+          ],
+          "LAB": [
+            "Block → MGMT",
+            "Block → SVC",
+            "Pass → Internet"
+          ],
+          "DMZ": [
+            "Block → MGMT",
+            "Block → SVC",
+            "Block → LAB",
+            "Pass → Internet"
+          ]
+        },
+        "lessons_learned": [
+          "Erster Ansatz: net1 auf vmbr1 umstellen → OPNsense vom Netz abgeschnitten, Web-UI nicht erreichbar",
+          "Rollback auf Snapshot nötig – Snapshots vor Netzwerk-Änderungen sind Pflicht",
+          "Besserer Ansatz: vmbr0 VLAN-aware setzen, VLANs in OPNsense konfigurieren, beide NICs auf vmbr0 lassen",
+          "SSH auf OPNsense aktivieren bevor Netzwerk-Änderungen – Fallback-Zugang nötig",
+          "vmbr0 VLAN-aware: ifreload -a reicht nicht für bestehende Bridges – Proxmox Reboot nötig",
+          "VLAN-Parent muss das LAN-Interface sein, nicht WAN – sonst kollidiert VLAN-Traffic mit WAN-Traffic",
+          "OPNsense \"Block private networks\" auf WAN blockt geNATeten Traffic aus VLANs (10.0.x) bevor NAT greifen kann",
+          "NAT Outbound: Hybrid Mode + manuelle Regel für 10.0.0.0/8 → WAN nötig wenn VLANs geNATet werden sollen",
+          "NAT-Interface muss zum tatsächlichen Traffic-Pfad passen — bei beiden NICs auf vmbr0 geht Default-Route über vtnet0 (LAN)",
+          "tcpdump auf spezifischem Interface ist das definitive Tool um NAT-Interface-Mismatch zu beweisen",
+          "resolv.conf auf VLAN-Clients manuell setzen bis DHCP läuft — dhcpcd generiert leere Config ohne DHCP-Server"
+        ],
+        "todo": [
+          "VMs in VLANs verschieben (VLAN-Tag auf NIC in Proxmox setzen)",
+          "SSH auf OPNsense aktivieren + Key deployen",
+          "OPNsense als Gateway für VMs einrichten (NAT/Masquerading)",
+          "Testen: VM in LAB-VLAN kann nicht auf MGMT-VLAN zugreifen"
+        ],
+        "security_notes": [
+          "Defense in Depth: VLANs + Firewall-Regeln = doppelte Isolation",
+          "Least Privilege pro Subnetz: SVC darf nur DNS+NTP zu MGMT, sonst nichts",
+          "DMZ komplett isoliert von allen internen Netzen – Zero Trust für public-facing Services",
+          "Logging auf allen Block-Regeln: Segmentierungsverletzungen sind sichtbar"
+        ]
+      }
+    },
+    {
+      "id": "p2-wan-private-fix",
+      "title": "WAN Block Private Networks Fix + NAT-Korrektur",
+      "status": "done",
+      "tags": [
+        "Firewall",
+        "NAT",
+        "OPNsense",
+        "Routing",
+        "Debugging"
+      ],
+      "desc": "Block private networks auf WAN deaktiviert (Übergangsphase: beide NICs auf vmbr0). Outbound-NAT von WAN auf LAN-Interface umgestellt, weil Default-Route über vtnet0 (LAN) statt vtnet1 (WAN) läuft. DNS auf Jumphost manuell auf AdGuard gesetzt.",
+      "notes": "Zwei Probleme gelöst: (1) Block private networks auf WAN blockte 10.0.x Traffic bevor NAT greifen konnte. (2) Nach Deaktivierung immer noch kein Internet — Root Cause: Default-Route ging über vtnet0 (LAN) statt vtnet1 (WAN), weil beide NICs auf vmbr0 liegen. NAT-Regel griff nur auf vtnet1, Traffic ging aber über vtnet0 raus. Fix: Outbound-NAT-Interface von WAN auf LAN umgestellt. (3) Jumphost resolv.conf war leer — manuell nameserver 192.168.0.201 gesetzt via vim.",
+      "details": {
+        "problem_1_block_private": {
+          "symptom": "ping 1.1.1.1 vom Jumphost (10.0.1.4) → 100% packet loss",
+          "cause": "pfctl -sr zeigte: block drop in log quick on vtnet1 inet from 10.0.0.0/8 to any",
+          "fix": "Interfaces → [WAN] → Block private networks ❌ deaktiviert → Save → Apply",
+          "result": "Block-Regel entfernt, aber ping ging trotzdem nicht"
+        },
+        "problem_2_nat_interface_mismatch": {
+          "symptom": "Block private networks weg, aber ping 1.1.1.1 und ping 192.168.0.1 vom Jumphost → immer noch 100% packet loss",
+          "diagnosis": [
+            "netstat -rn: default 192.168.0.1 UGS vtnet0 — Default-Route über LAN statt WAN",
+            "route -n get 192.168.0.1: interface vtnet0 — TP-Link wird über LAN-Interface erreicht",
+            "arp -an: 192.168.0.1 auf BEIDEN Interfaces (vtnet0 + vtnet1) mit gleicher MAC — weil beide auf vmbr0",
+            "tcpdump -i vtnet1 -n icmp: 0 packets captured — kein VLAN-Traffic auf vtnet1",
+            "pfctl -sn: nat on vtnet1 — NAT-Regel auf vtnet1, Traffic geht aber über vtnet0"
+          ],
+          "root_cause": "Beide OPNsense NICs auf derselben Proxmox Bridge (vmbr0). FreeBSD routet Default über vtnet0 weil 192.168.0.0/24 Route explizit auf vtnet0 gebunden ist. NAT-Regel auf vtnet1 greift nie.",
+          "fix": "Firewall → NAT → Outbound: Interface von WAN auf LAN geändert. Translation: LAN Interface address (192.168.0.202)",
+          "description_updated": "NAT alle VLANs via LAN (Übergangsphase – beide NICs auf vmbr0)"
+        },
+        "problem_3_dns": {
+          "symptom": "ping google.com → Temporärer Fehler bei Namensauflösung",
+          "cause": "resolv.conf war leer (Generated by dhcpcd, keine Nameserver-Zeile)",
+          "fix": "vim /etc/resolv.conf → nameserver 192.168.0.201"
+        },
+        "debugging_tools_used": [
+          "ping -c 3 <ip> — Konnektivitätstest",
+          "ip route show — Routing-Tabelle (Linux)",
+          "netstat -rn — Routing-Tabelle (FreeBSD/OPNsense)",
+          "route -n get <ip> — Interface-Lookup für spezifische Route (FreeBSD)",
+          "arp -an — ARP-Cache mit Interface-Zuordnung",
+          "pfctl -sr — Firewall-Regeln anzeigen",
+          "pfctl -sn — NAT-Regeln anzeigen",
+          "tcpdump -i <iface> -n icmp — Packet Capture auf spezifischem Interface",
+          "cat /etc/resolv.conf — DNS-Konfiguration prüfen",
+          "ip -br addr show — Kompakte Interface-Übersicht (Linux)",
+          "echo 'x' | tee /file — Datei schreiben mit sudo-Kompatibilität"
+        ],
+        "security_lessons": [
+          "Asymmetrisches NAT: NAT-Regel und tatsächlicher Traffic-Pfad müssen auf demselben Interface liegen",
+          "Out-of-Band Management: Jumphost-Zugang über Proxmox-Konsole, nicht über den Netzwerkpfad den man gerade umbaut",
+          "Beide NICs auf einer Bridge = keine saubere WAN/LAN-Trennung — löst sich wenn OPNsense direkt am Modem hängt",
+          "Least Privilege auf Netzwerkebene: MGMT Pass-all ist für die Lernphase OK, später auf nötige Ports einschränken (443, 53, 22, 123)"
+        ],
+        "transition_note": "NAT auf LAN-Interface ist ein Workaround für die Übergangsphase. Wenn OPNsense direkt am ISP-Modem hängt (vtnet1 = echtes WAN), wird NAT wieder auf WAN umgestellt und Default-Route geht automatisch über vtnet1."
+      },
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Block private networks auf WAN deaktiviert. ping 1.1.1.1 vom Jumphost immer noch 100% packet loss."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Systematisches Debugging: Gateway-Ping OK (10.0.1.1), OPNsense WAN-IP OK (192.168.0.215), TP-Link NICHT erreichbar (192.168.0.1)."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "netstat -rn: Default-Route über vtnet0 (LAN) statt vtnet1 (WAN). route -n get bestätigt: 192.168.0.1 via vtnet0."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "ARP-Cache: TP-Link MAC auf beiden Interfaces — vmbr0 bridgt alles zusammen, kein echtes WAN/LAN Split."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "tcpdump -i vtnet1 -n icmp: 0 packets — bestätigt: kein VLAN-Traffic auf vtnet1. NAT-Regel (nat on vtnet1) greift nie."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Fix: Outbound-NAT Interface von WAN auf LAN umgestellt. Translation: LAN Interface address."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "ping 1.1.1.1 vom Jumphost: ✅ 0% packet loss. IP-Routing funktioniert."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "DNS-Fix: vim /etc/resolv.conf → nameserver 192.168.0.201. ping google.com: ✅ aufgelöst und erreichbar."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Hyper-V Snapshot: vlan-internet-working-2026-04-22."
+        }
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-mgmt-port-hardening",
+      "title": "MGMT Firewall-Regeln verschärfen – Least Privilege",
+      "status": "deferred",
+      "deferred_reason": "Erst wenn Grundinfra stabil läuft und alle MGMT-Dienste migriert sind. Aktuell Pass-all für Lernphase OK.",
+      "tags": [
+        "Firewall",
+        "Hardening",
+        "Least Privilege",
+        "Security"
+      ],
+      "desc": "MGMT-Subnetz von 'Pass → any' auf spezifische erlaubte Ports einschränken. Nur noch 443 (HTTPS/apt), 53 (DNS), 22 (SSH outbound für Git), 123 (NTP). Defense in Depth: selbst wenn MGMT kompromittiert wird, kann der Angreifer nicht beliebige Protokolle nach draußen nutzen (z.B. kein IRC C2, kein Reverse Shell auf exotischen Ports).",
+      "notes": "",
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Erstellt nach WAN-Fix-Session. MGMT hat aktuell Pass → any. Später auf 443/53/22/123 einschränken."
+        }
+      ]
+    },
+    {
+      "id": "p2-firewall",
+      "title": "OPNsense Firewall",
+      "status": "wip",
+      "tags": [
+        "Firewall",
+        "OPNsense",
+        "Routing",
+        "NAT",
+        "FreeBSD"
+      ],
+      "desc": "OPNsense 26.1 als virtuelle Firewall-VM in Proxmox (VM 102). Routing zwischen VLANs, Firewall-Regeln, NAT. Ersetzt TP-Link Archer C80 als Gateway.",
+      "log": [
+        {
+          "date": "2026-04-20",
+          "entry": "OPNsense 26.1 ISO heruntergeladen via pkg.opnsense.org (Mirror 404 Fehler behoben)."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "VM 102 erstellt: 1 Core, 2 GB RAM, 16 GB Disk, x86-64-v2-AES, onboot=1, startup order=1 delay=60."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Zwei NICs: vtnet0 (LAN) + vtnet1 (WAN), beide vmbr0, VirtIO, firewall=1."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Installer: login installer/opnsense. UFS, vtbd0. RAM-Warnung 2 GB < 3 GB → Proceed anyway."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "LAN via Konsole Option 2 auf 192.168.0.202/24 gesetzt (Übergangs-IP, selbes Subnetz wie restliche Infra)."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Web-UI https://192.168.0.202 erreichbar. HTTPS aktiviert, Port 443."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Root-Passwort geändert (Default opnsense entfernt), in KeePass eingetragen."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Security-Update: LDAP auth bypass fix, curl 8.19.0, OpenSSL 3.0.20, FreeBSD security advisories."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Basis-Config: Timezone Europe/Berlin, Hostname opnsense.homelab.local, DNS 192.168.0.201, IPv4 bevorzugt."
+        },
+        {
+          "date": "2026-04-20",
+          "entry": "Proxmox Snapshot: opnsense-basis-config-2026-04-20."
+        },
+        {
+          "date": "2026-04-22",
+          "entry": "Block private networks auf WAN deaktiviert. Outbound-NAT von WAN auf LAN umgestellt (Übergangsphase). Beide Änderungen sind Workarounds bis OPNsense direkt am Modem hängt."
+        }
+      ],
+      "notes": "Basis-Konfiguration abgeschlossen. LAN 192.168.0.202 (Übergang), WAN 192.168.0.215. Nächste Schritte: Firewall-Regeln, VLANs, Migration auf 10.0.x.",
+      "deferred_reason": "",
+      "details": {
+        "vm": {
+          "id": 102,
+          "name": "opensense",
+          "cores": 1,
+          "ram_mb": 2048,
+          "disk_gb": 16,
+          "cpu_type": "x86-64-v2-AES",
+          "bios": "SeaBIOS",
+          "onboot": true,
+          "startup_order": 1,
+          "startup_delay": 60
+        },
+        "network": {
+          "lan_interface": "vtnet0",
+          "wan_interface": "vtnet1",
+          "lan_ip_transition": "192.168.0.202/24",
+          "wan_ip": "192.168.0.215/24 (DHCP)",
+          "lan_ip_target": "10.0.1.1/24",
+          "web_ui": "https://192.168.0.202"
+        },
+        "completed": [
+          "VM erstellt: 1 Core, 2 GB RAM, 16 GB Disk, x86-64-v2-AES, SeaBIOS, onboot=1, startup order=1 delay=60",
+          "Zwei NICs: vtnet0 (LAN) + vtnet1 (WAN), beide vmbr0, VirtIO, firewall=1",
+          "OPNsense 26.1 installiert (UFS, vtbd0)",
+          "LAN IP auf 192.168.0.202 gesetzt via Konsole Option 2",
+          "HTTPS aktiviert: Port 443, self-signed Zertifikat",
+          "Root-Passwort geändert, in KeePass eingetragen",
+          "Security-Update eingespielt: LDAP auth bypass + curl/OpenSSL",
+          "Timezone: Europe/Berlin, Hostname: opnsense.homelab.local",
+          "DNS: 192.168.0.201 (AdGuard), IPv4 bevorzugt",
+          "Proxmox Snapshot: opnsense-basis-config-2026-04-20",
+          "Firewall-Regeln auf VLAN-Interfaces migriert: MGMT/SVC/LAB/DMZ haben eigene Regeln",
+          "SVC granular: nur DNS(53)+NTP(123) zu MGMT erlaubt, Rest geblockt",
+          "Block private networks auf WAN deaktiviert (Übergangsphase)",
+          "Outbound-NAT Interface: WAN → LAN (weil Default-Route über vtnet0 geht)",
+          "Jumphost (VLAN 10) hat Internet-Zugang: IP-Routing + DNS funktionieren"
+        ],
+        "todo": [
+          "Firewall-Regeln konfigurieren (Block/Allow nach IP-Plan)",
+          "VLANs einrichten (p2-vlans)",
+          "Zweite Bridge in Proxmox für LAN-Trennung von WAN",
+          "Migration: LAN auf 10.0.1.1, alle Hosts auf 10.0.x umziehen",
+          "TP-Link als Gateway ablösen",
+          "HTTPS Zertifikat: Let's Encrypt nach Domain-Einrichtung (p2-ddns)"
+        ],
+        "security_notes": [
+          "AES-NI via x86-64-v2-AES – wichtig für VPN-Verschlüsselung (WireGuard/IPsec)",
+          "HTTPS für Web-UI – Credentials nicht im Klartext übertragen",
+          "Security-Update sofort eingespielt: LDAP auth bypass CVE gefixt",
+          "Firewall-first Autostart: order=1, delay=60s",
+          "Default-Credentials geändert – kein Default-PW mehr aktiv",
+          "TODO: Web-UI HTTPS mit echtem Zertifikat nach Let's Encrypt Setup"
+        ]
+      }
+    },
+    {
+      "id": "p2-wan-private-reactivate",
+      "title": "WAN Block Private Networks wieder aktivieren",
+      "status": "deferred",
+      "deferred_reason": "Erst möglich wenn OPNsense den TP-Link komplett ablöst und WAN direkt am ISP-Modem hängt (öffentliche IP). Dann kommt kein RFC1918-Traffic mehr legitim von außen.",
+      "tags": [
+        "Firewall",
+        "WAN",
+        "OPNsense",
+        "Security",
+        "Hardening"
+      ],
+      "desc": "Block private networks auf WAN wieder aktivieren sobald OPNsense direkt am Modem hängt. In der aktuellen Übergangsphase (WAN = TP-Link Heimnetz 192.168.0.x) muss der Block deaktiviert bleiben weil VLAN-Traffic (10.0.x) sonst vor dem NAT geblockt wird.",
+      "notes": "REMINDER: Interfaces → WAN → Block private networks ✅ wieder aktivieren. Voraussetzung: OPNsense WAN hat eine öffentliche IP vom ISP, nicht mehr 192.168.0.x. Verifizieren mit pfctl -sr dass kein legitimer Traffic geblockt wird.",
+      "details": {
+        "trigger": "OPNsense WAN bekommt öffentliche IP direkt vom ISP-Modem (kein TP-Link mehr dazwischen)",
+        "fix": "OPNsense Web-UI → Interfaces → [WAN] → Block private networks ✅ aktivieren → Save → Apply",
+        "verify": "ping 1.1.1.1 von allen VLANs muss weiterhin funktionieren, pfctl -sr darf keinen legitimen Traffic blocken",
+        "security_reason": "Block private networks verhindert RFC1918-Spoofing von außen – ein Angreifer kann keine privaten IPs als Source fälschen um Firewall-Regeln zu umgehen",
+        "related_steps": [
+          "p2-wan-private-fix"
+        ]
+      },
+      "log": [
+        {
+          "date": "2026-04-22",
+          "entry": "Angelegt als Reminder: Block private networks wieder aktivieren wenn OPNsense direkt am Modem hängt."
+        }
+      ]
+    },
+    {
+      "id": "p2-dhcp",
+      "title": "DHCP Server – Kea DHCP",
+      "status": "todo",
+      "tags": [
+        "DHCP",
+        "Kea",
+        "Netzwerk",
+        "IP-Management"
+      ],
+      "desc": "Eigener DHCP-Server als LXC Container (10.0.1.10). Kea DHCP als moderner ISC-Nachfolger. Statische Leases für alle Kern-Hosts, DHCP-Range für dynamische Vergabe (.100-.200). Ablösung des TP-Link DHCP – OPNsense übernimmt als Relay falls nötig.",
+      "notes": "",
+      "details": {
+        "why_own_dhcp": "Security by Design: Eigener DHCP erlaubt volle Kontrolle über IP-Vergabe, MAC-Bindung (DHCP Snooping), statische Leases pro Host und Logging aller Vergaben. TP-Link DHCP ist eine Blackbox.",
+        "tool": "Kea DHCP (ISC-Nachfolger, aktiv maintained, REST-API, modernes JSON-Config-Format)",
+        "alternative": "OPNsense hat integrierten DHCP-Server (ISC dhcpd) – einfacher für den Start, weniger Lernwert",
+        "deployment": "LXC Container, Debian 13, 1 Core, 256 MB RAM, 4 GB Disk",
+        "target_ip": "10.0.1.10",
+        "static_leases": [
+          "10.0.1.2 → Proxmox (MAC binden)",
+          "10.0.1.3 → AdGuard DNS (MAC binden)",
+          "10.0.1.4 → Jumphost (MAC binden)"
+        ],
+        "dhcp_ranges_per_subnet": {
+          "mgmt": "10.0.1.100 – 10.0.1.200",
+          "svc": "10.0.2.100 – 10.0.2.200",
+          "lab": "10.0.3.100 – 10.0.3.200",
+          "dmz": "10.0.4.100 – 10.0.4.150"
+        },
+        "security_concepts": [
+          "MAC-Bindung: Jeder Kern-Host bekommt immer dieselbe IP – kein IP-Spoofing durch DHCP-Manipulation",
+          "DHCP Logging: Alle Vergaben werden geloggt – wer hat wann welche IP bekommen",
+          "Lease-Time: Kurze Lease-Time (1h) für dynamische Bereiche, lange (infinite) für statische Hosts",
+          "DHCP Snooping Vorbereitung: Basis für späteres Switch-Level DHCP Snooping via OPNsense"
+        ],
+        "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans) müssen laufen"
+      },
+      "log": [],
+      "deferred_reason": ""
+    },
+    {
+      "id": "p2-ddns",
+      "title": "Dynamisches DNS (DDNS)",
+      "status": "todo",
+      "tags": [
+        "DDNS",
+        "Cloudflare",
+        "DNS"
+      ],
+      "desc": "Externe Erreichbarkeit trotz wechselnder Heim-IP. Cloudflare DDNS oder DuckDNS.",
+      "log": [],
+      "notes": "",
+      "deferred_reason": ""
+    }
+  ]
+}

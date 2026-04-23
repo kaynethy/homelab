@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-22",
+    "description": "Homelab Tagebuch – Session-Protokolle aller Arbeitssitzungen",
+    "current_session": 10,
+    "total_sessions": 11
+  },
+  "sessions": [
+    {
+      "date": "2026-04-16",
+      "session": 1,
+      "title": "Kickoff – Proxmox Setup",
+      "entries": [
+        "Roadmap und Ziele definiert: Netz lernen, Proxmox, VPN, später Dienste und Security",
+        "Entschieden: Proxmox nested unter Hyper-V, kein Dualboot, Windows 11 bleibt",
+        "BIOS: SVM Mode aktiviert",
+        "Hyper-V via PowerShell aktiviert und Neustart",
+        "Proxmox ISO 9.1-1 heruntergeladen nach Y:/HomeLab/",
+        "Hyper-V VM erstellt: Generation 2, 16 GB RAM fest, 120 GB VHDX dynamisch, 8 Cores",
+        "Secure Boot deaktiviert, nested virt via Set-VMProcessor aktiviert",
+        "Proxmox Installer durchlaufen: Root-PW, root@homelab.local, pve.homelab.local",
+        "Netzwerk konfiguriert: 192.168.0.200/24, GW 192.168.0.1, DNS 192.168.0.1",
+        "Dokumentations-System aufgebaut: homelab-state.json",
+        "Install-Button gedrückt – Proxmox installiert gerade"
+      ]
+    },
+    {
+      "date": "2026-04-17",
+      "session": 2,
+      "title": "Proxmox Web-UI & Grundkonfiguration",
+      "entries": [
+        "Proxmox Web-UI erreichbar unter https://192.168.0.200:8006",
+        "GitHub Repo angelegt: github.com/kaynethy/homelab",
+        "Enterprise-Repos deaktiviert, No-Subscription Repo aktiviert",
+        "apt-get update + dist-upgrade gestartet (119 Pakete)",
+        "System auf Proxmox VE 9.1.7 aktualisiert.",
+        "No-Subscription Popup via sed-Befehl deaktiviert.",
+        "Proxmox vollständig konfiguriert und bereit für erste VMs."
+      ]
+    },
+    {
+      "date": "2026-04-17",
+      "session": 3,
+      "title": "AdGuard DNS & Ideen-Erweiterung",
+      "entries": [
+        "VM-Plan & Abhängigkeitskette definiert: OPNsense → DNS → Proxy → Vaultwarden → ...",
+        "Subnetz-Plan festgelegt: 10.0.1-4.0/24 für Management, Services, Lab, DMZ",
+        "Debian 13 (Trixie) als LXC-Template heruntergeladen",
+        "AdGuard Home LXC Container wird eingerichtet (192.168.0.201)",
+        "Neue Ideen hinzugefügt: IKEv2/IPsec, Syslog/NTP, TACACS+, RADIUS, Access Server, Oxidized, AWX, PrivateBin, IAM, IPAM",
+        "MAC Spoofing Fix: Hyper-V blockierte LXC Container MACs",
+        "AdGuard Home installiert und Setup abgeschlossen"
+      ]
+    },
+    {
+      "date": "2026-04-18",
+      "session": 4,
+      "title": "AdGuard DNS – vollständig eingerichtet",
+      "entries": [
+        "DoH Upstream auf Cloudflare 1.1.1.1/1.0.0.1 umgestellt – bewusst kein Google",
+        "TP-Link Archer C80 DHCP DNS auf 192.168.0.201 gesetzt",
+        "DNS-Ausfall Lessons Learned: Set-DnsClientServerAddress schaltet Windows auf manuell",
+        "AdGuard aktiv: 71 DNS-Anfragen, Microsoft-Telemetrie und Tracking sichtbar",
+        "Nächste Schritte: Blocklisten aktivieren, Autostart einrichten"
+      ]
+    },
+    {
+      "date": "2026-04-18",
+      "session": 5,
+      "title": "Recovery-Marathon – Passwort, Interfaces, vim",
+      "entries": [
+        "Plan: AdGuard Autostart einrichten – Set-VM -AutomaticStartAction Start -AutomaticStartDelay 30",
+        "Nach Ausführung: Proxmox 192.168.0.200 nicht mehr erreichbar",
+        "VM-Konsole via Hyper-V Manager – Login fehlgeschlagen: Root-Passwort vergessen",
+        "GRUB Recovery: 'e' im Boot-Menü, linux-Zeile editiert (ro→rw, init=/bin/bash)",
+        "Root-FS trotzdem ro → mount -o remount,rw / als Fix. passwd root erfolgreich.",
+        "Nach Reboot: Login OK, aber Proxmox unerreichbar – zweites Problem",
+        "bridge-ports nic0 in /etc/network/interfaces – Interface heißt aber eth0",
+        "Fix mit vim: :%s/nic0/eth0/g → systemctl restart networking → Proxmox wieder erreichbar",
+        "vim-Grundlagen gelernt: Modi, Search&Replace, :wq, dd, yy, u",
+        "Autostart-Konzept dokumentiert: 2-Ebenen (Hyper-V VM + Proxmox Container)"
+      ]
+    },
+    {
+      "date": "2026-04-19",
+      "session": 6,
+      "title": "AdGuard Passwort-Desaster & Neuinstallation",
+      "entries": [
+        "AdGuard Container startete nach Proxmox-Boot nicht automatisch – onboot-Flag war nicht gesetzt",
+        "AdGuard Web-Login schlug fehl – Passwort aus KeePass-DB nicht mehr verfügbar (DB durch AI-Prompt gelöscht)",
+        "Lessons Learned: Niemals destruktive Befehle via AI ohne eigene Prüfung ausführen – KeePass-DB war das Opfer",
+        "Passwort-Reset-Versuch via bcrypt htpasswd: Hash wurde korrekt generiert, Login trotzdem fehlgeschlagen",
+        "Ursache: auth_attempts=5 / block_auth_min=15 hatte Account nach Fehlversuchen gesperrt",
+        "Weitere Ursache: bcrypt $2y vs $2a Kompatibilitätsproblem mit AdGuard-Version",
+        "users:[] in yaml gesetzt um Setup-Wizard zu triggern – hat funktioniert, Login war danach möglich",
+        "Entscheidung: Komplette Neuinstallation für sauberen Zustand",
+        "systemctl stop AdGuardHome → rm -rf /opt/AdGuardHome",
+        "systemctl disable AdGuardHome → rm /etc/systemd/system/AdGuardHome.service → systemctl daemon-reload",
+        "curl Install-Script erneut ausgeführt → AdGuard v0.107.74 erfolgreich installiert",
+        "Setup-Wizard auf Port 3000 durchlaufen – neuer User und Passwort gesetzt, sofort in KeePass eingetragen",
+        "DoH Upstream neu konfiguriert: https://1.1.1.1/dns-query + https://1.0.0.1/dns-query",
+        "Blocklisten aktiviert: AdGuard DNS filter, OISD Blocklist Small, Phishing URL Blocklist, HaGeZi DNS Rebind Protection, Malicious URL Blocklist",
+        "Autostart via pct set 100 --onboot 1 --startup order=1,up=30,down=60 gesetzt",
+        "TP-Link Archer C80 DNS wieder auf 192.168.0.201 gesetzt",
+        "Idee: Raspberry Pi Zero 2 W als Secondary DNS für HA – unabhängig von Proxmox/Hyper-V"
+      ]
+    },
+    {
+      "date": "2026-04-19",
+      "session": 7,
+      "title": "SSH/PuTTY Setup, IP-Plan, Snapshot, vim",
+      "entries": [
+        "AdGuard Container Autostart: onboot/startup waren nicht gesetzt - via pct set 100 --onboot 1 nachgeholt",
+        "Reboot-Test bestanden: Proxmox + AdGuard starten automatisch nach Windows-Neustart (~90-120s Boot-Kette)",
+        "Boot-Delays reduziert: Hyper-V 30->15s, Proxmox Container 30->10s",
+        "PuTTY installiert (inkl. PuTTYgen, Pageant)",
+        "SSH Ed25519 Keypair generiert, Private Key unter Y:/HomeLab/.secrets/homelab-admin.ppk",
+        "Public Key auf Proxmox deployed - Key-Login funktioniert ohne Passwort",
+        "AdGuard Key-Auth: Access Denied trotz deployed Key - Workaround via pct enter 100",
+        "KeePassXC SSH-Integration: cmd:// URLs statt ssh:// (KeePassXC hat keine URL Scheme Overrides)",
+        "Pageant als SSH-Agent eingerichtet fuer passwortlosen Key-Login",
+        "IP-Plan finalisiert: 4 Subnetze (MGMT/SVC/LAB/DMZ), Firewall-Regeln, Migrations-Mapping",
+        "ip-plan.txt als Textdokument erstellt, network.html Topologie-Visualisierung implementiert",
+        "VM-Plan und Abhaengigkeitskette finalisiert",
+        "Hyper-V Snapshot eingerichtet: Checkpoint-VM vor kritischen Aenderungen als Gewohnheit",
+        "Proxmox DNS-Fix: resolv.conf auf 192.168.0.201 (AdGuard), in /etc/network/interfaces als dns-nameservers",
+        "vim auf Proxmox installiert (apt install vim nach DNS-Fix), .vimrc mit Syntax-Highlighting angelegt",
+        "Jumphost VM erstellt: Debian 13.4, VM 101, 1 Core, 1 GB RAM, 10 GB Disk, statische IP 192.168.0.204",
+        "Jumphost: sudo + vim + curl + git installiert, User noob zur sudo-Gruppe, .vimrc angelegt",
+        "Jumphost: SSH-Key von Proxmox kopiert, PuTTY Key-Login funktioniert, KeePassXC cmd:// Eintrag",
+        "Jumphost DNS-Fix: resolv.conf auf AdGuard 192.168.0.201 - gleiches Problem wie bei Proxmox",
+        "Proxmox VM Ressourcen erweitert: RAM 16 GB -> 20 GB, Disk 120 GB -> 300 GB",
+        "LVM-Thin-Pool erweitert: parted resizepart 3 + pvresize + lvextend -> 249 GB (vorher 54.5 GB)",
+        "Alle Hyper-V Pruefpunkte entfernt (Voraussetzung fuer Disk-Erweiterung)",
+        "idea-010 (PBS) auf deferred gesetzt - braucht zweites Speichermedium",
+        "idea-027 (Passwort-Manager) als done markiert - KeePassXC laeuft",
+        "idea-029 (Snapshots) als done markiert - Checkpoint-VM etabliert",
+        "Phase 1 komplett: 10/10 Steps done. Weiter mit Phase 2 (OPNsense)."
+      ]
+    },
+    {
+      "date": "2026-04-20",
+      "session": 8,
+      "title": "OPNsense Installation & Basis-Konfiguration",
+      "entries": [
+        "OPNsense 26.1 ISO via pkg.opnsense.org heruntergeladen (direkter Mirror-Link nötig, opnsense.org/download/ funktioniert nicht direkt in Proxmox)",
+        "VM 102 erstellt: 1 Core, 2 GB RAM, 16 GB Disk, x86-64-v2-AES CPU-Type (AES-NI für späteres VPN), SeaBIOS",
+        "Autostart konfiguriert: onboot=1, startup order=1, delay=60s – Firewall startet vor allen anderen VMs",
+        "Zwei NICs: vtnet0 (LAN) + vtnet1 (WAN), VirtIO, beide vorerst vmbr0",
+        "Installer: login als installer/opnsense, UFS-Installation auf vtbd0 (16 GB)",
+        "LAN hatte Default-IP 192.168.1.1 – via Konsole Option 2 auf 192.168.0.202 gesetzt (Übergangsphase)",
+        "Web-UI erreichbar unter https://192.168.0.202 – HTTPS aktiviert, Port 443",
+        "Wichtig: HTTP für Firewall-UI ist Anti-Pattern – Credentials im Klartext. Sofort auf HTTPS umgestellt.",
+        "Default-Passwort geändert – Default-Credentials auf Firewall sind kritisches Sicherheitsrisiko",
+        "Security-Update sofort eingespielt: LDAP auth bypass CVE, curl 8.19.0, OpenSSL 3.0.20",
+        "Lessons Learned Supply Chain Security: Checksummen-Verifikation bei Firewall-Images sinnvoll",
+        "Basis-Config: Europe/Berlin, opnsense.homelab.local, DNS auf AdGuard 192.168.0.201",
+        "Proxmox Snapshot erstellt: opnsense-basis-config-2026-04-20",
+        "Nächste Schritte: Firewall-Regeln nach IP-Plan, VLANs, dann Migration auf 10.0.x Subnetze"
+      ]
+    },
+    {
+      "date": "2026-04-21",
+      "session": 9,
+      "title": "VLANs – Netzwerksegmentierung & Firewall-Regeln pro Interface",
+      "entries": [
+        "Erster Ansatz: vmbr1 als separate Bridge, OPNsense net1 umgestellt → Aussperrung, Web-UI nicht erreichbar",
+        "Lessons Learned: SSH aktivieren BEVOR Netzwerk-Änderungen – Fallback-Zugang ist Pflicht",
+        "Lessons Learned: Snapshots vor Netzwerk-Änderungen sind nicht optional sondern überlebensnotwendig",
+        "Rollback auf Snapshot opnsense-basis-config-2026-04-20 – sauberer Neustart",
+        "Besserer Ansatz: vmbr0 auf VLAN-aware setzen, beide OPNsense NICs auf vmbr0 belassen",
+        "4 VLANs in OPNsense erstellt: MGMT(Tag 10), SVC(Tag 20), LAB(Tag 30), DMZ(Tag 40)",
+        "Alle VLAN-Interfaces aktiviert mit Gateway-IPs laut IP-Plan (10.0.x.1/24)",
+        "Interface Assignments korrekt: WAN=vtnet0, LAN=vtnet0, plus 4 VLAN-Subinterfaces",
+        "Firewall-Regeln pro VLAN-Interface angelegt:",
+        "  MGMT: Pass → any (Admin-Netz darf alles)",
+        "  SVC: DNS(53)+NTP(123) → MGMT erlaubt, Rest → MGMT geblockt, Internet erlaubt",
+        "  LAB: Block → MGMT, Block → SVC, Internet erlaubt",
+        "  DMZ: Block → MGMT, Block → SVC, Block → LAB, Internet erlaubt",
+        "Security by Design: Least Privilege pro Subnetz + Defense in Depth (VLANs + FW-Regeln)",
+        "Proxmox Snapshot: opnsense-vlans-configured-2026-04-21",
+        "Nächste Schritte: VMs in VLANs verschieben, SSH auf OPNsense aktivieren, NAT testen"
+      ]
+    },
+    {
+      "date": "2026-04-22",
+      "session": 10,
+      "title": "VLAN Gateway-Test, NAT Debugging & Root Cause Analyse",
+      "entries": [
+        "SSH auf OPNsense aktiviert: System → Admin → Enable Secure Shell + root login. KeePassXC cmd:// Eintrag erstellt.",
+        "vmbr0 VLAN-aware nach Proxmox-Reboot verifiziert: ip -d link show vmbr0 → vlan_filtering 1",
+        "Jumphost (VM 101) auf VLAN Tag 10 gesetzt, IP 10.0.1.4/24, Gateway 10.0.1.1",
+        "ERFOLG: ping 10.0.1.1 funktioniert! VLAN-Routing durch OPNsense bestätigt.",
+        "Internet-Zugang scheitert: ping 1.1.1.1 → 100% packet loss",
+        "Debugging: traceroute zeigt Hop 1 = 10.0.1.1 (OPNsense), danach * * * – OPNsense leitet nicht weiter",
+        "OPNsense selbst kann Internet erreichen (ping 1.1.1.1 von OPNsense Shell → OK)",
+        "NAT Outbound Regel erstellt: Hybrid Mode, Source 10.0.0.0/8 → WAN Interface address",
+        "VLAN-Parent von vtnet1 auf vtnet0 geändert (VLANs müssen auf LAN laufen, nicht WAN)",
+        "Interface-Zuordnung verifiziert: LAN=vtnet0, WAN=vtnet1, VLANs parent=vtnet0 ✅",
+        "pfctl -sn zeigt NAT-Regeln korrekt: nat on vtnet1 from 10.0.0.0/8 → vtnet1",
+        "ROOT CAUSE via pfctl -sr: \"block drop in log quick on vtnet1 inet from 10.0.0.0/8 to any\"",
+        "OPNsense WAN hat \"Block private networks\" aktiv – blockt ALLEN RFC1918-Traffic auf WAN bevor NAT greifen kann",
+        "Fix: Interfaces → WAN → Block private networks deaktivieren – als deferred Step mit höchster Prio angelegt",
+        "Security by Design Lernmoment: Block private networks ist sinnvoll auf echtem ISP-WAN, aber kontraproduktiv wenn WAN = Heimnetz und VLANs geNATet werden müssen",
+        "Lessons Learned: pfctl -sr ist das wichtigste Debug-Tool für Firewall-Regeln – zeigt aktive Regeln inkl. impliziter Blocks"
+      ]
+    },
+    {
+      "date": "2026-04-22",
+      "session": 10,
+      "title": "WAN-Fix, NAT-Debugging & Internet aus VLANs",
+      "entries": [
+        "Ziel: Internet-Zugang aus VLAN-Clients (Jumphost 10.0.1.4) herstellen",
+        "Block private networks auf WAN deaktiviert — pfctl -sr bestätigte Entfernung der Block-Regel",
+        "Trotzdem kein Internet: ping 1.1.1.1 und ping 192.168.0.1 vom Jumphost → 100% packet loss",
+        "Systematisches Debugging: Gateway (10.0.1.1) ✅, OPNsense WAN (192.168.0.215) ✅, TP-Link (192.168.0.1) ❌",
+        "Root Cause gefunden: Default-Route über vtnet0 (LAN) statt vtnet1 (WAN) — weil beide NICs auf vmbr0",
+        "NAT-Regel auf vtnet1 griff nie — tcpdump auf vtnet1 zeigte 0 Pakete während Jumphost pingte",
+        "ARP-Cache: TP-Link MAC (78:8c:b5:7e:1e:ad) auf beiden Interfaces — vmbr0 bridgt alles zusammen",
+        "Fix: Outbound-NAT Interface von WAN auf LAN umgestellt in OPNsense Web-UI",
+        "Sofort funktioniert: ping 1.1.1.1 ✅ 0% packet loss",
+        "DNS-Fix: resolv.conf war leer (dhcpcd ohne DHCP-Server). vim /etc/resolv.conf → nameserver 192.168.0.201",
+        "ping google.com ✅ — DNS-Auflösung + Internet funktionieren Ende-zu-Ende",
+        "Security Erkenntnisse: Asymmetrisches NAT, Out-of-Band Management, Least Privilege für MGMT-Ports (später)",
+        "Bash gelernt: && Verkettung, tee vs Redirect für sudo, tcpdump mit & Background-Jobs, kill %1",
+        "vim geübt: gg dG i (alles löschen + Insert), resolv.conf bearbeitet",
+        "Deferred Step p2-mgmt-port-hardening erstellt: MGMT später auf Ports 443/53/22/123 einschränken",
+        "Hyper-V Snapshot: vlan-internet-working-2026-04-22"
+      ]
+    }
+  ]
+}
