@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-24",
+    "track_id": "seclab",
+    "label": "SEC-LAB",
+    "title": "Security & Hacking Lab",
+    "subtitle": "Pentesting · AAA · IDS · Vulnerable Targets · Netzwerk-Simulation",
+    "type": "parallel",
+    "status": "planned",
+    "color": "crimson",
+    "progress": {
+      "done": 0,
+      "wip": 0,
+      "todo": 7,
+      "total": 7,
+      "pct": 0
+    }
+  },
+  "sections": [
+    {
+      "label": "Pentest-Umgebung",
+      "steps": [
+        {
+          "id": "sec-pentest-net",
+          "title": "Isoliertes Pentest-Netz",
+          "status": "todo",
+          "tags": ["Kali", "Pentest", "Lab", "Metasploitable", "VLAN"],
+          "desc": "LAB-VLAN (10.0.3.0/24) als isoliertes Pentest-Netz. Kali Linux als Angreifer-VM, Metasploitable und DVWA als Ziele. Komplett isoliert von MGMT/SVC/DMZ durch OPNsense Firewall-Regeln.",
+          "notes": "LAB-VLAN ist bereits konfiguriert und isoliert (Phase 2). Firewall-Regeln: LAB → MGMT geblockt, LAB → SVC geblockt. Nur Syslog (514) und Internet erlaubt.",
+          "details": {
+            "vms": [
+              {
+                "name": "Kali Linux",
+                "ip": "10.0.3.21",
+                "ram_gb": 4,
+                "disk_gb": 40,
+                "type": "VM",
+                "role": "Angreifer-VM, Pentest-Tools vorinstalliert"
+              },
+              {
+                "name": "Metasploitable",
+                "ip": "10.0.3.22",
+                "ram_gb": 1,
+                "disk_gb": 20,
+                "type": "VM",
+                "role": "Vulnerable Target (absichtlich unsicher)"
+              },
+              {
+                "name": "DVWA / Juice Shop",
+                "ip": "10.0.3.23",
+                "ram_gb": 0.5,
+                "disk_gb": 8,
+                "type": "LXC",
+                "role": "Web-App-Pentesting (OWASP Top 10)"
+              }
+            ],
+            "security_notes": [
+              "LAB-VLAN ist isoliert — Metasploitable kann nicht ins MGMT/SVC",
+              "Kali und Targets nur on-demand starten, NICHT 24/7",
+              "Logging: alle LAB-Aktivitäten gehen an rsyslog (10.0.1.7)",
+              "Kein Autostart für Lab-VMs — manuell hochfahren pro Session"
+            ]
+          },
+          "log": [],
+          "deferred_reason": "",
+          "origin_step": "p4-pentest"
+        },
+        {
+          "id": "sec-ids",
+          "title": "IDS / Intrusion Detection",
+          "status": "todo",
+          "tags": ["IDS", "Suricata", "Zeek", "Security"],
+          "desc": "Suricata oder Zeek als IDS/IPS. Netzwerkverkehr im LAB-VLAN analysieren, Angriffsmuster erkennen. Später auch auf MGMT/SVC erweitern für echtes Monitoring.",
+          "notes": "",
+          "details": {
+            "options": {
+              "suricata": "IDS/IPS, regelbasiert, läuft direkt auf OPNsense (Plugin verfügbar)",
+              "zeek": "Network Security Monitor, protokollbasiert, erzeugt strukturierte Logs"
+            },
+            "security_notes": [
+              "IDS im LAB-VLAN: Angriffe von Kali auf Targets erkennen und loggen",
+              "Später: IDS auf MGMT/SVC-Interface für echte Anomalie-Erkennung",
+              "Suricata als OPNsense-Plugin = kein extra Server nötig"
+            ]
+          },
+          "log": [],
+          "deferred_reason": "",
+          "origin_step": "p4-ids"
+        }
+      ]
+    },
+    {
+      "label": "AAA-Lab (Authentication, Authorization, Accounting)",
+      "steps": [
+        {
+          "id": "sec-tacacs",
+          "title": "TACACS+ Server",
+          "status": "todo",
+          "tags": ["TACACS+", "AAA", "NetOps", "Security"],
+          "desc": "tac_plus als AAA-Server für Netzwerkgeräte. Privilege Levels, Command Authorization, Accounting. Enterprise-Standard im Network Engineering.",
+          "notes": "",
+          "log": [],
+          "deferred_reason": "",
+          "origin_idea": "idea-013"
+        },
+        {
+          "id": "sec-radius",
+          "title": "RADIUS Server (FreeRADIUS)",
+          "status": "todo",
+          "tags": ["RADIUS", "FreeRADIUS", "AAA", "802.1X"],
+          "desc": "FreeRADIUS für 802.1X Auth, WiFi-Authentifizierung und VPN-Auth. Zusammen mit TACACS+ ein vollständiges AAA-Lab.",
+          "notes": "",
+          "log": [],
+          "deferred_reason": "",
+          "origin_idea": "idea-014"
+        },
+        {
+          "id": "sec-access-server",
+          "title": "Access Server (TACACS+ Device)",
+          "status": "todo",
+          "tags": ["TACACS+", "AAA", "Lab", "Netzwerk"],
+          "desc": "VM als simuliertes Netzwerkgerät. Login-Flow via TACACS+ üben: Privilege Levels, Command Authorization, Accounting.",
+          "notes": "",
+          "log": [],
+          "deferred_reason": "",
+          "origin_idea": "idea-015"
+        }
+      ]
+    },
+    {
+      "label": "Netzwerk-Simulation",
+      "steps": [
+        {
+          "id": "sec-eve-ng",
+          "title": "EVE-NG / GNS3 – Netzwerk-Simulation",
+          "status": "todo",
+          "tags": ["EVE-NG", "GNS3", "Netzwerk", "Simulation", "CCNA"],
+          "desc": "Netzwerk-Simulations-Plattform für virtuelle Router, Switches, Firewalls. Topologien bauen, Routing-Protokolle testen, CCNA/CCNP-Labs üben. Braucht viel RAM (4-8 GB) — ideal auf dem Ryzen-Tower als Cluster-Node.",
+          "notes": "EVE-NG braucht nested Virtualization oder Bare-Metal. Auf ESPRIMO möglich, auf Ryzen-Tower besser wegen RAM. Am besten nur on-demand auf dem Tower starten.",
+          "details": {
+            "ram_requirement": "4-8 GB je nach Topologie-Größe",
+            "ip": "10.0.3.20",
+            "best_on": "Ryzen-Tower (mehr RAM, on-demand)",
+            "security_notes": [
+              "EVE-NG im LAB-VLAN isoliert",
+              "Nur on-demand starten — kein 24/7 Betrieb",
+              "Nested Virtualization nötig wenn auf Proxmox"
+            ]
+          },
+          "log": [],
+          "deferred_reason": ""
+        },
+        {
+          "id": "sec-snmpv3",
+          "title": "SNMPv3 – Network Monitoring",
+          "status": "todo",
+          "tags": ["SNMP", "SNMPv3", "Monitoring", "NetOps"],
+          "desc": "SNMPv3 als sicheres Netzwerk-Monitoring-Protokoll. Authentifizierung (SHA) + Verschlüsselung (AES). SNMP Exporter für Prometheus/Grafana Integration. Enterprise-Standard.",
+          "notes": "",
+          "log": [],
+          "deferred_reason": "",
+          "origin_idea": "idea-037"
+        }
+      ]
+    }
+  ]
+}

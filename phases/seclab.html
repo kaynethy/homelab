@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Security Lab</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ─── Isolation Banner ─── */
+    .sec-isolation-banner {
+      background: #0a0c10;
+      border: 1px solid #ef4444;
+      border-left: 4px solid #ef4444;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+    }
+    .sec-isolation-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ef4444;
+      margin-bottom: 14px;
+    }
+    .sec-isolation-rules { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .sec-rule {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .sec-rule-ok   { color: #4fffb0; }
+    .sec-rule-deny { color: #ef4444; }
+    .sec-isolation-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      border-top: 1px solid #ef444430;
+      padding-top: 12px;
+    }
+
+    /* ─── Lab Diagram ─── */
+    .sec-lab-diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .sec-vlan-wrap {
+      border: 1px solid #4fffb030;
+      border-radius: 8px;
+      padding: 16px 20px;
+      background: #4fffb005;
+      margin-bottom: 12px;
+    }
+    .sec-vlan-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4fffb0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .sec-vm-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .sec-vm-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 11px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .sec-vm-box.kali  { border-color: #ef4444; color: #ef4444; background: #ef444410; }
+    .sec-vm-box.target{ border-color: #f59e0b; color: #f59e0b; background: #f59e0b10; }
+    .sec-vm-box.aaa   { border-color: #a78bfa; color: #a78bfa; background: #a78bfa10; }
+    .sec-vm-box.eve   { border-color: #22d3ee; color: #22d3ee; background: #22d3ee10; }
+    .sec-attack-arrow {
+      font-size: 11px;
+      color: #ef4444;
+      font-style: italic;
+    }
+    .sec-fw-row {
+      border-top: 1px dashed var(--border);
+      padding-top: 10px;
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .sec-fw-allow { color: #4fffb0; }
+    .sec-fw-deny  { color: #ef4444; }
+
+    /* ─── Step Cards ─── */
+    .sec-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .sec-step-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      display: block;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .sec-step-card:hover { border-color: #dc2626; background: rgba(220,38,38,0.04); }
+    .sec-step-card.wip  { border-left-color: #f59e0b; }
+    .sec-step-card.done { border-left-color: var(--done); }
+    .sec-step-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .sec-step-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .sec-step-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .sec-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .sec-step-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .sec-step-status.wip  { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+    .sec-step-status.todo { background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+    .sec-step-status.done { background: rgba(34,197,94,.15); color: var(--done); border: 1px solid rgba(34,197,94,.3); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb">
+    <a href="../index.html">Dashboard</a>
+    <span class="sep">›</span>
+    <span>Security Lab</span>
+  </div>
+
+  <!-- Header -->
+  <div style="margin-bottom:28px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#dc262620;color:#dc2626;border:1px solid #dc262640;letter-spacing:0.5px">SEC-LAB</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">○ planned</span>
+    </div>
+    <h1 style="font-size:24px;font-weight:700;color:var(--text);margin:0 0 4px">Security &amp; Hacking Lab</h1>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Pentesting · AAA · IDS · Vulnerable Targets · Netzwerk-Simulation</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;border:1px solid var(--border)">
+          <div id="sec-progress-fill" style="height:100%;width:0%;background:#dc2626;border-radius:3px;transition:width 0.5s"></div>
+        </div>
+      </div>
+      <span id="sec-progress-label" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap">0/7</span>
+    </div>
+  </div>
+
+  <!-- Isolation Banner -->
+  <div class="sec-isolation-banner">
+    <div class="sec-isolation-title">🔒 ISOLATION: LAB-VLAN (10.0.3.0/24)</div>
+    <div class="sec-isolation-rules">
+      <div class="sec-rule sec-rule-ok">✅ LAB → Internet: erlaubt</div>
+      <div class="sec-rule sec-rule-ok">✅ LAB → MGMT (Syslog Port 514): erlaubt</div>
+      <div class="sec-rule sec-rule-deny">❌ LAB → MGMT (rest): GEBLOCKT</div>
+      <div class="sec-rule sec-rule-deny">❌ LAB → SVC: GEBLOCKT</div>
+      <div class="sec-rule sec-rule-deny">❌ LAB → DMZ: GEBLOCKT</div>
+    </div>
+    <div class="sec-isolation-note">
+      Vulnerable Targets (Metasploitable, DVWA) können nicht ins produktive Netz ausbrechen.
+      Kali-Angriffe bleiben innerhalb des LAB-VLANs. Defense in Depth durch OPNsense Firewall.
+      Alle Lab-Aktivitäten werden per Syslog an rsyslog (10.0.1.7) geloggt.
+    </div>
+  </div>
+
+  <!-- Lab Environment Diagram -->
+  <div class="section-label">Lab-Umgebung (geplant)</div>
+  <div class="sec-lab-diagram">
+    <div class="sec-vlan-wrap">
+      <div class="sec-vlan-title">LAB VLAN · 10.0.3.0/24</div>
+
+      <div class="sec-vm-row">
+        <div class="sec-vm-box kali">🐉 Kali Linux<br><span style="font-size:9px;opacity:0.7">10.0.3.21</span></div>
+        <span class="sec-attack-arrow">──attack──→</span>
+        <div class="sec-vm-box target">💀 Metasploitable<br><span style="font-size:9px;opacity:0.7">10.0.3.22</span></div>
+      </div>
+
+      <div class="sec-vm-row" style="padding-left:90px">
+        <span class="sec-attack-arrow">──attack──→</span>
+        <div class="sec-vm-box target">🕷 DVWA / Juice Shop<br><span style="font-size:9px;opacity:0.7">10.0.3.23</span></div>
+      </div>
+
+      <div class="sec-vm-row" style="margin-top:8px">
+        <div class="sec-vm-box aaa">🔐 TACACS+<br><span style="font-size:9px;opacity:0.7">.11</span></div>
+        <div class="sec-vm-box aaa">📡 RADIUS<br><span style="font-size:9px;opacity:0.7">.12</span></div>
+        <div class="sec-vm-box aaa">🖥 Access Server<br><span style="font-size:9px;opacity:0.7">.13</span></div>
+        <div class="sec-vm-box eve">🌐 EVE-NG<br><span style="font-size:9px;opacity:0.7">10.0.3.20</span></div>
+      </div>
+
+      <div class="sec-fw-row">
+        <span style="color:var(--muted)">── Firewall ──</span>
+        <span class="sec-fw-deny">❌ MGMT</span>
+        <span class="sec-fw-deny">❌ SVC</span>
+        <span class="sec-fw-deny">❌ DMZ</span>
+        <span class="sec-fw-allow">✅ Internet</span>
+        <span class="sec-fw-allow">✅ Syslog (514)</span>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">
+      IDS (Suricata) überwacht LAB-Traffic · EVE-NG auf Ryzen-Tower (on-demand, RAM-intensiv)
+    </div>
+  </div>
+
+  <!-- Step Sections (dynamic) -->
+  <div id="sec-sections">
+    <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px">Lade SecLab-Daten…</div>
+  </div>
+
+  <footer>homelab_roadmap · <span>seclab_track</span></footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function statusLabel(status) {
+    if (status === 'wip')  return '<span class="sec-step-status wip">wip</span>';
+    if (status === 'done') return '<span class="sec-step-status done">✓ done</span>';
+    return '<span class="sec-step-status todo">todo</span>';
+  }
+
+  function renderSecLabPage(sec) {
+    var meta = sec.meta;
+    var prog = meta.progress || {};
+
+    // Progress bar
+    var pct = prog.total > 0 ? Math.round((prog.done + prog.wip * 0.5) / prog.total * 100) : 0;
+    var fill = document.getElementById('sec-progress-fill');
+    var label = document.getElementById('sec-progress-label');
+    if (fill) fill.style.width = pct + '%';
+    if (label) {
+      var parts = [prog.done + '/' + prog.total];
+      if (prog.wip > 0) parts.push(prog.wip + ' wip');
+      label.textContent = parts.join(' · ');
+    }
+
+    // Sections + step cards
+    var container = document.getElementById('sec-sections');
+    if (!container) return;
+    var html = '';
+    (sec.sections || []).forEach(function(section) {
+      html += '<div class="section-label">' + esc(section.label) + '</div>';
+      html += '<div class="sec-steps-grid">';
+      (section.steps || []).forEach(function(step) {
+        var url = '../steps/step.html?id=' + step.id;
+        var tags = (step.tags || []).slice(0, 4).map(function(t) {
+          return '<span class="sec-tag">' + esc(t) + '</span>';
+        }).join('');
+        var desc = step.desc ? step.desc.substring(0, 120) + (step.desc.length > 120 ? '…' : '') : '';
+        html += '<a href="' + url + '" class="sec-step-card ' + (step.status || 'todo') + '">'
+          + '<div class="sec-step-title">' + esc(step.title) + '</div>'
+          + (tags ? '<div class="sec-step-tags">' + tags + '</div>' : '')
+          + (desc ? '<div class="sec-step-desc">' + esc(desc) + '</div>' : '')
+          + statusLabel(step.status)
+          + '</a>';
+      });
+      html += '</div>';
+    });
+    container.innerHTML = html || '<div style="color:var(--muted);font-size:13px">Keine Steps gefunden.</div>';
+  }
+
+  function tryRender() {
+    var sec = window.STATE && window.STATE.tracks && window.STATE.tracks.seclab;
+    if (sec) renderSecLabPage(sec);
+  }
+
+  window.addEventListener('tracks-ready', tryRender);
+  window.addEventListener('state-ready', function() {
+    setTimeout(tryRender, 0);
+  });
+})();
+</script>
+</body>
+</html>

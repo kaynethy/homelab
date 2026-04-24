@@ -57,8 +57,7 @@
           "role": "Kea DHCP – Statische Leases + dynamische Vergabe alle Subnetze",
           "status": "active",
           "core": true,
-          "step_id": "p2-dhcp",
-          "current_ip": "10.0.1.5"
+          "step_id": "p2-dhcp"
         },
         {
           "ip": ".6",
@@ -70,18 +69,19 @@
         },
         {
           "ip": ".7",
-          "name": "Syslog",
-          "role": "Zentrales Logging",
-          "status": "planned",
-          "core": false,
-          "idea_id": "idea-012"
+          "name": "Syslog / rsyslog",
+          "role": "Zentrales Logging (CT105, rsyslog, TCP 514, Logs nach /var/log/remote/<host>/<programm>.log)",
+          "status": "active",
+          "core": true,
+          "step_id": "p2-syslog-ntp"
         },
         {
           "ip": ".8",
-          "name": "— Reserve —",
-          "role": "Monitoring (Grafana/Prometheus)",
-          "status": "reserved",
-          "core": false
+          "name": "NetBox IPAM",
+          "role": "IPAM / DCIM (CT106, Docker Compose: NetBox v4.5 + PostgreSQL + Valkey, Web-UI Port 8080)",
+          "status": "active",
+          "core": true,
+          "step_id": "p2-ipam"
         },
         {
           "ip": ".9",
@@ -384,7 +384,14 @@
       "from": "SVC",
       "to": "MGMT (NTP)",
       "rule": "ERLAUBT Port 123 UDP",
-      "note": "Nur Zeitsynchronisation via Chrony",
+      "note": "Nur Zeitsynchronisation via OpenNTPD",
+      "vlan_tag": 20
+    },
+    {
+      "from": "SVC",
+      "to": "MGMT (Syslog)",
+      "rule": "ERLAUBT Port 514 TCP",
+      "note": "Zentrales Logging via rsyslog",
       "vlan_tag": 20
     },
     {
@@ -399,6 +406,13 @@
       "to": "Internet",
       "rule": "ERLAUBT",
       "note": "",
+      "vlan_tag": 30
+    },
+    {
+      "from": "LAB",
+      "to": "MGMT (Syslog)",
+      "rule": "ERLAUBT Port 514 TCP",
+      "note": "Zentrales Logging via rsyslog (vor Block-Regel)",
       "vlan_tag": 30
     },
     {
@@ -420,6 +434,13 @@
       "to": "Internet",
       "rule": "ERLAUBT",
       "note": "",
+      "vlan_tag": 40
+    },
+    {
+      "from": "DMZ",
+      "to": "MGMT (Syslog)",
+      "rule": "ERLAUBT Port 514 TCP",
+      "note": "Zentrales Logging via rsyslog (vor Block-Regel)",
       "vlan_tag": 40
     },
     {

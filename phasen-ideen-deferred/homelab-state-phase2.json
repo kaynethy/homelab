@@ -9,11 +9,11 @@
     "status": "active",
     "color": "blue",
     "progress": {
-      "done": 4,
+      "done": 5,
       "wip": 1,
-      "todo": 5,
+      "todo": 4,
       "total": 10,
-      "pct": 40
+      "pct": 50
     }
   },
   "steps": [
@@ -123,7 +123,7 @@
     {
       "id": "p2-ipam",
       "title": "IPAM – IP Address Management (NetBox)",
-      "status": "todo",
+      "status": "wip",
       "tags": [
         "IPAM",
         "NetBox",
@@ -131,21 +131,47 @@
         "IP-Management"
       ],
       "desc": "NetBox als zentrales IPAM. Alle IP-Ranges, Prefixes, VLANs und Devices dokumentieren und planen. REST-API für spätere Ansible/Terraform-Integration.",
-      "notes": "",
+      "notes": "NetBox v4.5.8 läuft als Docker Compose Stack auf CT106 (10.0.1.8, MGMT-VLAN). Privilegierter LXC mit nesting=1 für Docker. Web-UI auf Port 8080. Syslog-Forwarding an CT105 aktiv. Nächster Schritt: Prefixes, VLANs und Devices in NetBox eintragen.",
       "details": {
         "why_netbox": "Branchenstandard im Network Engineering – direkter Lernwert für den Job. REST-API ermöglicht Ansible Dynamic Inventory und automatische IP-Vergabe beim VM-Deployment via Terraform.",
         "alternative": "phpIPAM – leichtgewichtiger, nur IP-Management ohne DCIM. Sinnvoll wenn NetBox zu viel Overhead ist für den Start.",
-        "deployment": "Docker Compose Stack empfohlen. Ressourcen: 1-2 Cores, 2 GB RAM, 10 GB Disk.",
+        "deployment": "Docker Compose Stack auf privilegiertem LXC Container (CT106, Debian 13, 2 Cores, 2 GB RAM, 10 GB Disk, VLAN Tag 10).",
         "ip_management_triad": "DHCP (Vergabe) + DNS (Auflösung) + IPAM (Planung & Dokumentation) – alle drei zusammen = vollständiges IP-Management.",
+        "stack_components": {
+          "netbox": "netboxcommunity/netbox:v4.5-4.0.2 (Django, Granian ASGI, 4 Workers)",
+          "database": "postgres:18-alpine",
+          "cache": "valkey/valkey:9.0-alpine (Redis-Fork, 2 Instanzen: cache + queue)",
+          "worker": "netbox-worker (Background Tasks, Event Rules, Webhooks)"
+        },
+        "container": {
+          "id": 106,
+          "type": "LXC (privilegiert — Docker braucht cgroups/Namespaces)",
+          "ip": "10.0.1.8",
+          "os": "Debian 13",
+          "ram_mb": 2048,
+          "disk_gb": 10,
+          "cores": 2,
+          "vlan_tag": 10,
+          "features": "nesting=1"
+        },
+        "security": {
+          "placement": "MGMT-VLAN (10.0.1.0/24) — NetBox ist Kern-Infrastruktur, nicht ein Service. Verwaltet IP-Schema, VLANs, Devices. Kein Inbound von SVC/LAB/DMZ möglich.",
+          "privileged_container": "Bewusster Trade-off: privilegierte LXC nötig für Docker. Root im Container = Root auf Host. Akzeptabel weil MGMT-VLAN nur Admin-Zugang hat.",
+          "secret_key": "Django SECRET_KEY für Session-Signing und CSRF — nie im Git committen. Kompromittierung ermöglicht Session-Fälschung.",
+          "api_tokens": "NetBox v4.5+ hat v2 API-Tokens mit HMAC-Hashing — Plaintexts werden nicht mehr gespeichert. Bearer-Format statt legacy Token-Format."
+        },
+        "web_ui": "http://10.0.1.8:8080",
         "initial_data_to_enter": [
           "Prefix 192.168.0.0/24 – aktuelles Heimnetz (Home LAN)",
-          "Prefix 10.0.1.0/24 – Management VLAN (geplant)",
-          "Prefix 10.0.2.0/24 – Services VLAN (geplant)",
-          "Prefix 10.0.3.0/24 – Lab VLAN (geplant)",
-          "Prefix 10.0.4.0/24 – DMZ (geplant)",
-          "IP 192.168.0.155 – Windows Host",
-          "IP 192.168.0.200 – Proxmox (pve.homelab.local)",
-          "IP 192.168.0.201 – AdGuard LXC (adguard.homelab.local)"
+          "Prefix 10.0.1.0/24 – Management VLAN",
+          "Prefix 10.0.2.0/24 – Services VLAN",
+          "Prefix 10.0.3.0/24 – Lab VLAN",
+          "Prefix 10.0.4.0/24 – DMZ",
+          "VLANs: 10 (MGMT), 20 (SVC), 30 (LAB), 40 (DMZ)",
+          "Devices: Proxmox, OPNsense, AdGuard, Jumphost, Kea, NTP, Syslog, NetBox",
+          "IP 192.168.0.10 – Windows Host",
+          "IP 192.168.0.200 – Proxmox",
+          "IP 192.168.0.201 – AdGuard DNS"
         ],
         "later_integration": "Ansible: netbox.netbox Collection für Dynamic Inventory. Terraform: netbox Provider für automatische IP-Zuweisung beim VM-Deployment.",
         "related_ideas": [
@@ -153,7 +179,36 @@
           "idea-020"
         ]
       },
-      "log": [],
+      "log": [
+        {
+          "date": "2026-04-23",
+          "entry": "Platzierungsentscheidung: MGMT-VLAN statt SVC. NetBox ist Kern-Infrastruktur (wie DNS, DHCP, Syslog) — verwaltet IP-Schema und Devices. Blast Radius in MGMT akzeptabel weil kein Inbound von anderen VLANs."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "CT106 erstellt: privilegierter LXC, Debian 13, 2 Cores, 2 GB RAM, 10 GB Disk, VLAN Tag 10, IP 10.0.1.8/24, nesting=1 für Docker."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Privileged-Verifikation: /proc/1/uid_map zeigt 0 0 4294967295 — UID 0 im Container = UID 0 auf Host. Proxmox schreibt unprivileged: 0 nicht explizit in Config (Default bei pct create)."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Docker 29.4.1 + Compose v5.1.3 installiert aus offiziellem Docker-Repo. GPG-Key über HTTPS mit signed-by Key Pinning."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "NetBox Docker Stack deployed: netboxcommunity/netbox:v4.5-4.0.2, postgres:18-alpine, valkey:9.0-alpine (2x). Erster Start: Health-Check Timing-Issue — Worker startete bevor NetBox ready war. docker compose up -d erneut → alle 5 Container healthy."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Superuser erstellt, Web-UI auf http://10.0.1.8:8080 erreichbar. Connectivity-Test vom Jumphost: HTTP 200."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "rsyslog-Forwarding konfiguriert: *.* @@10.0.1.7:514. Syslog-Server zeigt netbox/ Verzeichnis in /var/log/remote/. Alle MGMT-Hosts loggen jetzt zentral."
+        }
+      ],
       "deferred_reason": ""
     },
     {
@@ -763,27 +818,57 @@
     {
       "id": "p2-syslog-ntp",
       "title": "Syslog-Server + interner NTP (OpenNTPD)",
-      "status": "wip",
+      "status": "done",
       "tags": [
         "Syslog",
         "NTP",
         "Logging",
         "OpenNTPD",
+        "rsyslog",
         "Security",
         "Zeitserver"
       ],
       "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog). Interner NTP-Server via OpenNTPD — Pflicht für konsistente Log-Timestamps, Zertifikate und später Kerberos. Kern-Infrastruktur im MGMT-VLAN.",
-      "notes": "NTP-Server (OpenNTPD) läuft als VM104 auf 10.0.1.6. Chrony scheiterte an LXC adjtimex-Restriktion, OpenNTPD in LXC ebenfalls. VM war die Lösung — eigener Kernel = volle Syscall-Kontrolle. Syslog (rsyslog) steht noch aus.",
+      "notes": "NTP-Server (OpenNTPD) läuft als VM104 auf 10.0.1.6. Syslog-Server (rsyslog) läuft als CT105 auf 10.0.1.7. Jumphost + NTP-Server als Clients angebunden. Firewall-Regeln für Syslog TCP 514 auf SVC/LAB/DMZ konfiguriert.",
       "details": {
         "merged_from": [
           "idea-012 (Syslog-Server + interner NTP)"
         ],
         "syslog": {
-          "tool": "rsyslog (auf jeder Debian-VM vorinstalliert) oder Graylog (wenn Web-UI gewünscht)",
+          "tool": "rsyslog 8.2504.0",
           "target_ip": "10.0.1.7",
           "purpose": "Alle VMs loggen zentral → ein Ort für Debugging, Security-Audit, Compliance",
-          "security": "Ohne zentrales Logging sind Einbrüche unsichtbar. Angreifer löschen lokale Logs — zentraler Syslog überlebt das.",
-          "status": "todo"
+          "security": "Ohne zentrales Logging sind Einbrüche unsichtbar. Angreifer löschen lokale Logs — zentraler Syslog überlebt das. Nur TCP (kein UDP) — verhindert IP-Spoofing. Listen only auf 10.0.1.7 (Least Privilege). File permissions 0640 (nur root+adm).",
+          "status": "done",
+          "container": {
+            "id": 105,
+            "type": "LXC (unprivileged — rsyslog braucht keine speziellen Syscalls)",
+            "ip": "10.0.1.7",
+            "os": "Debian 13",
+            "ram_mb": 512,
+            "disk_gb": 8,
+            "cores": 1,
+            "vlan_tag": 10
+          },
+          "config_file": "/etc/rsyslog.d/10-remote.conf",
+          "config_highlights": [
+            "imtcp auf 10.0.1.7:514 (nur TCP, kein UDP — kein Spoofing)",
+            "Template RemotePerHost: /var/log/remote/<hostname>/<programm>.log",
+            "Remote-Logs getrennt von lokalen Logs (if fromhost-ip != 127.0.0.1 + stop)",
+            "imklog deaktiviert (kein /proc/kmsg Zugriff in LXC — nicht nötig)"
+          ],
+          "clients_configured": [
+            "jumphost (10.0.1.4) — *.* @@10.0.1.7:514",
+            "ntp-server (10.0.1.6) — *.* @@10.0.1.7:514"
+          ],
+          "log_categories_received": [
+            "sshd-session.log — SSH-Logins",
+            "sudo.log — sudo-Befehle",
+            "systemd.log — Systemd-Events",
+            "systemd-logind.log — Login-Sessions",
+            "rsyslogd.log — rsyslog selbst",
+            "noob.log / root.log — manuelle logger-Nachrichten"
+          ]
         },
         "ntp": {
           "tool": "OpenNTPD (OpenBSD-Projekt, Security-First, Privilege Separation eingebaut)",
@@ -810,8 +895,8 @@
           "why_not_chrony": "Chrony und OpenNTPD scheitern beide an adjtimex() in LXC Containern — auch privilegiert, auch mit AppArmor unconfined + Seccomp disabled. LXC teilt den Host-Kernel und blockiert adjtimex auf Namespace-Ebene. VM ist die einzig saubere Lösung.",
           "why_openntpd": "OpenBSD-Projekt, Security-First-Design, minimale Angriffsfläche, Privilege Separation eingebaut. Robuster als Chrony bei fehlenden Capabilities (crashed nicht, loggt Warning)."
         },
-        "deployment": "NTP als VM (adjtimex braucht eigenen Kernel). Syslog als LXC Container (braucht keine speziellen Syscalls).",
-        "firewall_impact": "SVC-Regel erlaubt bereits NTP (Port 123) zu MGMT. Syslog (Port 514 UDP/TCP) muss noch als Regel für alle VLANs hinzugefügt werden.",
+        "deployment": "NTP als VM (adjtimex braucht eigenen Kernel). Syslog als LXC Container (braucht keine speziellen Syscalls — bestätigt).",
+        "firewall_impact": "SVC/LAB/DMZ: Syslog TCP 514 → 10.0.1.7 erlaubt (jeweils vor Block-MGMT-Regel). SVC: NTP UDP 123 war bereits erlaubt.",
         "lessons_learned": [
           "LXC Container können adjtimex() nicht aufrufen — weder unprivileged noch privileged, weder mit AppArmor unconfined noch Seccomp disabled. Kernel-Namespace-Restriktion.",
           "Debian 13 apt hat einen Pager-Bug: Dpkg::Pager '' als allerersten Schritt bei jedem neuen Container setzen.",
@@ -853,6 +938,34 @@
         {
           "date": "2026-04-23",
           "entry": "Jumphost-Test: ntpdig 10.0.1.6 → Offset -0.000052ms, Stratum 6, no-leap. NTP-Server funktioniert netzwerkweit."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "CT105 erstellt: rsyslog-Server, Debian 13 LXC, unprivileged, 512 MB RAM, 8 GB Disk, VLAN 10, IP 10.0.1.7. Kein LXC-Drama — rsyslog braucht keine speziellen Syscalls."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "rsyslog Server-Config: imtcp auf 10.0.1.7:514 (nur TCP, kein UDP — verhindert Spoofing). Template sortiert Logs automatisch nach /var/log/remote/<hostname>/<programm>.log."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "imklog deaktiviert — /proc/kmsg nicht verfügbar in unprivileged LXC, wird auch nicht gebraucht (Kernel-Logs kommen vom Proxmox Host)."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Jumphost als erster Syslog-Client: *.* @@10.0.1.7:514 in /etc/rsyslog.d/10-forward.conf. Test-Nachricht sofort empfangen. 6 Log-Dateien automatisch sortiert (sshd, sudo, systemd etc.)."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "NTP-Server als zweiter Client angebunden. /var/log/remote/ zeigt jumphost/ und ntp-server/ Verzeichnisse."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "OPNsense Firewall: Syslog TCP 514 → 10.0.1.7 auf SVC, LAB, DMZ Interfaces erlaubt — jeweils vor der Block-MGMT-Regel positioniert. Alle VLANs können zentral loggen."
+        },
+        {
+          "date": "2026-04-23",
+          "entry": "Step DONE: NTP-Server (VM104, OpenNTPD, 10.0.1.6) + Syslog-Server (CT105, rsyslog, 10.0.1.7) beide live und getestet. Phase 2 bei 50%."
         }
       ],
       "deferred_reason": ""

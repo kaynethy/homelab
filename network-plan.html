@@ -386,7 +386,34 @@
     </div>
   </div>
 
-  <!-- Teil B: Subnetz-Details -->
+  <!-- Teil B: Ressourcen -->
+  <div class="section-label">Ressourcen</div>
+  <div id="net-res-section" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:24px">
+    <div id="net-res-bars"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+      <button id="net-res-toggle-btn" onclick="toggleNetResDetails()" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all 150ms" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border2)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">▼ Details</button>
+    </div>
+    <div id="net-res-host-table" style="display:none;margin-top:12px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;font-variant-numeric:tabular-nums">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">ID</th>
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Host</th>
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Typ</th>
+            <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">RAM</th>
+            <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Disk</th>
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">VLAN</th>
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">IP</th>
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Status</th>
+          </tr>
+        </thead>
+        <tbody id="net-res-table-body"></tbody>
+        <tfoot id="net-res-table-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Teil C: Subnetz-Details -->
   <div class="section-label">Subnetze</div>
   <div id="subnet-sections"></div>
 
@@ -449,21 +476,21 @@
   // Layout Presets — hardcoded default + profile slots
   var LAYOUT_PRESETS = {
     "default": {
-      "1": {"x": -89, "y": -17},
+      "1": {"x": -111, "y": -5},
       "2": {"x": -80, "y": 150},
       "3": {"x": 66, "y": -75},
       "4": {"x": -384, "y": 97},
       "5": {"x": -345, "y": 395},
       "6": {"x": 95, "y": 393},
       "7": {"x": 214, "y": 149},
-      "8": {"x": -421, "y": -39},
-      "9": {"x": -340, "y": -15},
-      "10": {"x": -543, "y": 183},
-      "11": {"x": -577, "y": 133},
-      "12": {"x": -585, "y": 75},
-      "13": {"x": -568, "y": 21},
-      "14": {"x": -512, "y": -24},
-      "15": {"x": -552, "y": 287},
+      "8": {"x": -249, "y": 37},
+      "9": {"x": -320, "y": -20},
+      "10": {"x": -407, "y": -58},
+      "11": {"x": -532, "y": -20},
+      "12": {"x": -584, "y": 57},
+      "13": {"x": -551, "y": 140},
+      "14": {"x": -434, "y": 211},
+      "15": {"x": -304, "y": 209},
       "16": {"x": -184, "y": 549},
       "17": {"x": -270, "y": 593},
       "18": {"x": -356, "y": 610},
@@ -472,19 +499,20 @@
       "21": {"x": -559, "y": 503},
       "22": {"x": -588, "y": 452},
       "23": {"x": -588, "y": 392},
-      "24": {"x": -592, "y": 334},
-      "25": {"x": 302, "y": 309},
-      "26": {"x": 333, "y": 360},
-      "27": {"x": 347, "y": 414},
-      "28": {"x": 340, "y": 460},
-      "29": {"x": 284, "y": 500},
+      "24": {"x": -555, "y": 336},
+      "25": {"x": -474, "y": 290},
+      "26": {"x": 260, "y": 325},
+      "27": {"x": 287, "y": 392},
+      "28": {"x": 295, "y": 448},
+      "29": {"x": 269, "y": 497},
       "30": {"x": 196, "y": 533},
       "31": {"x": 100, "y": 551},
       "32": {"x": 6, "y": 527},
-      "33": {"x": 220, "y": 33},
-      "34": {"x": 388, "y": 127},
-      "35": {"x": 374, "y": 180},
-      "36": {"x": 341, "y": 54}
+      "33": {"x": -76, "y": 455},
+      "34": {"x": 380, "y": 108},
+      "35": {"x": 382, "y": 172},
+      "36": {"x": 306, "y": 45},
+      "37": {"x": 321, "y": 233}
     },
     "profil1": null,
     "profil2": null
@@ -908,8 +936,9 @@
         var portParts = rules
           .filter(function(r) { return r.rule.indexOf('ERLAUBT') !== -1; })
           .map(function(r) {
-            var m = r.rule.match(/Port\s+([\d,\s]+(?:TCP\/UDP|UDP|TCP)?)/i);
-            return m ? m[1].replace(/\s+/g, '').replace(/TCP\/UDP/gi, '').replace(/[\/,]+$/, '') : null;
+            // Extract only the port number — strip protocol suffixes (TCP, UDP, TCP/UDP)
+            var m = r.rule.match(/Port\s+(\d+)/i);
+            return m ? m[1] : null;
           })
           .filter(Boolean);
         label = portParts.length ? portParts.join('+') + ' erlaubt' : 'eingeschränkt';
@@ -939,7 +968,8 @@
         _firewall: true
       });
     });
-    console.log('[network] Edges generiert:', edges.length);
+    var fwEdgeCount = edges.filter(function(e) { return e._firewall; }).length;
+    console.log('[network] Firewall-Checkliste: ' + fwEdgeCount + '/15 Edges generiert (gesamt:', edges.length + ')');
 
     // ——— Migration edges (hidden initially) ———
     // Draw dashed lines from TP-Link to each host that has a current_ip
@@ -1513,6 +1543,168 @@
   }
 
   window.addEventListener('network-ready', init);
+
+  // ===== RESSOURCEN SECTION (Balken + Tabelle) =====
+  var NET_RES_COLORS = ['#4fffb0','#00d4aa','#26c6b0','#00b894','#1db899','#42e8c8','#7ee8d0','#00f5c4'];
+
+  function netResBarColor(pct) {
+    if (pct < 50) return 'var(--accent)';
+    if (pct < 75) return '#f59e0b';
+    if (pct < 90) return '#fb923c';
+    return '#ef4444';
+  }
+
+  function buildNetBar(segments, borderColor) {
+    var html = '<div style="display:flex;height:22px;border-radius:5px;overflow:hidden;background:var(--bg3);border:1px solid ' + (borderColor || 'var(--border)') + ';cursor:default">';
+    segments.forEach(function(seg) {
+      if (seg.pct <= 0) return;
+      if (seg.free) { html += '<div style="flex:1"></div>'; return; }
+      var tip = (seg.tooltip || '').replace(/\n/g, '&#10;').replace(/"/g, '&quot;');
+      html += '<div title="' + tip + '" style="width:' + seg.pct.toFixed(2) + '%;min-width:3px;background:' + seg.color + ';opacity:0.82;transition:opacity 0.1s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.82\'"></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function buildNetLegend(items) {
+    var html = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:5px">';
+    items.forEach(function(item) {
+      html += '<span style="display:flex;align-items:center;gap:4px;font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">'
+        + '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' + item.color + ';flex-shrink:0"></span>' + item.label + '</span>';
+    });
+    return html + '</div>';
+  }
+
+  function renderNetResources() {
+    var res = window.STATE && window.STATE.resources;
+    if (!res) return;
+
+    var section = document.getElementById('net-res-section');
+    if (!section) return;
+    section.style.display = '';
+
+    var totalRam  = res.proxmox_total.ram_gb;
+    var totalDisk = res.proxmox_total.disk_gb;
+    var sysRam    = (res.proxmox_system && res.proxmox_system.ram_gb) || 1.5;
+    var sysLabel  = (res.proxmox_system && res.proxmox_system.label) || 'Proxmox System';
+    var hosts     = (res.hosts || []).slice().sort(function(a, b) { return a.id.localeCompare(b.id); });
+
+    var hostsRam  = hosts.reduce(function(s, h) { return s + h.ram_mb / 1024; }, 0);
+    var hostsDisk = hosts.reduce(function(s, h) { return s + h.disk_gb; }, 0);
+    var usedRam   = hostsRam + sysRam;
+    var freeRam   = Math.max(0, totalRam - usedRam);
+    var freeDisk  = Math.max(0, totalDisk - hostsDisk);
+    var ramPct    = Math.round(usedRam / totalRam * 100);
+    var diskPct   = Math.round(hostsDisk / totalDisk * 100);
+
+    var ramSegs   = [{ color: '#5a6278', pct: sysRam / totalRam * 100, tooltip: sysLabel + '\nRAM: ' + sysRam + ' GB' }];
+    var ramLegend = [{ color: '#5a6278', label: 'PVE' }];
+    hosts.forEach(function(h, i) {
+      var c = NET_RES_COLORS[i % NET_RES_COLORS.length];
+      ramSegs.push({ color: c, pct: (h.ram_mb / 1024) / totalRam * 100,
+        tooltip: h.name + ' (' + h.type + ' ' + h.id.toUpperCase() + ')'
+          + '\nRAM: ' + h.ram_mb + ' MB | Disk: ' + h.disk_gb + ' GB'
+          + '\nTyp: ' + h.type + ' | VLAN: ' + (h.vlan || 'mgmt').toUpperCase()
+          + (h.ip ? '\nIP: ' + h.ip : '')
+      });
+      ramLegend.push({ color: c, label: h.name });
+    });
+    ramSegs.push({ free: true, pct: freeRam / totalRam * 100 });
+
+    var diskSegs   = [];
+    var diskLegend = [];
+    var diskHosts  = hosts.slice().sort(function(a, b) { return b.disk_gb - a.disk_gb; });
+    diskHosts.forEach(function(h, i) {
+      var c = NET_RES_COLORS[i % NET_RES_COLORS.length];
+      diskSegs.push({ color: c, pct: h.disk_gb / totalDisk * 100,
+        tooltip: h.name + ' (' + h.type + ' ' + h.id.toUpperCase() + ')'
+          + '\nRAM: ' + h.ram_mb + ' MB | Disk: ' + h.disk_gb + ' GB'
+          + '\nTyp: ' + h.type + ' | VLAN: ' + (h.vlan || 'mgmt').toUpperCase()
+          + (h.ip ? '\nIP: ' + h.ip : '')
+      });
+      diskLegend.push({ color: c, label: h.name + ' ' + h.disk_gb + 'G' });
+    });
+    diskSegs.push({ free: true, pct: freeDisk / totalDisk * 100 });
+
+    function statBlock(usedStr, total, free, freeStr, pct) {
+      var col = netResBarColor(pct);
+      var freeCol = (typeof free === 'number' && free < 4) ? '#fb923c' : 'var(--muted)';
+      return '<span style="font-family:\'JetBrains Mono\',monospace;font-size:13px;color:' + col + ';font-weight:600">' + usedStr + ' / ' + total + ' GB</span>'
+        + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted);margin-left:6px">(' + pct + '%)</span>'
+        + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:' + freeCol + ';margin-top:2px">' + freeStr + ' frei</div>';
+    }
+
+    function barRow(label, barHtml, legendHtml, statsHtml) {
+      return '<div style="display:grid;grid-template-columns:46px 1fr 180px;gap:10px;align-items:center;margin-bottom:4px">'
+        + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">' + label + '</span>'
+        + '<div>' + barHtml + legendHtml + '</div>'
+        + '<div style="text-align:right">' + statsHtml + '</div>'
+        + '</div>';
+    }
+
+    var html = barRow('RAM', buildNetBar(ramSegs, netResBarColor(ramPct)), buildNetLegend(ramLegend),
+      statBlock(usedRam.toFixed(1), totalRam, freeRam, freeRam.toFixed(1) + ' GB', ramPct));
+    html += '<div style="height:10px"></div>';
+    html += barRow('DISK', buildNetBar(diskSegs, netResBarColor(diskPct)), buildNetLegend(diskLegend),
+      statBlock(String(hostsDisk), totalDisk, freeDisk, freeDisk + ' GB', diskPct));
+
+    document.getElementById('net-res-bars').innerHTML = html;
+
+    // Host table
+    var tbody = document.getElementById('net-res-table-body');
+    if (!tbody) return;
+    var rows = '';
+    hosts.forEach(function(h) {
+      var dot = h.status === 'active'
+        ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--done);margin-right:5px;vertical-align:middle"></span>'
+        : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:middle"></span>';
+      var idLabel = h.id.toUpperCase().replace(/([A-Z]+)(\d+)/, '$1 $2');
+      rows += '<tr style="border-bottom:1px solid var(--border)">'
+        + '<td style="padding:6px 10px;color:var(--muted);white-space:nowrap">' + idLabel + '</td>'
+        + '<td style="padding:6px 10px;color:var(--text)">' + h.name + '</td>'
+        + '<td style="padding:6px 10px;color:var(--muted)">' + h.type + '</td>'
+        + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.ram_mb + ' MB</td>'
+        + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.disk_gb + ' GB</td>'
+        + '<td style="padding:6px 10px;color:var(--muted)">' + (h.vlan || 'mgmt').toUpperCase() + '</td>'
+        + '<td style="padding:6px 10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + (h.ip || '—') + '</td>'
+        + '<td style="padding:6px 10px">' + dot + '<span style="color:var(--muted)">' + (h.status || 'active') + '</span></td>'
+        + '</tr>';
+    });
+    tbody.innerHTML = rows;
+
+    var totalRamMb = hosts.reduce(function(s, h) { return s + h.ram_mb; }, 0);
+    var sysRamMb   = Math.round(sysRam * 1024);
+    document.getElementById('net-res-table-foot').innerHTML =
+      '<tr style="border-top:1px solid var(--border);color:var(--muted)">'
+      + '<td style="padding:6px 10px">+ PVE</td><td style="padding:6px 10px">Proxmox Sys.</td><td style="padding:6px 10px">—</td>'
+      + '<td style="padding:6px 10px;text-align:right">' + sysRamMb + ' MB</td><td style="padding:6px 10px;text-align:right">—</td>'
+      + '<td colspan="3" style="padding:6px 10px">system</td></tr>'
+      + '<tr style="border-top:2px solid var(--border2)">'
+      + '<td style="padding:6px 10px"></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Zugewiesen</td><td></td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + (totalRamMb + sysRamMb) + ' MB</td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + hostsDisk + ' GB</td>'
+      + '<td colspan="3"></td></tr>'
+      + '<tr><td></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Frei</td><td></td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + freeRam.toFixed(1) + ' GB</td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + freeDisk + ' GB</td>'
+      + '<td colspan="3"></td></tr>';
+  }
+
+  window.toggleNetResDetails = function() {
+    var tbl = document.getElementById('net-res-host-table');
+    var btn = document.getElementById('net-res-toggle-btn');
+    if (!tbl || !btn) return;
+    var open = tbl.style.display !== 'none';
+    tbl.style.display = open ? 'none' : '';
+    btn.textContent = open ? '▼ Details' : '▲ Details';
+  };
+
+  // Trigger resources render when STATE is available
+  window.addEventListener('state-ready', renderNetResources);
+  // Also try immediately in case state already loaded before this listener
+  if (window.STATE && window.STATE.resources) renderNetResources();
+  // ===== END RESSOURCEN =====
+
 })();
 </script>
 </body>

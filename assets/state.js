@@ -201,6 +201,27 @@
     window.calcProgress = calcProgress;
 
     window.dispatchEvent(new Event('state-ready'));
+
+    // Tracks asynchron laden (jeder Track feuert 'tracks-ready' wenn geladen)
+    if (window.STATE && window.STATE.files && window.STATE.files.tracks) {
+      const tInSub = window.location.pathname.includes('/phases/') ||
+                     window.location.pathname.includes('/steps/') ||
+                     window.location.pathname.includes('/demos/');
+      const tDataDir = (tInSub ? '../' : './') + 'phasen-ideen-deferred/';
+      window.STATE.tracks = window.STATE.tracks || {};
+      window.STATE.files.tracks.forEach(function(trackFile) {
+        fetch(tDataDir + trackFile, { cache: 'no-cache' })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var trackId = data.meta.track_id;
+            window.STATE.tracks[trackId] = data;
+            var stepCount = (data.sections || []).reduce(function(sum, s) { return sum + (s.steps || []).length; }, 0);
+            console.log('[state] Track geladen:', trackId, '—', stepCount, 'Steps');
+            window.dispatchEvent(new Event('tracks-ready'));
+          })
+          .catch(function(err) { console.error('[state] Track-Fehler:', trackFile, err); });
+      });
+    }
   }
 
   // Speichert User-Changes (status/notes/log + custom/removed steps)

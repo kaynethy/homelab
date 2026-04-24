@@ -3,8 +3,8 @@
     "version": "1.0",
     "updated": "2026-04-23",
     "description": "Homelab Tagebuch – Session-Protokolle aller Arbeitssitzungen",
-    "current_session": 12,
-    "total_sessions": 12
+    "current_session": 13,
+    "total_sessions": 13
   },
   "sessions": [
     {
@@ -286,8 +286,48 @@
         "Proxmox Route-Gotcha: ip route add 10.0.0.0/8 via 192.168.0.202 nötig damit Proxmox-Host VLANs erreicht (flüchtig, nach Reboot weg)",
         "Kea Lease-Debugging: cat /var/lib/kea/kea-leases4.csv zeigt zugeteilte DHCP-Adressen mit MAC und Hostname",
         "Security-Lektionen: Separation of Concerns bei Container-Design, LXC vs VM Trade-offs (Isolation vs Ressourcen), Least Privilege bei NTP-Listen-Adresse",
-        "Bash gelernt: grep -v für negative Filter, VAR=wert befehl für temporäre Env-Overrides, dpkg -L für Paket-Dateien, cat -A für unsichtbare Zeichen, 2>/dev/null für Error-Suppression",
-        "vim gelernt: G (letzte Zeile), o (neue Zeile+Insert), /pattern (Suche), gg dG (alles löschen), relativenumber für Navigation"
+        "--- SYSLOG SERVER ---",
+        "CT105 erstellt: rsyslog-Server, Debian 13 LXC, unprivileged, 512 MB RAM, 8 GB Disk, VLAN 10, IP 10.0.1.7",
+        "rsyslog 8.2504.0 war auf Debian 13 vorinstalliert — kein apt install nötig auf dem Server-Container",
+        "imklog Warning erwartet: /proc/kmsg Permission denied in unprivileged LXC — deaktiviert da nicht benötigt",
+        "Server-Config in /etc/rsyslog.d/10-remote.conf: imtcp auf 10.0.1.7:514 (nur TCP, kein UDP — verhindert Spoofing)",
+        "Template RemotePerHost: Logs automatisch nach /var/log/remote/<hostname>/<programm>.log sortiert",
+        "Remote-Logs isoliert von lokalen Logs: if $fromhost-ip != 127.0.0.1 then action + stop",
+        "Jumphost als Client: rsyslog musste erst installiert werden (nicht vorinstalliert auf VM), *.* @@10.0.1.7:514",
+        "Test erfolgreich: logger -T -n 10.0.1.7 -P 514 'TEST' → /var/log/remote/jumphost/noob.log",
+        "Permanentes Forwarding: 6 Log-Dateien automatisch sortiert (sshd-session, sudo, systemd, systemd-logind, rsyslogd, noob)",
+        "NTP-Server als zweiter Client angebunden — /var/log/remote/ zeigt jumphost/ + ntp-server/",
+        "OPNsense Firewall-Regeln: Syslog TCP 514 → 10.0.1.7 auf SVC, LAB, DMZ erlaubt (jeweils VOR Block-MGMT-Regel)",
+        "Bash gelernt: grep -v für negative Filter, VAR=wert befehl für temporäre Env-Overrides, dpkg -L für Paket-Dateien, cat -A für unsichtbare Zeichen, 2>/dev/null für Error-Suppression, echo | sudo tee für Root-Dateien schreiben",
+        "vim gelernt: G (letzte Zeile), o (neue Zeile+Insert), /pattern (Suche), gg dG (alles löschen), relativenumber für Navigation, :set list für unsichtbare Zeichen",
+        "Security-Lektionen: TCP statt UDP für Syslog (kein Spoofing), Forensische Integrität durch zentrales Logging, Firewall-Regelreihenfolge (Pass vor Block), Least Privilege bei Listen-Adressen"
+      ]
+    },
+    {
+      "date": "2026-04-24",
+      "session": 13,
+      "title": "NetBox IPAM – Deployment, API-Provisioning, Infrastructure as Code",
+      "entries": [
+        "Platzierungsentscheidung: NetBox ins MGMT-VLAN (10.0.1.8) statt SVC — Kern-Infrastruktur wie DNS/DHCP/Syslog",
+        "CT106 erstellt: privilegierter LXC (--unprivileged 0), Debian 13, 2 Cores, 2 GB RAM, 10 GB Disk, VLAN 10, nesting=1",
+        "Proxmox-Gotcha: --unprivileged 0 wird nicht in Config geschrieben. Verifikation nur über /proc/1/uid_map (0 0 4294967295)",
+        "Provisioning-Template ausgeführt: Dpkg::Pager, timesyncd purge, locale, vim + curl + ca-certificates + gnupg",
+        "Docker 29.4.1 + Compose v5.1.3 aus offiziellem Docker-Repo. GPG-Key via HTTPS + signed-by Key Pinning",
+        "NetBox Docker Stack: v4.5-4.0.2, postgres:18-alpine, valkey:9.0-alpine (2x). Health-Check Timing beim ersten Start",
+        "docker-compose.override.yml: Port 8080:8080. ALLOWED_HOSTS=* in env/netbox.env",
+        "Superuser erstellt. Web-UI http://10.0.1.8:8080 erreichbar. Jumphost-Test: HTTP 200",
+        "rsyslog-Forwarding konfiguriert. Syslog-Server zeigt netbox/ in /var/log/remote/ — 4. Host zentral geloggt",
+        "API-Token v2 erstellt: Bearer nbt_XXX.YYY (HMAC-Hashing, Plaintext nicht gespeichert, nur einmal sichtbar)",
+        "phpIPAM vs NetBox verglichen: phpIPAM leichter (512 MB) aber nur IP-Spreadsheet. NetBox = DCIM + IPAM + API + Ansible-Integration",
+        "netbox-provision.sh geschrieben: Erstes echtes Bash-Automatisierungs-Script",
+        "Script-Technik: set -euo pipefail, local für Variablen-Scope, nb_post() Wrapper, curl -w für HTTP-Status, [[ =~ ^2 ]] Regex",
+        "52 API-Calls, alle 201: 1 Site, 4 VLANs, 5 Prefixes, 8 Rollen, 4 Hersteller, 5 Gerätetypen, 9 Devices, 16 IPs",
+        "Automatisierungsstufen: Stufe 1 Einmal-Script (jetzt), Stufe 2 Ansible Sync (Phase 3), Stufe 3 Event-driven Webhooks (Phase 4)",
+        "IP-Management-Triade komplett: DHCP (Kea) + DNS (AdGuard) + IPAM (NetBox)",
+        "p2-ipam DONE. Phase 2 bei 60% (6/10). Nächster Block: Domain → DDNS → Reverse Proxy → WireGuard",
+        "Bash gelernt: set -euo pipefail, local, curl -w '%{http_code}', [[ =~ ]], sed '$d', >> vs >, $() Command Substitution, $?, curl -fsSL",
+        "vim gelernt: ggdG, C (change to EOL), f= (find char), :set paste/nopaste, relativenumber (hybrid line numbers)",
+        "Security: Privilegierter Container Trade-off, Key Pinning (signed-by), SECRET_KEY nie im Git, API Token v2 HMAC, IaC Reproducibility"
       ]
     }
   ]

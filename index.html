@@ -71,6 +71,8 @@
   <div class="section-label">Phasen</div>
   <div class="phase-cards-grid" id="phase-cards"></div>
 
+  <div id="projekte-section" style="display:none;margin-bottom:32px"></div>
+
   <div id="deferred-section" style="display:none;margin-bottom:32px"></div>
 
   <div class="section-label">Dokumentation</div>
@@ -87,6 +89,11 @@
       <div class="phase-card-subtitle">Technische Referenz, Snippets &amp; Gotchas</div>
       <div class="phase-card-step-count" id="wiki-card-count">Lade...</div>
       <div style="font-size:11px;color:var(--phase3);margin-top:6px;font-family:'JetBrains Mono',monospace">DokuWiki · geplant in Phase 3</div>
+    </a>
+    <a href="network-plan.html" id="res-card" class="phase-card" style="border-left:3px solid var(--accent);display:none;text-decoration:none">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(79,255,176,0.12);color:var(--accent);border:1px solid rgba(79,255,176,0.25);display:inline-block;margin-bottom:10px;letter-spacing:0.5px">RESSOURCEN</span>
+      <div id="res-donuts" style="display:flex;gap:24px;justify-content:center;margin:8px 0 12px">Lade...</div>
+      <div style="font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-top:auto">Netzwerk-Seite →</div>
     </a>
   </div>
 
@@ -233,9 +240,140 @@
 
     var highCount = (s.ideas || []).filter(function(i) { return i.prio === 'high'; }).length;
     document.getElementById('high-ideas-count').textContent = highCount;
+
+    renderResources();
   }
 
   window.addEventListener('state-ready', init);
+
+  // ===== PROJEKTE (Track-Karten) =====
+  var TRACK_EMOJI = {
+    'hw-esprimo': '🔧', 'hw-mini-server': '🖥', 'hw-nas': '💾',
+    'hw-pbs': '📦', 'hw-pi-dns': '🥧', 'hw-rack': '🗄',
+    'sec-pentest-net': '🎯', 'sec-ids': '🛡', 'sec-tacacs': '🔐',
+    'sec-radius': '📡', 'sec-access-server': '🖥', 'sec-eve-ng': '🌐', 'sec-snmpv3': '📊'
+  };
+  var TRACK_COLOR = { hardware: '#ef4444', seclab: '#dc2626' };
+  var TRACK_PAGE  = { hardware: 'phases/hardware.html', seclab: 'phases/seclab.html' };
+
+  function renderTrackCards() {
+    var tracks = window.STATE && window.STATE.tracks;
+    if (!tracks || !Object.keys(tracks).length) return;
+    var section = document.getElementById('projekte-section');
+    if (!section) return;
+
+    var html = '<div class="section-label">Projekte</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:0">';
+
+    // Render in stable order
+    ['hardware', 'seclab'].forEach(function(tid) {
+      var track = tracks[tid];
+      if (!track) return;
+      var meta  = track.meta;
+      var color = TRACK_COLOR[tid] || '#ef4444';
+      var page  = TRACK_PAGE[tid]  || '#';
+      var prog  = meta.progress || {};
+      var done  = prog.done || 0;
+      var wip   = prog.wip  || 0;
+      var total = prog.total || 0;
+
+      var dotColor = meta.status === 'ongoing' ? '#4fffb0'
+                   : meta.status === 'active'  ? '#4fffb0'
+                   : meta.status === 'done'    ? '#4fffb0'
+                   : 'var(--muted)';
+      var dotChar  = meta.status === 'planned' ? '○' : '●';
+      var statusDot = '<span style="color:' + dotColor + '">' + dotChar + '</span>';
+
+      var allSteps = (track.sections || []).reduce(function(acc, s) {
+        return acc.concat(s.steps || []);
+      }, []);
+
+      var chipsHtml = allSteps.map(function(st) {
+        var emoji = TRACK_EMOJI[st.id] || '•';
+        var col = st.status === 'wip'  ? '#f59e0b'
+                : st.status === 'done' ? '#4fffb0'
+                : 'var(--muted)';
+        var name = (st.title || '').split(' – ')[0].split(' (')[0];
+        if (name.length > 18) name = name.substring(0, 17) + '…';
+        return '<span style="font-size:11px;color:' + col + '">' + emoji + ' ' + name + '</span>';
+      }).join('<span style="color:var(--border2)"> · </span>');
+
+      var progHtml = done + '/' + total + ' done' + (wip > 0 ? ' · ' + wip + ' wip' : '');
+
+      html += '<a href="' + page + '" class="phase-card" style="border-left:3px solid ' + color + ';display:block;text-decoration:none">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+        +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:' + color + '20;color:' + color + ';border:1px solid ' + color + '40;letter-spacing:0.5px">' + meta.label + '</span>'
+        +   statusDot + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);margin-left:2px">' + meta.status + '</span>'
+        + '</div>'
+        + '<div class="phase-card-title">' + meta.title + '</div>'
+        + '<div class="phase-card-subtitle">' + (meta.subtitle || '') + '</div>'
+        + '<div style="font-size:11px;line-height:2;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin:8px 0">' + chipsHtml + '</div>'
+        + '<div class="phase-card-step-count">' + progHtml + '</div>'
+        + '<div style="font-size:11px;color:' + color + ';font-family:\'JetBrains Mono\',monospace;margin-top:6px;text-align:right">' + meta.label + '-Seite →</div>'
+        + '</a>';
+    });
+
+    html += '</div>';
+    section.innerHTML = html;
+    section.style.display = '';
+  }
+
+  window.addEventListener('tracks-ready', renderTrackCards);
+  // ===== END PROJEKTE =====
+  function resRingColor(pct) {
+    if (pct < 50) return 'var(--accent)';
+    if (pct < 75) return '#f59e0b';
+    if (pct < 90) return '#fb923c';
+    return '#ef4444';
+  }
+
+  function buildDonut(pct, color, label, used, total, free) {
+    var circ = 2 * Math.PI * 14; // r=14 → ~87.96
+    var fill = circ * pct / 100;
+    var freeColor = free < 4 ? '#fb923c' : 'var(--muted)';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">'
+      + '<svg width="80" height="80" viewBox="0 0 36 36" style="overflow:visible">'
+      +   '<circle cx="18" cy="18" r="14" fill="none" stroke="var(--border)" stroke-width="3"/>'
+      +   '<circle cx="18" cy="18" r="14" fill="none" stroke="' + color + '" stroke-width="3"'
+      +     ' stroke-dasharray="' + fill.toFixed(2) + ' ' + circ.toFixed(2) + '"'
+      +     ' stroke-dashoffset="0" stroke-linecap="round"'
+      +     ' transform="rotate(-90 18 18)"/>'
+      +   '<text x="18" y="16" text-anchor="middle" fill="var(--text)" font-size="7" font-family="JetBrains Mono,monospace" font-weight="700">' + pct + '%</text>'
+      +   '<text x="18" y="23" text-anchor="middle" fill="var(--muted)" font-size="5" font-family="JetBrains Mono,monospace">' + label + '</text>'
+      + '</svg>'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:' + color + ';font-weight:600;white-space:nowrap">' + used + ' / ' + total + ' GB</div>'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:' + freeColor + ';white-space:nowrap">' + free + ' GB frei</div>'
+      + '</div>';
+  }
+
+  function renderResources() {
+    var res = window.STATE && window.STATE.resources;
+    if (!res) return;
+
+    var card = document.getElementById('res-card');
+    var donutEl = document.getElementById('res-donuts');
+    if (!card || !donutEl) return;
+    card.style.display = 'block';
+
+    var totalRam  = res.proxmox_total.ram_gb;
+    var totalDisk = res.proxmox_total.disk_gb;
+    var sysRam    = (res.proxmox_system && res.proxmox_system.ram_gb) || 1.5;
+    var hosts     = res.hosts || [];
+
+    var hostsRam  = hosts.reduce(function(s, h) { return s + h.ram_mb / 1024; }, 0);
+    var hostsDisk = hosts.reduce(function(s, h) { return s + h.disk_gb; }, 0);
+    var usedRam   = hostsRam + sysRam;
+    var freeRam   = Math.max(0, totalRam - usedRam);
+    var freeDisk  = Math.max(0, totalDisk - hostsDisk);
+    var ramPct    = Math.round(usedRam / totalRam * 100);
+    var diskPct   = Math.round(hostsDisk / totalDisk * 100);
+
+    donutEl.innerHTML =
+      buildDonut(ramPct, resRingColor(ramPct), 'RAM', usedRam.toFixed(1), totalRam, freeRam.toFixed(1)) +
+      buildDonut(diskPct, resRingColor(diskPct), 'DISK', hostsDisk, totalDisk, freeDisk);
+  }
+
+  // ===== END RESSOURCEN =====
 
   // Quick Actions
   var QA_CMDS = {

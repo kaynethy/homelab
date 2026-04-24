@@ -384,6 +384,13 @@
   // INIT
   // ============================================================
   function init() {
+    console.log('[privesc] init() aufgerufen');
+    console.log('[privesc] server-model:', !!document.getElementById('server-model'));
+    console.log('[privesc] path-graph:', !!document.getElementById('path-graph'));
+    console.log('[privesc] step-content:', !!document.getElementById('step-content'));
+    console.log('[privesc] checklist:', !!document.getElementById('checklist'));
+    console.log('[privesc] term-input:', !!document.getElementById('term-input'));
+    console.log('[privesc] term-output:', !!document.getElementById('term-output'));
     bindScenarioButtons();
     bindStepControls();
     bindTerminal();

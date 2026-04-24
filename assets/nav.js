@@ -36,7 +36,8 @@
 
     const links = pages.map(p => {
       const isAcademySection = p.file === 'academy.html' && (current === 'academy.html' || window.location.pathname.includes('/demos/'));
-      const isActive = current === p.file || isAcademySection;
+      const isDashboardSection = p.file === 'index.html' && (current === 'hardware.html' || current === 'seclab.html');
+      const isActive = current === p.file || isAcademySection || isDashboardSection;
       return `<a href="${p.href}" class="nav-link${isActive ? ' active' : ''}">${p.label}</a>`;
     }).join('');
 
