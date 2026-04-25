@@ -329,6 +329,43 @@
         "vim gelernt: ggdG, C (change to EOL), f= (find char), :set paste/nopaste, relativenumber (hybrid line numbers)",
         "Security: Privilegierter Container Trade-off, Key Pinning (signed-by), SECRET_KEY nie im Git, API Token v2 HMAC, IaC Reproducibility"
       ]
+    },
+    {
+      "date": "2026-04-25",
+      "session": 14,
+      "title": "ESPRIMO Bare-Metal Aufbau — Proxmox, OPNsense, DNS, DHCP, NTP, Syslog, Jumphost",
+      "entries": [
+        "ESPRIMO G558 Bare-Metal Proxmox 9.1.1 Installation: ext4, 476 GB, Hostname homelab.local, IP 192.168.0.11",
+        "Hostname von pve-esprimo auf homelab geändert (/etc/hostname, /etc/hosts, postfix)",
+        "IP von 192.168.0.210 auf 192.168.0.11 geändert — physische Hardware bekommt .11 (Tower=.10, ESPRIMO=.11)",
+        "Repos: pve-enterprise.sources + ceph.sources deaktiviert, pve-no-subscription.list angelegt. apt full-upgrade",
+        "SSH-Hardening: Ed25519 Key deployed, PasswordAuthentication no, PermitRootLogin prohibit-password, MaxAuthTries 3",
+        "Pageant als SSH-Agent eingerichtet — passwortloser Key-Login auf alle Hosts",
+        "vmbr0 VLAN-aware gesetzt (bridge-vlan-aware yes). Typo-Fix: bridge-vla-aware → bridge-vlan-aware. Reboot nötig, ifreload reicht nicht.",
+        "vim + .vimrc auf Proxmox Host deployed (syntax on, number, relativenumber, hlsearch, expandtab, scrolloff=5, smartcase)",
+        "OPNsense 26.1.2 als VM 100 installiert: ZFS (UFS Partitioning Error), 3 GB RAM, 16 GB Disk, x86-64-v2-AES, 2 NICs",
+        "UFS Partition destroy failed (3x) — dd zero + disk delete/recreate half nicht. ZFS-Installer funktionierte sofort.",
+        "OPNsense Config-Export vom Nested Setup (XML), LAN-IP von .202 auf .100 geändert, Import auf neuer VM — VLANs + FW-Regeln sofort da",
+        "AdGuard Home als CT 101 deployed: 1 GB RAM (von 512 MB erhöht wegen Blocklisten-OOM), DoH Cloudflare, umfangreiche Blocklisten (Security + Tracking + Ads)",
+        "Standard-Admin-Username gewählt: landvogt (Bud Spencer Referenz — garantiert nicht in Brute-Force-Wordlists)",
+        "AdGuard dual-homed: eth0=192.168.0.101 (Router-Netz für Handy/Mac), eth1=10.0.1.101 (VLAN 10 für interne Hosts)",
+        "TP-Link DNS auf 192.168.0.101 umgestellt — gesamtes Heimnetz nutzt neuen AdGuard auf ESPRIMO",
+        "Kea DHCP als CT 102: 4 Subnetze konfiguriert, DHCP-Pool auf .200-.250 verschoben (statt .100-.200) damit VM-IDs als Host-IPs nutzbar",
+        "NTP-Server als VM 103: OpenNTPD, Debian 13, 384 MB RAM (512 für Install, danach reduziert). Statische IP 10.0.1.103",
+        "rsyslog als CT 104: TCP 514, RemotePerHost Template. Syslog-Loop entdeckt und gefixt (rsyslog-Server hatte selbst forwarding-config)",
+        "Syslog-Loop flutete 8 GB Disk in Sekunden — Lesson Learned: Syslog-Server darf NUR empfangen, nie forwarden. Disk auf 16 GB resized.",
+        "Jumphost als CT 105: Debian 13, 512 MB RAM, landvogt User mit sudo, Ed25519 SSH-Key, passwortloser Login",
+        "VLAN-Cutover: Kea/NTP/rsyslog/Jumphost auf VLAN Tag 10 gesetzt. AdGuard dual-homed. OPNsense unverändert.",
+        "Windows-Tower: route add 10.0.0.0 mask 255.0.0.0 192.168.0.100 -p — persistente Route ins VLAN über OPNsense",
+        "ESPRIMO: ip route add 10.0.0.0/8 via 192.168.0.100 + persistent in /etc/network/interfaces (up ip route add)",
+        "Ping-Fix für unprivileged LXC: chmod u+s /bin/ping auf Jumphost",
+        "rsyslog empfängt von: jumphost, ntp-server, kea-dhcp, adguard — alle MGMT-Hosts loggen zentral",
+        "NTP-Sync: Proxmox Host synct via ntpdate gegen 10.0.1.103. LXC Container erben Host-Kernel-Clock automatisch — kein separater NTP-Client nötig.",
+        "LXC können adjtimex/Zeitänderung nicht ausführen (Operation not permitted) — bestätigt auch auf Debian 13 Trixie",
+        "DNS-Gotcha: VM 103 nach VLAN-Umzug konnte deb.debian.org nicht auflösen — resolv.conf manuell auf 10.0.1.101 gesetzt",
+        "Neues IP-Schema: VM/CT-ID = letzte Stelle der VLAN-IP (VM100=10.0.1.100, CT101=10.0.1.101, etc.). Proxmox Host=.11 (Blech)",
+        "Verifizierung bestanden: DNS, DNS-Blocking, DHCP, NTP-Sync, Syslog, Inter-VLAN-Routing, SSH passwortlos, OPNsense + AdGuard Web-UI"
+      ]
     }
   ]
 }

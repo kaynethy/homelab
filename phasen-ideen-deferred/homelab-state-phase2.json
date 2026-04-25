@@ -123,7 +123,7 @@
     {
       "id": "p2-ipam",
       "title": "IPAM – IP Address Management (NetBox)",
-      "status": "wip",
+      "status": "done",
       "tags": [
         "IPAM",
         "NetBox",

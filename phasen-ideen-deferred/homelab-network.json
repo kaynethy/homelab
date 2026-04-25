@@ -1,9 +1,9 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-23",
+    "updated": "2026-04-25",
     "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, Migrations-Mapping",
-    "status": "VLANs + DHCP konfiguriert, Jumphost + Kea im MGMT-VLAN. Migration pending.",
+    "status": "ESPRIMO Bare-Metal aktiv. Neues IP-Schema: VM-ID = Host-IP. VLANs aktiv auf allen Services.",
     "current_subnet": "192.168.0.0/24",
     "target_subnets": "10.0.1-4.0/24",
     "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans)"
@@ -16,86 +16,87 @@
       "gateway": "10.0.1.1",
       "color": "teal",
       "purpose": "Kern-Infrastruktur — wenn hier was ausfällt, steht alles still",
-      "dhcp_range": "10.0.1.100 – 10.0.1.200",
+      "dhcp_range": "10.0.1.200 – 10.0.1.250",
       "hosts": [
         {
           "ip": ".1",
           "name": "OPNsense",
-          "role": "Gateway / Firewall",
+          "role": "Gateway / Firewall (VM 100)",
           "status": "active",
           "core": true,
-          "current_ip": "192.168.0.202"
+          "current_ip": "192.168.0.100",
+          "vm_id": 100
         },
         {
-          "ip": ".2",
-          "name": "Proxmox",
-          "role": "pve.homelab.local",
+          "ip": ".11",
+          "name": "Proxmox (ESPRIMO)",
+          "role": "homelab.local — Bare-Metal Host",
           "status": "active",
           "core": true,
-          "current_ip": "192.168.0.200"
+          "current_ip": "192.168.0.11",
+          "note": "Blech, kein VLAN-Tag"
         },
         {
-          "ip": ".3",
+          "ip": ".100",
+          "name": "OPNsense (VLAN)",
+          "role": "Gateway MGMT-VLAN (VM 100)",
+          "status": "active",
+          "core": true,
+          "vm_id": 100
+        },
+        {
+          "ip": ".101",
           "name": "AdGuard DNS",
-          "role": "Primärer DNS",
+          "role": "Primärer DNS, dual-homed (CT 101). Router-Netz: 192.168.0.101",
           "status": "active",
           "core": true,
-          "current_ip": "192.168.0.201"
+          "current_ip": "192.168.0.101",
+          "vm_id": 101
         },
         {
-          "ip": ".4",
-          "name": "Admin-Jumphost",
-          "role": "Debian 13 – SSH-Sprungbrett, Ansible, Docker-Tests",
-          "status": "active",
-          "core": true,
-          "step_id": "p1-linux-vm",
-          "current_ip": "192.168.0.204"
-        },
-        {
-          "ip": ".5",
+          "ip": ".102",
           "name": "Kea DHCP",
-          "role": "Kea DHCP – Statische Leases + dynamische Vergabe alle Subnetze",
+          "role": "Kea DHCP – 4 Subnetze, Pool .200-.250 (CT 102)",
           "status": "active",
           "core": true,
-          "step_id": "p2-dhcp"
+          "vm_id": 102
         },
         {
-          "ip": ".6",
+          "ip": ".103",
           "name": "NTP / OpenNTPD",
-          "role": "Zeitserver (VM104, OpenNTPD, listen on 10.0.1.6, de.pool.ntp.org)",
+          "role": "Zeitserver (VM 103, OpenNTPD, de.pool.ntp.org)",
           "status": "active",
           "core": true,
-          "step_id": "p2-syslog-ntp"
+          "vm_id": 103
         },
         {
-          "ip": ".7",
+          "ip": ".104",
           "name": "Syslog / rsyslog",
-          "role": "Zentrales Logging (CT105, rsyslog, TCP 514, Logs nach /var/log/remote/<host>/<programm>.log)",
+          "role": "Zentrales Logging (CT 104, rsyslog, TCP 514, 16 GB Disk)",
           "status": "active",
           "core": true,
-          "step_id": "p2-syslog-ntp"
+          "vm_id": 104
         },
         {
-          "ip": ".8",
-          "name": "NetBox IPAM",
-          "role": "IPAM / DCIM (CT106, Docker Compose: NetBox v4.5 + PostgreSQL + Valkey, Web-UI Port 8080)",
+          "ip": ".105",
+          "name": "Jumphost",
+          "role": "SSH-Sprungbrett (CT 105, Debian 13, User landvogt)",
           "status": "active",
           "core": true,
-          "step_id": "p2-ipam"
+          "vm_id": 105
         },
         {
-          "ip": ".9",
+          "ip": ".106-.199",
           "name": "— Reserve —",
-          "role": "Proxmox Backup Server (PBS)",
+          "role": "Weitere MGMT-Hosts (VM-ID = IP)",
           "status": "reserved",
-          "core": false,
-          "idea_id": "idea-010"
+          "core": false
         },
         {
-          "ip": ".10",
-          "name": "— Reserve —",
-          "role": "Weitere Management-Infra",
-          "status": "reserved",
+          "ip": ".200-.250",
+          "name": "— DHCP Pool —",
+          "role": "Dynamische Vergabe",
+          "status": "active",
           "core": false
         }
       ],
@@ -109,7 +110,7 @@
       "gateway": "10.0.2.1",
       "color": "blue",
       "purpose": "Self-hosted Apps — erweiterbar, mit Lücken für Wachstum",
-      "dhcp_range": "10.0.2.100 – 10.0.2.200",
+      "dhcp_range": "10.0.2.200 – 10.0.2.250",
       "hosts": [
         {
           "ip": ".1",
@@ -223,7 +224,7 @@
       "gateway": "10.0.3.1",
       "color": "purple",
       "purpose": "Experimentierfeld — kaputt machen erlaubt, isoliert vom Rest",
-      "dhcp_range": "10.0.3.100 – 10.0.3.200",
+      "dhcp_range": "10.0.3.200 – 10.0.3.250",
       "hosts": [
         {
           "ip": ".1",
@@ -313,7 +314,7 @@
       "gateway": "10.0.4.1",
       "color": "amber",
       "purpose": "Öffentlich erreichbare Dienste — isoliert durch Firewall",
-      "dhcp_range": "10.0.4.100 – 10.0.4.150",
+      "dhcp_range": "10.0.4.200 – 10.0.4.250",
       "hosts": [
         {
           "ip": ".1",
@@ -481,37 +482,39 @@
   ],
   "migration": [
     {
-      "current": "192.168.0.200",
-      "target": "10.0.1.2",
-      "host": "Proxmox",
+      "current": "192.168.0.11",
+      "target": "10.0.1.11",
+      "host": "Proxmox ESPRIMO",
       "status": "pending"
     },
     {
-      "current": "192.168.0.201",
-      "target": "10.0.1.3",
+      "current": "192.168.0.101",
+      "target": "10.0.1.101 (dual-homed, beide aktiv)",
       "host": "AdGuard DNS",
-      "status": "pending"
+      "status": "done"
     },
     {
-      "current": "192.168.0.1",
-      "target": "10.0.1.1",
-      "host": "Gateway (TP-Link → OPNsense)",
-      "status": "pending"
+      "current": "192.168.0.100",
+      "target": "10.0.1.1 (VLAN Gateway)",
+      "host": "OPNsense",
+      "status": "done"
     },
     {
       "current": "192.168.0.10",
       "target": "192.168.0.10",
-      "host": "Windows Host",
+      "host": "Windows Tower",
       "status": "done"
     }
   ],
   "principles": [
-    "Kern-Infra (.1 – .10) eng zusammen, essenzielle Dienste zuerst",
-    "Services ab .10 mit Lücken (.15-.19, .23-.29) für Erweiterung",
-    "DHCP immer .100 – .200, darunter nur statische Zuweisungen",
+    "IP-Schema: VM/CT-ID = letzte Stelle der VLAN-IP (VM100=.100, CT101=.101, etc.)",
+    "Proxmox Host = .11 (physisches Blech, kein VLAN-Tag)",
+    "DHCP-Pool .200-.250 in allen Subnetzen (statische Hosts darunter)",
     "OPNsense ist .1 in jedem Subnetz (konsistentes Gateway)",
+    "AdGuard DNS dual-homed: 192.168.0.101 (Router-Netz) + 10.0.1.101 (VLAN)",
     "Lab isoliert — darf nichts in MGMT/SVC anfassen",
     "DMZ isoliert — kompromittierte Dienste kein Zugang zum LAN",
-    "Übergangsphase: Outbound-NAT auf LAN-Interface (vtnet0) weil Default-Route über vtnet0 geht — beide NICs auf vmbr0"
+    "Übergangsphase: Outbound-NAT auf LAN-Interface (vtnet0) weil Default-Route über vtnet0 geht",
+    "Windows-Tower + ESPRIMO haben persistente Route 10.0.0.0/8 via 192.168.0.100 (OPNsense)"
   ]
 }

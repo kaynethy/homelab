@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Hardware Step</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    .step-badge { font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 10px;border-radius:4px;font-weight:700 }
+    .step-badge.done { background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3) }
+    .step-badge.wip { background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40 }
+    .step-badge.todo { background:var(--bg3);color:var(--muted);border:1px solid var(--border) }
+    .step-tag { font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);margin-right:5px;margin-bottom:4px;display:inline-block }
+    .detail-group { margin-bottom:16px }
+    .detail-group-label { font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px }
+    .detail-row { display:flex;gap:12px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px }
+    .detail-key { font-family:'JetBrains Mono',monospace;color:var(--muted);min-width:120px;flex-shrink:0 }
+    .detail-val { color:var(--text) }
+    .log-entry { display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px }
+    .log-date { font-family:'JetBrains Mono',monospace;color:#b87333;min-width:90px;flex-shrink:0 }
+    .log-text { color:var(--text);line-height:1.5 }
+    .sub-step-link { display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:12px;transition:background .1s }
+    .sub-step-link:last-child { border-bottom:none }
+    .sub-step-link:hover { background:rgba(184,115,51,0.06) }
+    .sub-step-link.done { opacity:0.6 }
+    .sub-step-link.wip { background:rgba(245,158,11,0.05) }
+    .sub-num { color:#b87333;font-weight:700;min-width:20px }
+    .sub-title { color:var(--text);flex:1 }
+    .sub-status { color:var(--muted);font-size:10px }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb" id="breadcrumb">Dashboard › Hardware › ...</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#b8733320;color:#b87333;border:1px solid #b8733340">HARDWARE</span>
+    <span class="step-badge todo" id="step-status">todo</span>
+  </div>
+
+  <h1 id="step-title" style="font-size:22px;font-weight:700;color:var(--text);margin:0 0 10px">Lade...</h1>
+  <div id="step-tags" style="margin-bottom:16px"></div>
+
+  <div id="step-content">
+    <div class="section-label">Beschreibung</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.6">
+      <div id="step-desc">Lade...</div>
+    </div>
+
+    <div id="security-section" style="display:none">
+      <div class="section-label">Security</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #fb923c;border-radius:8px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.6">
+        <div id="step-security"></div>
+      </div>
+    </div>
+
+    <div id="details-section" style="display:none">
+      <div class="section-label">Details</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px">
+        <div id="step-details"></div>
+      </div>
+    </div>
+
+    <div id="substeps-section" style="display:none">
+      <div class="section-label">Sub-Steps</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 0;margin-bottom:20px">
+        <div id="step-substeps"></div>
+      </div>
+    </div>
+
+    <div id="notes-section" style="display:none">
+      <div class="section-label">Notizen</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.6">
+        <div id="step-notes"></div>
+      </div>
+    </div>
+
+    <div id="log-section" style="display:none">
+      <div class="section-label">Log</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 20px;margin-bottom:20px">
+        <div id="step-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>homelab_roadmap · <span>hardware_step</span></footer>
+</div>
+
+<script src="../../assets/state.js"></script>
+<script src="../../assets/nav.js"></script>
+<script>
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var stepId = params.get('id');
+
+  console.log('[hw-step] Seite geladen, URL:', window.location.href);
+  console.log('[hw-step] Query ID:', stepId);
+
+  window.addEventListener('state-ready', function() {
+    console.log('[hw-step] state-ready gefeuert');
+    var tracks = window.STATE && window.STATE.tracks;
+    console.log('[hw-step] STATE.tracks:', tracks ? Object.keys(tracks) : 'UNDEFINED');
+    if (tracks && tracks.hardware) {
+      var hw = tracks.hardware;
+      var topSteps = (hw.steps || []);
+      var subCount = topSteps.reduce(function(s, st) { return s + (st.sub_steps ? st.sub_steps.length : 0); }, 0);
+      console.log('[hw-step] Hardware Track:', topSteps.length, 'Steps,', subCount, 'Sub-Steps');
+    }
+  });
+
+  window.addEventListener('tracks-ready', function() {
+    console.log('[hw-step] tracks-ready gefeuert');
+  });
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function findStep() {
+    var hw = window.STATE && window.STATE.tracks && window.STATE.tracks.hardware;
+    if (!hw) return null;
+
+    var steps = hw.steps || [];
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i].id === stepId) return { step: steps[i], parent: null };
+      if (steps[i].sub_steps) {
+        for (var j = 0; j < steps[i].sub_steps.length; j++) {
+          if (steps[i].sub_steps[j].id === stepId) {
+            return { step: steps[i].sub_steps[j], parent: steps[i] };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function render() {
+    if (!stepId) {
+      document.getElementById('step-content').innerHTML =
+        '<div style="color:var(--muted)">Kein Step-ID angegeben.</div>';
+      return;
+    }
+
+    var result = findStep();
+    if (!result) {
+      document.getElementById('step-content').innerHTML =
+        '<div style="color:var(--muted)">Step "' + esc(stepId) + '" nicht gefunden.</div>';
+      return;
+    }
+
+    var step = result.step;
+    var parent = result.parent;
+
+    // Breadcrumb
+    var bc = '<a href="../../index.html">Dashboard</a> › ';
+    bc += '<a href="../../phases/hardware.html">Hardware</a>';
+    if (parent) {
+      bc += ' › <a href="step.html?id=' + esc(parent.id) + '">' + esc(parent.title) + '</a>';
+    }
+    bc += ' › ' + esc(step.title);
+    document.getElementById('breadcrumb').innerHTML = bc;
+
+    // Title
+    document.getElementById('step-title').textContent = step.title || stepId;
+    document.title = 'Homelab – ' + (step.title || stepId);
+
+    // Status badge
+    var statusEl = document.getElementById('step-status');
+    statusEl.textContent = step.status || 'todo';
+    statusEl.className = 'step-badge ' + (step.status || 'todo');
+
+    // Tags — sub-steps erben vom Parent
+    var tagsEl = document.getElementById('step-tags');
+    var tags = (step.tags && step.tags.length > 0) ? step.tags
+             : (parent && parent.tags) ? parent.tags : [];
+    tagsEl.innerHTML = tags.map(function(t) {
+      return '<span class="step-tag">' + esc(t) + '</span>';
+    }).join('');
+
+    // Description
+    var descEl = document.getElementById('step-desc');
+    descEl.textContent = step.desc || (parent ? '(Teil von: ' + parent.title + ')' : '');
+
+    // Security
+    var secEl = document.getElementById('step-security');
+    var secSection = document.getElementById('security-section');
+    if (step.security) {
+      if (typeof step.security === 'object') {
+        secEl.innerHTML = Object.keys(step.security).map(function(k) {
+          return '<div style="margin-bottom:8px"><strong style="color:var(--accent)">'
+            + esc(k.replace(/_/g, ' ')) + ':</strong> ' + esc(step.security[k]) + '</div>';
+        }).join('');
+      } else {
+        secEl.textContent = step.security;
+      }
+      secSection.style.display = '';
+    } else if (step.details && step.details.security) {
+      var secObj = step.details.security;
+      secEl.innerHTML = Object.keys(secObj).map(function(k) {
+        return '<div style="margin-bottom:8px"><strong style="color:var(--accent)">'
+          + esc(k.replace(/_/g, ' ')) + ':</strong> ' + esc(secObj[k]) + '</div>';
+      }).join('');
+      secSection.style.display = '';
+    } else {
+      secSection.style.display = 'none';
+    }
+
+    // Details
+    var detailsEl = document.getElementById('step-details');
+    var detailsSection = document.getElementById('details-section');
+    if (step.details && typeof step.details === 'object') {
+      var detHtml = '';
+      Object.keys(step.details).forEach(function(key) {
+        if (key === 'security') return;
+        var val = step.details[key];
+        if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          detHtml += '<div class="detail-group"><div class="detail-group-label">'
+            + esc(key.replace(/_/g, ' ').toUpperCase()) + '</div>';
+          Object.keys(val).forEach(function(subkey) {
+            detHtml += '<div class="detail-row"><span class="detail-key">'
+              + esc(subkey) + '</span><span class="detail-val">' + esc(val[subkey]) + '</span></div>';
+          });
+          detHtml += '</div>';
+        } else if (Array.isArray(val)) {
+          detHtml += '<div class="detail-group"><div class="detail-group-label">'
+            + esc(key.replace(/_/g, ' ').toUpperCase()) + '</div>';
+          val.forEach(function(item) {
+            detHtml += '<div class="detail-row"><span class="detail-val">' + esc(item) + '</span></div>';
+          });
+          detHtml += '</div>';
+        } else {
+          detHtml += '<div class="detail-row"><span class="detail-key">'
+            + esc(key) + '</span><span class="detail-val">' + esc(val) + '</span></div>';
+        }
+      });
+      if (detHtml) {
+        detailsEl.innerHTML = detHtml;
+        detailsSection.style.display = '';
+      } else {
+        detailsSection.style.display = 'none';
+      }
+    } else {
+      detailsSection.style.display = 'none';
+    }
+
+    // Sub-steps (wenn wir einen Top-Level-Step anzeigen)
+    var subEl = document.getElementById('step-substeps');
+    var subSection = document.getElementById('substeps-section');
+    if (step.sub_steps && step.sub_steps.length > 0) {
+      subEl.innerHTML = step.sub_steps.map(function(sub, i) {
+        var num = String(i + 1).padStart(2, '0');
+        var dot = sub.status === 'done' ? '✓' : sub.status === 'wip' ? '●' : '○';
+        var dotColor = sub.status === 'done' ? '#22c55e' : sub.status === 'wip' ? '#f59e0b' : 'var(--muted)';
+        return '<a href="step.html?id=' + esc(sub.id) + '" class="sub-step-link ' + (sub.status || 'todo') + '">'
+          + '<span style="color:' + dotColor + ';min-width:14px">' + dot + '</span>'
+          + '<span class="sub-num">' + num + '</span>'
+          + '<span class="sub-title">' + esc(sub.title) + '</span>'
+          + '<span class="sub-status">' + esc(sub.status || 'todo') + '</span>'
+          + '</a>';
+      }).join('');
+      subSection.style.display = '';
+    } else {
+      subSection.style.display = 'none';
+    }
+
+    // Notes
+    var notesEl = document.getElementById('step-notes');
+    var notesSection = document.getElementById('notes-section');
+    if (step.notes) {
+      notesEl.textContent = step.notes;
+      notesSection.style.display = '';
+    } else {
+      notesSection.style.display = 'none';
+    }
+
+    // Log — sub-steps erben Parent-Log wenn kein eigenes
+    var logEl = document.getElementById('step-log');
+    var logSection = document.getElementById('log-section');
+    var logEntries = step.log || (parent ? parent.log : null);
+    if (logEntries && logEntries.length > 0) {
+      logEl.innerHTML = logEntries.map(function(l) {
+        return '<div class="log-entry">'
+          + '<span class="log-date">' + esc(l.date) + '</span>'
+          + '<span class="log-text">' + esc(l.entry) + '</span>'
+          + '</div>';
+      }).join('');
+      logSection.style.display = '';
+    } else {
+      logSection.style.display = 'none';
+    }
+  }
+
+  window.addEventListener('tracks-ready', render);
+  window.addEventListener('state-ready', function() { setTimeout(render, 50); });
+  if (window.STATE && window.STATE.tracks && window.STATE.tracks.hardware) render();
+})();
+</script>
+</body>
+</html>

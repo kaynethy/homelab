@@ -399,6 +399,7 @@
           <tr style="border-bottom:1px solid var(--border)">
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">ID</th>
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Host</th>
+            <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Host-Node</th>
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Typ</th>
             <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">RAM</th>
             <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Disk</th>
@@ -1578,62 +1579,27 @@
   function renderNetResources() {
     var res = window.STATE && window.STATE.resources;
     if (!res) return;
-
     var section = document.getElementById('net-res-section');
     if (!section) return;
     section.style.display = '';
 
-    var totalRam  = res.proxmox_total.ram_gb;
-    var totalDisk = res.proxmox_total.disk_gb;
-    var sysRam    = (res.proxmox_system && res.proxmox_system.ram_gb) || 1.5;
-    var sysLabel  = (res.proxmox_system && res.proxmox_system.label) || 'Proxmox System';
-    var hosts     = (res.hosts || []).slice().sort(function(a, b) { return a.id.localeCompare(b.id); });
+    var TEAL = ['#4fffb0','#00d4aa','#26c6b0','#00b894','#1db899','#42e8c8'];
+    var BLUE = ['#4db8ff','#3b9fe6','#2d87cd','#1e6fb4','#60c0ff','#80d0ff'];
+    var SYS  = '#5a6278';
+    var sysRam   = (res.proxmox_system && res.proxmox_system.ram_gb) || 1.5;
+    var allHosts = res.hosts || [];
+    var hostDefs = [
+      { key: 'esprimo', name: 'ESPRIMO G558', role: 'Primary · 24/7',      totalKey: 'proxmox_total', colors: TEAL },
+      { key: 'tower',   name: 'Ryzen Tower',  role: 'Cluster · On-Demand', totalKey: 'tower_total',   colors: BLUE }
+    ];
 
-    var hostsRam  = hosts.reduce(function(s, h) { return s + h.ram_mb / 1024; }, 0);
-    var hostsDisk = hosts.reduce(function(s, h) { return s + h.disk_gb; }, 0);
-    var usedRam   = hostsRam + sysRam;
-    var freeRam   = Math.max(0, totalRam - usedRam);
-    var freeDisk  = Math.max(0, totalDisk - hostsDisk);
-    var ramPct    = Math.round(usedRam / totalRam * 100);
-    var diskPct   = Math.round(hostsDisk / totalDisk * 100);
-
-    var ramSegs   = [{ color: '#5a6278', pct: sysRam / totalRam * 100, tooltip: sysLabel + '\nRAM: ' + sysRam + ' GB' }];
-    var ramLegend = [{ color: '#5a6278', label: 'PVE' }];
-    hosts.forEach(function(h, i) {
-      var c = NET_RES_COLORS[i % NET_RES_COLORS.length];
-      ramSegs.push({ color: c, pct: (h.ram_mb / 1024) / totalRam * 100,
-        tooltip: h.name + ' (' + h.type + ' ' + h.id.toUpperCase() + ')'
-          + '\nRAM: ' + h.ram_mb + ' MB | Disk: ' + h.disk_gb + ' GB'
-          + '\nTyp: ' + h.type + ' | VLAN: ' + (h.vlan || 'mgmt').toUpperCase()
-          + (h.ip ? '\nIP: ' + h.ip : '')
-      });
-      ramLegend.push({ color: c, label: h.name });
-    });
-    ramSegs.push({ free: true, pct: freeRam / totalRam * 100 });
-
-    var diskSegs   = [];
-    var diskLegend = [];
-    var diskHosts  = hosts.slice().sort(function(a, b) { return b.disk_gb - a.disk_gb; });
-    diskHosts.forEach(function(h, i) {
-      var c = NET_RES_COLORS[i % NET_RES_COLORS.length];
-      diskSegs.push({ color: c, pct: h.disk_gb / totalDisk * 100,
-        tooltip: h.name + ' (' + h.type + ' ' + h.id.toUpperCase() + ')'
-          + '\nRAM: ' + h.ram_mb + ' MB | Disk: ' + h.disk_gb + ' GB'
-          + '\nTyp: ' + h.type + ' | VLAN: ' + (h.vlan || 'mgmt').toUpperCase()
-          + (h.ip ? '\nIP: ' + h.ip : '')
-      });
-      diskLegend.push({ color: c, label: h.name + ' ' + h.disk_gb + 'G' });
-    });
-    diskSegs.push({ free: true, pct: freeDisk / totalDisk * 100 });
-
-    function statBlock(usedStr, total, free, freeStr, pct) {
+    function statBlock(usedStr, total, freeVal, freeStr, pct) {
       var col = netResBarColor(pct);
-      var freeCol = (typeof free === 'number' && free < 4) ? '#fb923c' : 'var(--muted)';
+      var freeCol = (typeof freeVal === 'number' && freeVal < 4) ? '#fb923c' : 'var(--muted)';
       return '<span style="font-family:\'JetBrains Mono\',monospace;font-size:13px;color:' + col + ';font-weight:600">' + usedStr + ' / ' + total + ' GB</span>'
         + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted);margin-left:6px">(' + pct + '%)</span>'
         + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:' + freeCol + ';margin-top:2px">' + freeStr + ' frei</div>';
     }
-
     function barRow(label, barHtml, legendHtml, statsHtml) {
       return '<div style="display:grid;grid-template-columns:46px 1fr 180px;gap:10px;align-items:center;margin-bottom:4px">'
         + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">' + label + '</span>'
@@ -1642,52 +1608,138 @@
         + '</div>';
     }
 
-    var html = barRow('RAM', buildNetBar(ramSegs, netResBarColor(ramPct)), buildNetLegend(ramLegend),
-      statBlock(usedRam.toFixed(1), totalRam, freeRam, freeRam.toFixed(1) + ' GB', ramPct));
-    html += '<div style="height:10px"></div>';
-    html += barRow('DISK', buildNetBar(diskSegs, netResBarColor(diskPct)), buildNetLegend(diskLegend),
-      statBlock(String(hostsDisk), totalDisk, freeDisk, freeDisk + ' GB', diskPct));
+    var htmlBars = '';
+    var grandTotalRam = 0, grandTotalDisk = 0, grandUsedRam = 0, grandUsedDisk = 0;
+    var combRam = [], combDisk = [];
 
-    document.getElementById('net-res-bars').innerHTML = html;
+    hostDefs.forEach(function(hd) {
+      var tot = res[hd.totalKey];
+      if (!tot) return;
+      var totalRam = tot.ram_gb, totalDisk = tot.disk_gb;
+      grandTotalRam += totalRam; grandTotalDisk += totalDisk;
+      var vms    = allHosts.filter(function(h) { return (h.host_node || 'esprimo') === hd.key; });
+      var vmRam  = vms.reduce(function(s, h) { return s + h.ram_mb / 1024; }, 0);
+      var vmDisk = vms.reduce(function(s, h) { return s + h.disk_gb; }, 0);
+      var usedRam  = vmRam + sysRam;
+      var freeRam  = Math.max(0, totalRam  - usedRam);
+      var freeDisk = Math.max(0, totalDisk - vmDisk);
+      var ramPct  = Math.round(usedRam / totalRam  * 100);
+      var diskPct = Math.round(vmDisk  / totalDisk * 100);
+      grandUsedRam += usedRam; grandUsedDisk += vmDisk;
+
+      htmlBars += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;margin-bottom:8px">'
+        + '<span style="color:' + hd.colors[0] + '">' + hd.name + '</span>'
+        + '<span style="color:var(--muted);font-weight:400;margin-left:8px">' + hd.role + '</span></div>';
+
+      var ramSegs = [{ color: SYS, pct: sysRam / totalRam * 100, tooltip: hd.name + ' Proxmox System\nRAM: ' + sysRam + ' GB' }];
+      var ramLeg  = [{ color: SYS, label: 'PVE' }];
+      vms.forEach(function(h, i) {
+        var c = hd.colors[i % hd.colors.length];
+        ramSegs.push({ color: c, pct: (h.ram_mb / 1024) / totalRam * 100,
+          tooltip: h.name + ' (' + h.type + ' ' + h.id.toUpperCase() + ')\nRAM: ' + h.ram_mb + ' MB | Disk: ' + h.disk_gb + ' GB\nHost: ' + hd.name + (h.ip ? '\nIP: ' + h.ip : '') });
+        ramLeg.push({ color: c, label: h.name });
+      });
+      ramSegs.push({ free: true, pct: freeRam / totalRam * 100 });
+      var diskSegs = [], diskLeg = [];
+      vms.slice().sort(function(a, b) { return b.disk_gb - a.disk_gb; }).forEach(function(h, i) {
+        var c = hd.colors[i % hd.colors.length];
+        diskSegs.push({ color: c, pct: h.disk_gb / totalDisk * 100,
+          tooltip: h.name + ' — ' + h.disk_gb + ' GB\nHost: ' + hd.name });
+        diskLeg.push({ color: c, label: h.name + ' ' + h.disk_gb + 'G' });
+      });
+      diskSegs.push({ free: true, pct: freeDisk / totalDisk * 100 });
+
+      htmlBars += barRow('RAM',  buildNetBar(ramSegs,  netResBarColor(ramPct)),  buildNetLegend(ramLeg),
+        statBlock(usedRam.toFixed(1), totalRam, freeRam, freeRam.toFixed(1) + ' GB', ramPct));
+      htmlBars += '<div style="height:6px"></div>';
+      htmlBars += barRow('DISK', buildNetBar(diskSegs, netResBarColor(diskPct)), buildNetLegend(diskLeg),
+        statBlock(String(vmDisk), totalDisk, freeDisk, freeDisk + ' GB', diskPct));
+      htmlBars += '<div style="height:20px"></div>';
+
+      combRam.push({ color: SYS, _v: sysRam, tooltip: hd.name + ' Proxmox System\n' + sysRam + ' GB' });
+      vms.forEach(function(h, i) {
+        var c = hd.colors[i % hd.colors.length];
+        combRam.push({ color: c, _v: h.ram_mb / 1024, tooltip: h.name + ' [' + hd.name + ']\nRAM: ' + h.ram_mb + ' MB' });
+        combDisk.push({ color: c, _v: h.disk_gb, tooltip: h.name + ' [' + hd.name + ']\nDisk: ' + h.disk_gb + ' GB' });
+      });
+    });
+
+    var grandFreeRam  = Math.max(0, grandTotalRam  - grandUsedRam);
+    var grandFreeDisk = Math.max(0, grandTotalDisk - grandUsedDisk);
+    var grandRamPct   = grandTotalRam  > 0 ? Math.round(grandUsedRam  / grandTotalRam  * 100) : 0;
+    var grandDiskPct  = grandTotalDisk > 0 ? Math.round(grandUsedDisk / grandTotalDisk * 100) : 0;
+    combRam.forEach(function(s)  { s.pct = s._v / grandTotalRam  * 100; });
+    combDisk.forEach(function(s) { s.pct = s._v / grandTotalDisk * 100; });
+    combRam.push({  free: true, pct: grandFreeRam  / grandTotalRam  * 100 });
+    combDisk.push({ free: true, pct: grandFreeDisk / grandTotalDisk * 100 });
+
+    htmlBars += '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:10px">'
+      + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Gesamt (beide Hosts)</span></div>';
+    htmlBars += barRow('RAM',  buildNetBar(combRam,  netResBarColor(grandRamPct)),  '',
+      statBlock(grandUsedRam.toFixed(1),  grandTotalRam,  grandFreeRam,  grandFreeRam.toFixed(1)  + ' GB', grandRamPct));
+    htmlBars += '<div style="height:6px"></div>';
+    htmlBars += barRow('DISK', buildNetBar(combDisk, netResBarColor(grandDiskPct)), '',
+      statBlock(String(grandUsedDisk), grandTotalDisk, grandFreeDisk, grandFreeDisk + ' GB', grandDiskPct));
+    htmlBars += '<div style="display:flex;gap:16px;margin-top:10px;font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">'
+      + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4fffb0;margin-right:4px"></span>ESPRIMO</span>'
+      + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4db8ff;margin-right:4px"></span>Tower</span>'
+      + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#5a6278;margin-right:4px"></span>Proxmox System</span>'
+      + '</div>';
+    document.getElementById('net-res-bars').innerHTML = htmlBars;
 
     // Host table
     var tbody = document.getElementById('net-res-table-body');
     if (!tbody) return;
+    var sysRamMb = Math.round(sysRam * 1024);
+    var vmRamMbTotal = 0, vmDiskGbTotal = 0;
+    var activeHDs = hostDefs.filter(function(hd) { return !!res[hd.totalKey]; });
     var rows = '';
-    hosts.forEach(function(h) {
-      var dot = h.status === 'active'
-        ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--done);margin-right:5px;vertical-align:middle"></span>'
-        : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:middle"></span>';
-      var idLabel = h.id.toUpperCase().replace(/([A-Z]+)(\d+)/, '$1 $2');
-      rows += '<tr style="border-bottom:1px solid var(--border)">'
-        + '<td style="padding:6px 10px;color:var(--muted);white-space:nowrap">' + idLabel + '</td>'
-        + '<td style="padding:6px 10px;color:var(--text)">' + h.name + '</td>'
-        + '<td style="padding:6px 10px;color:var(--muted)">' + h.type + '</td>'
-        + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.ram_mb + ' MB</td>'
-        + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.disk_gb + ' GB</td>'
-        + '<td style="padding:6px 10px;color:var(--muted)">' + (h.vlan || 'mgmt').toUpperCase() + '</td>'
-        + '<td style="padding:6px 10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + (h.ip || '—') + '</td>'
-        + '<td style="padding:6px 10px">' + dot + '<span style="color:var(--muted)">' + (h.status || 'active') + '</span></td>'
-        + '</tr>';
+    activeHDs.forEach(function(hd, hi) {
+      var vms = allHosts.filter(function(h) { return (h.host_node || 'esprimo') === hd.key; });
+      if (hi > 0) rows += '<tr><td colspan="9" style="height:1px;background:var(--border);padding:0"></td></tr>';
+      vms.forEach(function(h) {
+        var dot = h.status === 'active'
+          ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--done);margin-right:5px;vertical-align:middle"></span>'
+          : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:middle"></span>';
+        var idLabel = h.id.toUpperCase().replace(/([A-Z]+)(\d+)/, '$1 $2');
+        vmRamMbTotal += h.ram_mb; vmDiskGbTotal += h.disk_gb;
+        rows += '<tr style="border-bottom:1px solid var(--border)">'
+          + '<td style="padding:6px 10px;color:var(--muted);white-space:nowrap">' + idLabel + '</td>'
+          + '<td style="padding:6px 10px;color:var(--text)">' + h.name + '</td>'
+          + '<td style="padding:6px 10px;color:' + hd.colors[0] + ';font-size:10px;white-space:nowrap">' + hd.name + '</td>'
+          + '<td style="padding:6px 10px;color:var(--muted)">' + h.type + '</td>'
+          + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.ram_mb + ' MB</td>'
+          + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.disk_gb + ' GB</td>'
+          + '<td style="padding:6px 10px;color:var(--muted)">' + (h.vlan || 'mgmt').toUpperCase() + '</td>'
+          + '<td style="padding:6px 10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + (h.ip || '—') + '</td>'
+          + '<td style="padding:6px 10px">' + dot + '<span style="color:var(--muted)">' + (h.status || 'active') + '</span></td>'
+          + '</tr>';
+      });
     });
     tbody.innerHTML = rows;
 
-    var totalRamMb = hosts.reduce(function(s, h) { return s + h.ram_mb; }, 0);
-    var sysRamMb   = Math.round(sysRam * 1024);
-    document.getElementById('net-res-table-foot').innerHTML =
-      '<tr style="border-top:1px solid var(--border);color:var(--muted)">'
-      + '<td style="padding:6px 10px">+ PVE</td><td style="padding:6px 10px">Proxmox Sys.</td><td style="padding:6px 10px">—</td>'
-      + '<td style="padding:6px 10px;text-align:right">' + sysRamMb + ' MB</td><td style="padding:6px 10px;text-align:right">—</td>'
-      + '<td colspan="3" style="padding:6px 10px">system</td></tr>'
-      + '<tr style="border-top:2px solid var(--border2)">'
-      + '<td style="padding:6px 10px"></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Zugewiesen</td><td></td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + (totalRamMb + sysRamMb) + ' MB</td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + hostsDisk + ' GB</td>'
+    var sysTotalMb = sysRamMb * activeHDs.length;
+    var foot = '';
+    activeHDs.forEach(function(hd) {
+      foot += '<tr style="border-top:1px solid var(--border);color:var(--muted)">'
+        + '<td style="padding:6px 10px">+ PVE</td>'
+        + '<td style="padding:6px 10px">Proxmox Sys.</td>'
+        + '<td style="padding:6px 10px;color:' + hd.colors[0] + ';font-size:10px">' + hd.name + '</td>'
+        + '<td style="padding:6px 10px">—</td>'
+        + '<td style="padding:6px 10px;text-align:right">' + sysRamMb + ' MB</td>'
+        + '<td style="padding:6px 10px;text-align:right">—</td>'
+        + '<td colspan="3" style="padding:6px 10px">system</td></tr>';
+    });
+    foot += '<tr style="border-top:2px solid var(--border2)">'
+      + '<td style="padding:6px 10px"></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Zugewiesen</td><td></td><td></td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + (vmRamMbTotal + sysTotalMb) + ' MB</td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + vmDiskGbTotal + ' GB</td>'
       + '<td colspan="3"></td></tr>'
-      + '<tr><td></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Frei</td><td></td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + freeRam.toFixed(1) + ' GB</td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + freeDisk + ' GB</td>'
+      + '<tr><td></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Frei</td><td></td><td></td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + grandFreeRam.toFixed(1) + ' GB</td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + grandFreeDisk + ' GB</td>'
       + '<td colspan="3"></td></tr>';
+    document.getElementById('net-res-table-foot').innerHTML = foot;
   }
 
   window.toggleNetResDetails = function() {

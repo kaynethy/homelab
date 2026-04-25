@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "1.5",
+    "version": "1.6",
     "updated": "2026-04-24"
   },
   "ideas": [
@@ -61,6 +61,20 @@
       "comments": []
     },
     {
+      "id": "idea-006",
+      "title": "Mini-Rack anschaffen",
+      "desc": "Kleines physisches Rack (6U-12U) für strukturiertes Verkabeln von Raspberry Pi, Switches, Patch-Panel. Macht das Homelab übersichtlicher und ist Voraussetzung für skalierbare physische Hardware.",
+      "phase_id": null,
+      "step_id": null,
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Hardware"
+      ],
+      "comments": [],
+      "track_id": "hardware"
+    },
+    {
       "id": "idea-007",
       "title": "Tailscale als WireGuard-Alternative testen",
       "desc": "Tailscale als Zero-Config WireGuard-Alternative testen. Kein Port-Forwarding nötig, funktioniert hinter NAT, einfache Client-Installation. Gut zum Vergleich mit nativem WireGuard – zeigt den Trade-off zwischen Komfort und Kontrolle.",
@@ -89,6 +103,50 @@
       "comments": []
     },
     {
+      "id": "idea-009",
+      "title": "Dedizierter Mini-Server (z.B. Mini-PC / N100)",
+      "desc": "Dedizierter Mini-PC (Intel N100 oder ähnlich) als Always-on-Server. Läuft 24/7 mit ~10-15W, unabhängig vom Gaming-PC. Ideal für DNS, VPN-Endpunkt und Monitoring – löst das Single-Point-of-Failure-Problem des Hyper-V-Setups.",
+      "phase_id": null,
+      "step_id": null,
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Hardware"
+      ],
+      "comments": [],
+      "track_id": "hardware"
+    },
+    {
+      "id": "idea-010",
+      "title": "Proxmox Backup-VM mit PBS einrichten",
+      "desc": "Proxmox Backup Server als eigene VM – automatische Backups aller VMs",
+      "phase_id": "phase1",
+      "step_id": "p1-proxmox-vm",
+      "prio": "high",
+      "status": "deferred",
+      "tags": [
+        "Backup",
+        "Proxmox",
+        "PBS"
+      ],
+      "comments": [
+        {
+          "id": "c-001",
+          "date": "2026-04-16",
+          "text": "Direkt nach der ersten Proxmox-Installation einplanen – bevor irgendwas kaputt gehen kann",
+          "edited": false
+        },
+        {
+          "id": "c-010-2",
+          "date": "2026-04-19",
+          "text": "Zurückgestellt: PBS braucht zweites Speichermedium. Auf einer einzelnen 1TB SSD kein echtes Backup. Bis dahin: Hyper-V Snapshots + vzdump.",
+          "edited": false
+        }
+      ],
+      "deferred_reason": "PBS braucht zweites Speichermedium. Auf einer einzelnen 1TB SSD kein echtes Backup. Bis dahin: Hyper-V Snapshots + vzdump.",
+      "track_id": "hardware"
+    },
+    {
       "id": "idea-011",
       "title": "IKEv2 / IPsec VPN aufsetzen",
       "desc": "Enterprise-VPN-Protokoll als Ergänzung zu WireGuard. StrongSwan als IKEv2/IPsec-Daemon. Direkter Vergleich beider Protokolle – jobrelevant im Network Engineering.",
@@ -109,9 +167,9 @@
       "title": "Syslog-Server + interner NTP",
       "desc": "Zentrales Syslog für alle VMs und Dienste (rsyslog oder Graylog). Interner NTP-Server via Chrony – Pflicht für Zertifikate, Kerberos und konsistente Log-Timestamps.",
       "phase_id": "phase2",
-      "step_id": null,
+      "step_id": "p2-syslog-ntp",
       "prio": "high",
-      "status": "idea",
+      "status": "realized",
       "tags": [
         "Syslog",
         "NTP",
@@ -124,8 +182,8 @@
       "id": "idea-013",
       "title": "TACACS+ Server einrichten",
       "desc": "AAA für Netzwerkgeräte. tac_plus oder Cisco ISE-Alternative. Privilege Levels, Command Authorization.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
+      "phase_id": null,
+      "step_id": null,
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -134,14 +192,15 @@
         "NetOps",
         "Security"
       ],
-      "comments": []
+      "comments": [],
+      "track_id": "seclab"
     },
     {
       "id": "idea-014",
       "title": "RADIUS Server (FreeRADIUS)",
       "desc": "FreeRADIUS für 802.1X Auth, WiFi-Authentifizierung und VPN-Auth.",
-      "phase_id": "phase4",
-      "step_id": "p4-sso",
+      "phase_id": null,
+      "step_id": null,
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -150,13 +209,14 @@
         "AAA",
         "802.1X"
       ],
-      "comments": []
+      "comments": [],
+      "track_id": "seclab"
     },
     {
       "id": "idea-015",
       "title": "Access Server für TACACS+ Device Login",
       "desc": "VM als simuliertes Netzwerkgerät. Login-Flow via TACACS+ üben: Privilege Levels, Command Authorization, Accounting.",
-      "phase_id": "phase4",
+      "phase_id": null,
       "step_id": null,
       "prio": "high",
       "status": "idea",
@@ -166,7 +226,8 @@
         "Lab",
         "Netzwerk"
       ],
-      "comments": []
+      "comments": [],
+      "track_id": "seclab"
     },
     {
       "id": "idea-016",
@@ -373,6 +434,31 @@
       "comments": []
     },
     {
+      "id": "idea-033",
+      "title": "Raspberry Pi Zero 2 W als Secondary DNS (HA)",
+      "desc": "Pi Zero 2 W (~15-18€) als permanenter Secondary DNS unabhängig von Proxmox und Hyper-V. Läuft 24/7 mit ~1-2W Stromverbrauch, WLAN onboard, kein Kabel nötig. AdGuard oder Pi-hole drauf. Wenn der Gaming-PC oder Proxmox down ist springt der Pi automatisch ein – kein DNS-Ausfall mehr im gesamten Heimnetz.",
+      "phase_id": "phase2",
+      "step_id": "p2-dns",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "DNS",
+        "Raspberry Pi",
+        "HA",
+        "Redundanz",
+        "Hardware"
+      ],
+      "comments": [
+        {
+          "id": "c-033-1",
+          "date": "2026-04-19",
+          "text": "Entstand nach AdGuard-Ausfall-Session: Single Point of Failure wenn Proxmox down. Architektur: Router Primary DNS → 192.168.0.201 (Proxmox/AdGuard), Secondary → Pi-IP. Beide laufen dieselben Blocklisten. Erster physischer Server im Homelab.",
+          "edited": false
+        }
+      ],
+      "track_id": "hardware"
+    },
+    {
       "id": "idea-034",
       "title": "Auto-Sync: JSON-Bearbeitung → GitHub Repo",
       "desc": "Workflow der sicherstellt dass homelab-state.json und homelab-ideas.json nach jeder Bearbeitung automatisch ins GitHub-Repo gepusht werden. Ziel: JSON im Repo ist immer der aktuelle Stand, kein manuelles git add/commit/push nötig. Mögliche Ansätze: (1) GitHub Actions die auf Dateiänderungen triggern, (2) lokales Git-Hook (post-commit) der automatisch pusht, (3) Watchman/inotifywait Script das Dateiänderungen erkennt und git push auslöst, (4) n8n Workflow der periodisch prüft ob lokale JSON neuer ist als Remote und ggf. pusht.",
@@ -426,8 +512,8 @@
       "id": "idea-037",
       "title": "SNMPv3 – Network Monitoring & Device Management",
       "desc": "SNMPv3 als sicheres Netzwerk-Monitoring-Protokoll einrichten. Im Gegensatz zu SNMPv1/v2c bietet SNMPv3 echte Authentifizierung (MD5/SHA) und Verschlüsselung (DES/AES). Ziel: alle Netzwerkgeräte über SNMP überwachen, Metriken in Grafana via SNMP Exporter integrieren. Jobrelevant: SNMPv3 ist Enterprise-Standard für Netzwerk-Monitoring.",
-      "phase_id": "phase4",
-      "step_id": "p4-grafana",
+      "phase_id": null,
+      "step_id": null,
       "prio": "high",
       "status": "idea",
       "tags": [
@@ -445,7 +531,201 @@
           "text": "SNMPv3 Kernkonzepte: USM (User-based Security Model) für Auth+Encryption, VACM (View-based Access Control) für Zugriffskontrolle. Setup: SNMPv3 User auf OPNsense/Router anlegen, Prometheus SNMP Exporter konfigurieren, Grafana Dashboard für Interface-Traffic, Fehler, Uptime. Ergänzt TACACS+ (idea-013) und RADIUS (idea-014) zu einem vollständigen Network-Engineering-Lab.",
           "edited": false
         }
+      ],
+      "track_id": "seclab"
+    },
+    {
+      "id": "idea-038",
+      "title": "NAS – Synology DS223j als Einstieg (Lernfokus RAID + Storage)",
+      "desc": "Dediziertes NAS primär zum Lernen: RAID-Konzepte praktisch üben (Redundanz aufbauen, Platte rausziehen, Rebuild beobachten), Proxmox Backup Server (PBS) auf NAS-Storage sichern, NFS-Mount in Proxmox einbinden. Sekundär: zentraler Medienspeicher. Kaufentscheidung bewusst auf Phase 2/3 verschoben – macht erst Sinn wenn VMs und Netz laufen.",
+      "phase_id": "phase3",
+      "step_id": null,
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "NAS",
+        "Storage",
+        "Backup",
+        "Hardware",
+        "Synology",
+        "RAID",
+        "Redundanz"
+      ],
+      "comments": [
+        {
+          "id": "c-038-1",
+          "date": "2026-04-19",
+          "text": "Kaufzeitpunkt: NICHT jetzt. Erst kaufen wenn Phase 2 abgeschlossen – dann gibt es VMs, Netz und Dienste die vom NAS profitieren. Bis dahin: externe 2TB SSD für einfache Backups.",
+          "edited": false
+        },
+        {
+          "id": "c-038-2",
+          "date": "2026-04-19",
+          "text": "RAID-Empfehlung für 2-Bay: RAID1 (Spiegelung, 50% Effizienz, 1 Platte Ausfall überlebt) oder SHR (Synology Hybrid RAID, flexibler bei Erweiterung). RAID5 geht erst ab 3 Drives. Lernwert: Platte absichtlich rausziehen, Rebuild beobachten, verstehen was passiert.",
+          "edited": false
+        },
+        {
+          "id": "c-038-3",
+          "date": "2026-04-19",
+          "text": "WICHTIG – CMR vs SMR: Immer CMR kaufen, NIEMALS SMR. SMR ist billiger aber langsam beim Schreiben und gefährlich in RAID-Verbänden. WD Red OHNE 'Plus' war lange SMR – immer 'WD Red Plus' oder 'Seagate IronWolf' kaufen.",
+          "edited": false
+        },
+        {
+          "id": "c-038-4",
+          "date": "2026-04-19",
+          "text": "Preisrecherche April 2026 (Preise ~46% gestiegen seit Sep 2025): DS223 Leergehäuse ~268€ (https://geizhals.de/synology-diskstation-ds223-a2893895.html), DS223j ~205€ (ARM, für Homelab ausreichend), 2x 4TB Seagate IronWolf CMR ~240€ (https://geizhals.de/seagate-ironwolf-nas-hdd-4tb-st4000vn006-a2627917.html). Gesamtkosten: DS223j + 2x 4TB IronWolf = ~445€.",
+          "edited": false
+        },
+        {
+          "id": "c-038-5",
+          "date": "2026-04-19",
+          "text": "Empfohlene Konfiguration: Synology DS223j + 2x 4TB Seagate IronWolf CMR (ST4000VN006) in RAID1 = 4TB nutzbar gespiegelt. Proxmox-Integration: NAS per NFS einbinden, als Backup-Target für PBS nutzen. Link DS223j: https://geizhals.de/synology-diskstation-ds223j-a2893895.html",
+          "edited": false
+        }
+      ],
+      "track_id": "hardware"
+    },
+    {
+      "id": "idea-039",
+      "title": "Fujitsu ESPRIMO G558 – Bare-Metal Proxmox Host",
+      "desc": "Fujitsu ESPRIMO G558 Mini-PC als dedizierter Bare-Metal Proxmox Host. Eliminiert Nested Virtualization (Hyper-V → Proxmox) und alle zugehörigen Workarounds. Entweder Primary Host (Migration aller VMs) oder zweiter Node für Proxmox-Cluster (HA, Live Migration). 35W TDP ermöglicht 24/7 Betrieb.",
+      "phase_id": "phase2",
+      "step_id": null,
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Hardware",
+        "Proxmox",
+        "Bare-Metal",
+        "Migration",
+        "Cluster"
+      ],
+      "details": {
+        "hardware": {
+          "model": "Fujitsu ESPRIMO G558",
+          "board": "D3654-A12",
+          "cpu": "Intel Core i5-8500T @ 2.10 GHz (6C/6T, Coffee Lake, 35W TDP)",
+          "cpu_features": "VT-x (Hardware-Virtualisierung), VT-d (IOMMU/PCI-Passthrough), AES-NI",
+          "ram_current": "16 GB DDR4-2666 SO-DIMM (2x 8 GB Samsung M471A1K43CB1-CTD)",
+          "ram_upgrade": "2x 16 GB DDR4-2400 SO-DIMM → 32 GB total (Samsung M471A2K43BB1-CRC, ~100€)",
+          "ram_max": "32 GB offiziell (64 GB mit 32-GB-Modulen laut PHS-Memory, ungetestet)",
+          "storage": "512 GB ADATA NVMe SSD (IM2P32A8-512GCTB5IM, M.2, PCIe 2.0 x4)",
+          "nic": "1x Gigabit Ethernet (Intel, MAC 4C:52:62:AB:AE:0F)",
+          "psu": "65W extern",
+          "form_factor": "Mini-PC (146.9 x 164.5 x 36 mm, 0.86 Liter)",
+          "ports": "3x USB-A 3.0, 3x USB-A 2.0, 2x DisplayPort 1.2, 1x HDMI 1.4b, RJ-45",
+          "tpm": "Embedded TPM vorhanden"
+        },
+        "bare_metal_vs_nested": {
+          "eliminates": [
+            "Hyper-V MAC Spoofing Workaround",
+            "Dynamic RAM deaktiviert",
+            "VHDX-Limitierungen",
+            "Flüchtige Routen (ip route add)",
+            "Hyper-V Snapshot Konflikte",
+            "Doppelte Virtualisierungsebene (VMs in VM)"
+          ],
+          "gains": [
+            "Native VT-x Performance (keine Übersetzungsschicht)",
+            "Direkte NIC-Kontrolle (keine Bridges-in-Bridges)",
+            "VLANs nativ auf physischem Interface",
+            "KVM statt nested KVM-in-Hyper-V",
+            "Weniger Angriffsfläche (nur Proxmox/Debian statt Windows+Hyper-V+Proxmox)"
+          ]
+        },
+        "options": {
+          "option_a_primary": "ESPRIMO wird Primary Proxmox Host. Alle VMs/CTs migrieren. Ryzen-Tower bleibt reiner Windows-Desktop. Saubere Trennung, 24/7 Betrieb mit 35W.",
+          "option_b_cluster": "ESPRIMO wird zweiter Node. Proxmox-Cluster mit HA, Live Migration, Ceph/ZFS Replication. Enterprise-Skill für den Lebenslauf."
+        },
+        "cost": "~100€ für RAM-Upgrade (2x 16 GB DDR4-2400 SO-DIMM). ESPRIMO selbst ist vorhanden.",
+        "security": {
+          "reduced_attack_surface": "Bare-Metal: 1 OS (Proxmox/Debian) statt 3 (Windows + Hyper-V + Proxmox)",
+          "tpm": "TPM vorhanden — kann für Disk-Encryption oder Secure Boot genutzt werden",
+          "physical_security": "Mini-PC ist klein und unauffällig, Kensington Lock möglich"
+        }
+      },
+      "comments": [
+        {
+          "id": "c-039-1",
+          "date": "2026-04-24",
+          "text": "ESPRIMO G558 identifiziert im BIOS: i5-8500T, 16 GB RAM (2x 8 GB Samsung 2666 MHz), ADATA 512 GB NVMe. Board D3654-A12.",
+          "edited": false
+        },
+        {
+          "id": "c-039-2",
+          "date": "2026-04-24",
+          "text": "RAM-Upgrade geplant: 2x Samsung M471A2K43BB1-CRC (16 GB DDR4 2400 MHz SO-DIMM) für ~100€. 2400 statt 2666 MHz — halber Preis, ~5-8% weniger Bandbreite, für Proxmox irrelevant.",
+          "edited": false
+        },
+        {
+          "id": "c-039-3",
+          "date": "2026-04-24",
+          "text": "PCIe 2.0 x4 Limitierung auf M.2 Slot — NVMe-Speed halbiert (max 1.5 GB/s statt 3 GB/s). Für Homelab-VMs kein Problem, die SSD ist trotzdem 10x schneller als jede HDD.",
+          "edited": false
+        }
+      ],
+      "track_id": "hardware"
+    },
+    {
+      "id": "idea-040",
+      "title": "TL-WR841N als Lab WiFi Access Point (OpenWrt)",
+      "desc": "TP-Link TL-WR841N mit OpenWrt flashen und als dedizierten WLAN Access Point im LAB-VLAN betreiben. Isoliertes Lab-WiFi für Pentest-Geräte. Nur 2.4 GHz / 100 Mbit — reicht für Lab-Zwecke. Reiner Bridge-Mode AP.",
+      "phase_id": null,
+      "step_id": null,
+      "track_id": "seclab",
+      "prio": "low",
+      "status": "idea",
+      "tags": [
+        "Hardware",
+        "WLAN",
+        "OpenWrt",
+        "Lab",
+        "Security"
+      ],
+      "comments": [
+        {
+          "id": "c-040-1",
+          "date": "2026-04-24",
+          "text": "TL-WR841N: 802.11n 300Mbps, 4 MB Flash / 32 MB RAM, 100 Mbit Ports. OpenWrt supported. Switch-Chip unterstützt 16 VLANs.",
+          "edited": false
+        }
       ]
+    },
+    {
+  "id": "idea-041",
+  "title": "Datenbankserver – MariaDB / PostgreSQL VM",
+  "desc": "Dedizierte Datenbank-VM als zentraler Backend-Service für alle Dienste im Homelab. MariaDB oder PostgreSQL je nach Anwendungsfall. Verknüpft mit dem Webserver (p3-webserver) und ermöglicht dynamische Web-Apps, Wiki-Backends, Gitea, Vaultwarden, NetBox und weitere Dienste die eine DB brauchen. Sicherer als lokale SQLite-Dateien – zentrales Backup, Zugriffssteuerung, Replikation möglich.",
+  "phase_id": "phase3",
+  "step_id": "p3-webserver",
+  "prio": "high",
+  "status": "idea",
+  "tags": ["Datenbank", "MariaDB", "PostgreSQL", "Backend", "Web", "Security"],
+  "comments": [
+    {
+      "id": "c-041-1",
+      "date": "2026-04-25",
+      "text": "Warum dedizierte DB-VM statt lokal pro Dienst: Zentrales Backup (ein Dump statt viele), Zugriffssteuerung via DB-User (Least Privilege pro Dienst), Replikation/HA später nachrüstbar, Ressourcen skalierbar unabhängig vom App-Server.",
+      "edited": false
+    },
+    {
+      "id": "c-041-2",
+      "date": "2026-04-25",
+      "text": "MariaDB vs PostgreSQL: MariaDB für einfache Web-Apps (Gitea, Wikijs), PostgreSQL für komplexere Anwendungen (NetBox, Vaultwarden, Authentik). Beide können parallel laufen oder: eine VM mit beiden Instanzen auf verschiedenen Ports.",
+      "edited": false
+    },
+    {
+      "id": "c-041-3",
+      "date": "2026-04-25",
+      "text": "Security by Design: DB-VM hat keinen öffentlichen Zugang, nur internes Netz (10.0.2.0/24 Services-VLAN). Pro Dienst eigener DB-User mit GRANT nur auf die eigene Datenbank. Backups via mysqldump/pg_dump täglich, gesichert auf NAS (idea-038). SSL-Verbindungen zwischen App und DB erzwingen.",
+      "edited": false
+    },
+    {
+      "id": "c-041-4",
+      "date": "2026-04-25",
+      "text": "Verknüpfte Dienste: Gitea (p3-git), Vaultwarden (p3-vaultwarden), Wikijs (p3-dokuwiki), NetBox (p2-ipam), Authentik (p4-sso), Mailcow (idea-039), Grafana (p4-grafana). Ressourcen: 1-2 Cores, 2-4 GB RAM, 20-50 GB Disk.",
+      "edited": false
     }
+  ]
+ }
   ]
 }

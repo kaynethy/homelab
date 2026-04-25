@@ -6,6 +6,21 @@
   <title>Homelab Dashboard</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    .hw-banner { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid #b87333; border-radius: 10px; padding: 20px 24px; }
+    .hw-devices-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+    .hw-device-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text); }
+    .hw-device-spec { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .hw-device-role { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 4px; }
+    .hw-device-role.active  { color: #4fffb0; }
+    .hw-device-role.planned { color: var(--muted); }
+    @media (max-width: 800px) { .hw-devices-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .hw-devices-grid { grid-template-columns: 1fr; } }
+    .hw-banner-left { flex:1; text-decoration:none; color:inherit; display:block; border-radius:8px; transition:background 0.15s; padding:8px; }
+    .hw-banner-right { text-decoration:none; color:inherit; display:flex; flex-direction:row; align-items:center; justify-content:center; align-self:stretch; gap:16px; padding:12px 16px; border-radius:8px; transition:background 0.15s; }
+    .hw-banner-left:hover, .hw-banner-right:hover { background: rgba(255,255,255,0.03); }
+    @media (max-width: 700px) { .hw-banner-content { flex-direction:column !important; } }
+  </style>
 </head>
 <body>
 <div class="wrap">
@@ -68,7 +83,8 @@
     </div>
   </div>
 
-  <div class="section-label">Phasen</div>
+  <div class="section-label">Phasen &amp; Infrastruktur</div>
+  <div id="hw-banner-slot" style="display:none;margin-bottom:16px"></div>
   <div class="phase-cards-grid" id="phase-cards"></div>
 
   <div id="projekte-section" style="display:none;margin-bottom:32px"></div>
@@ -90,11 +106,7 @@
       <div class="phase-card-step-count" id="wiki-card-count">Lade...</div>
       <div style="font-size:11px;color:var(--phase3);margin-top:6px;font-family:'JetBrains Mono',monospace">DokuWiki · geplant in Phase 3</div>
     </a>
-    <a href="network-plan.html" id="res-card" class="phase-card" style="border-left:3px solid var(--accent);display:none;text-decoration:none">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(79,255,176,0.12);color:var(--accent);border:1px solid rgba(79,255,176,0.25);display:inline-block;margin-bottom:10px;letter-spacing:0.5px">RESSOURCEN</span>
-      <div id="res-donuts" style="display:flex;gap:24px;justify-content:center;margin:8px 0 12px">Lade...</div>
-      <div style="font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-top:auto">Netzwerk-Seite →</div>
-    </a>
+
   </div>
 
   <div class="info-row">
@@ -148,6 +160,7 @@
     document.getElementById('progress-fill').title = s.meta.progress_done + '/' + s.meta.progress_total + ' Steps done' + (s.meta.progress_wip ? ', ' + s.meta.progress_wip + ' wip' : '');
     var progressSub = document.getElementById('progress-sub');
     if (progressSub) progressSub.textContent = s.meta.progress_done + '/' + s.meta.progress_total + ' Steps done';
+    window._baseProgress = { done: s.meta.progress_done, total: s.meta.progress_total, wip: s.meta.progress_wip || 0 };
 
     var grid = document.getElementById('phase-cards');
     grid.innerHTML = '';
@@ -241,7 +254,6 @@
     var highCount = (s.ideas || []).filter(function(i) { return i.prio === 'high'; }).length;
     document.getElementById('high-ideas-count').textContent = highCount;
 
-    renderResources();
   }
 
   window.addEventListener('state-ready', init);
@@ -253,68 +265,174 @@
     'sec-pentest-net': '🎯', 'sec-ids': '🛡', 'sec-tacacs': '🔐',
     'sec-radius': '📡', 'sec-access-server': '🖥', 'sec-eve-ng': '🌐', 'sec-snmpv3': '📊'
   };
-  var TRACK_COLOR = { hardware: '#ef4444', seclab: '#dc2626' };
+  var TRACK_COLOR = { hardware: '#b87333', seclab: '#dc2626' };
   var TRACK_PAGE  = { hardware: 'phases/hardware.html', seclab: 'phases/seclab.html' };
+
+  var HW_SUBSTEPS_FALLBACK = [
+    { id: 's01', title: 'RAM einbauen & BIOS verifizieren',     status: 'todo' },
+    { id: 's02', title: 'Proxmox VE Bare-Metal Installation',    status: 'wip'  },
+    { id: 's03', title: 'Remote-Zugang (SSH + Web-UI)',          status: 'todo' },
+    { id: 's04', title: 'Basis-Konfiguration (Repos, SSH, vim)', status: 'todo' },
+    { id: 's05', title: 'vmbr0 VLAN-aware + Netzwerk',          status: 'todo' },
+    { id: 's06', title: 'OPNsense Firewall VM',                  status: 'todo' },
+    { id: 's07', title: 'AdGuard Home DNS (LXC)',                status: 'todo' },
+    { id: 's08', title: 'Jumphost VM (Debian 13)',               status: 'todo' },
+    { id: 's09', title: 'Kea DHCP Server (LXC)',                 status: 'todo' },
+    { id: 's10', title: 'OpenNTPD + rsyslog (LXC)',              status: 'todo' },
+    { id: 's11', title: 'Verifizierung & Connectivity-Tests',    status: 'todo' },
+    { id: 's12', title: 'Proxmox Cluster vorbereiten',           status: 'todo' },
+    { id: 's13', title: 'Cutover — ESPRIMO ist Primary',         status: 'todo' }
+  ];
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderHardwareBanner(hw) {
+    var slot = document.getElementById('hw-banner-slot');
+    if (!slot || slot.dataset.rendered) return;
+    slot.dataset.rendered = '1';
+
+    var meta = hw.meta;
+    var prog = meta.progress || {};
+    var done = prog.done || 0, wip = prog.wip || 0, total = prog.total || 0;
+    var progStr = done + '/' + total + ' done' + (wip > 0 ? ' · ' + wip + ' wip' : '');
+
+    // hw-esprimo step + sub-steps
+    var allSteps = (hw.sections || []).reduce(function(a, s) { return a.concat(s.steps || []); }, []);
+    var esprimoStep = null;
+    for (var i = 0; i < allSteps.length; i++) { if (allSteps[i].id === 'hw-esprimo') { esprimoStep = allSteps[i]; break; } }
+    var subSteps = (esprimoStep && esprimoStep.sub_steps && esprimoStep.sub_steps.length) ? esprimoStep.sub_steps : HW_SUBSTEPS_FALLBACK;
+    var subDone  = subSteps.filter(function(s) { return s.status === 'done'; }).length;
+    var subWip   = subSteps.filter(function(s) { return s.status === 'wip';  }).length;
+    var subTotal = subSteps.length;
+    var subPct   = subTotal > 0 ? Math.round((subDone + subWip * 0.5) / subTotal * 100) : 0;
+    var subLabel = (subDone + subWip) + '/' + subTotal;
+
+    var wipEntry = null, nextEntry = null;
+    for (var j = 0; j < subSteps.length; j++) {
+      if (!wipEntry  && subSteps[j].status === 'wip')  wipEntry  = { s: subSteps[j], n: j + 1 };
+      if (!nextEntry && subSteps[j].status === 'todo') nextEntry = { s: subSteps[j], n: j + 1 };
+    }
+
+    var migStepsHtml = '';
+    if (wipEntry)  migStepsHtml += '<div style="display:flex;align-items:center;gap:8px;font-family:\'JetBrains Mono\',monospace;font-size:11px;margin-top:6px"><span style="color:#f59e0b">● ' + String(wipEntry.n).padStart(2, '0') + '</span><span style="color:var(--text);flex:1">' + escHtml(wipEntry.s.title) + '</span><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40">wip</span></div>';
+    if (nextEntry) migStepsHtml += '<div style="display:flex;align-items:center;gap:8px;font-family:\'JetBrains Mono\',monospace;font-size:11px;margin-top:3px"><span style="color:var(--muted)">○ ' + String(nextEntry.n).padStart(2, '0') + '</span><span style="color:var(--muted);flex:1">' + escHtml(nextEntry.s.title) + '</span><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--bg3);color:var(--muted);border:1px solid var(--border)">next</span></div>';
+
+    // Donut placeholders — filled by resources-ready listener
+    var donutsHtml = '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      + '<svg id="donut-ram" width="60" height="60" viewBox="0 0 36 36" style="overflow:visible">'
+      +   '<circle cx="18" cy="18" r="14" fill="none" stroke="var(--border)" stroke-width="3"/>'
+      +   '<circle class="donut-ring" cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="3"'
+      +     ' stroke-dasharray="0 87.96" stroke-linecap="round" transform="rotate(-90 18 18)"/>'
+      +   '<text class="donut-pct" x="18" y="18" text-anchor="middle" dominant-baseline="central" fill="var(--text)"'
+      +     ' font-size="8" font-family="JetBrains Mono,monospace" font-weight="700">–</text>'
+      + '</svg>'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-top:2px">RAM</div>'
+      + '<div id="donut-ram-val" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text);white-space:nowrap">–</div>'
+      + '<div id="donut-ram-free" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);white-space:nowrap">–</div>'
+      + '<div id="donut-ram-breakdown" style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--muted);text-align:center"></div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      + '<svg id="donut-disk" width="60" height="60" viewBox="0 0 36 36" style="overflow:visible">'
+      +   '<circle cx="18" cy="18" r="14" fill="none" stroke="var(--border)" stroke-width="3"/>'
+      +   '<circle class="donut-ring" cx="18" cy="18" r="14" fill="none" stroke="var(--accent)" stroke-width="3"'
+      +     ' stroke-dasharray="0 87.96" stroke-linecap="round" transform="rotate(-90 18 18)"/>'
+      +   '<text class="donut-pct" x="18" y="18" text-anchor="middle" dominant-baseline="central" fill="var(--text)"'
+      +     ' font-size="8" font-family="JetBrains Mono,monospace" font-weight="700">–</text>'
+      + '</svg>'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-top:2px">DISK</div>'
+      + '<div id="donut-disk-val" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text);white-space:nowrap">–</div>'
+      + '<div id="donut-disk-free" style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);white-space:nowrap">–</div>'
+      + '<div id="donut-disk-breakdown" style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--muted);text-align:center"></div>'
+      + '</div>';
+
+    slot.innerHTML =
+      '<div class="hw-banner">'
+      + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:#b8733320;color:#b87333;border:1px solid #b8733340;letter-spacing:0.5px">HARDWARE</span>'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:#b87333">● ongoing</span>'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted)">· Physische Infrastruktur</span>'
+      + '</div>'
+      + '<div class="hw-banner-content" style="display:flex;align-items:stretch;gap:16px;margin-bottom:16px">'
+      +   '<a href="phases/hardware.html" class="hw-banner-left">'
+      +     '<div class="hw-devices-grid">'
+      +       '<div><div class="hw-device-name">ESPRIMO G558</div><div class="hw-device-spec">i5-8500T · 32 GB · 512 GB · 35W</div><div class="hw-device-role active">● Primary (24/7)</div></div>'
+      +       '<div><div class="hw-device-name">Ryzen Tower</div><div class="hw-device-spec">R7 5800X · 64 GB · 1+4 TB</div><div class="hw-device-role planned">○ Cluster (On-Demand)</div></div>'
+      +       '<div><div class="hw-device-name">Pi Zero 2 W</div><div class="hw-device-spec">ARM · 512 MB · WLAN · 1–2W</div><div class="hw-device-role planned">○ Secondary DNS</div></div>'
+      +       '<div><div class="hw-device-name">Archer C80</div><div class="hw-device-spec">WiFi 5 · 4× GbE LAN</div><div class="hw-device-role active">● ISP-Upstream</div></div>'
+      +     '</div>'
+      +     '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">ESPRIMO Migration · <span style="color:var(--text)">' + subLabel + '</span></div>'
+      +     '<div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;border:1px solid var(--border)"><div style="height:100%;width:' + subPct + '%;background:#b87333;border-radius:3px;transition:width 0.5s"></div></div>'
+      +     migStepsHtml
+      +   '</a>'
+      +   '<a href="phases/hardware.html#hw-res-section" class="hw-banner-right">' + donutsHtml + '</a>'
+      + '</div>'
+      + '<div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;align-items:center">'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--muted)">' + progStr + '</span>'
+      +   '<a href="phases/hardware.html" style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#b87333;text-decoration:none">Hardware-Seite →</a>'
+      + '</div>'
+      + '</div>';
+    slot.style.display = '';
+    if (window.RESOURCES) window._updateBannerDonuts();
+  }
+
+  function updateProgressWithHardware(hw) {
+    if (!window._baseProgress) return;
+    var prog = hw.meta.progress || {};
+    var totalDone = window._baseProgress.done  + (prog.done  || 0);
+    var totalAll  = window._baseProgress.total + (prog.total || 0);
+    var totalWip  = window._baseProgress.wip   + (prog.wip   || 0);
+    var pct = totalAll > 0 ? Math.round(totalDone / totalAll * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = '~' + pct + '%';
+    document.getElementById('progress-fill').title = totalDone + '/' + totalAll + ' Steps done' + (totalWip ? ', ' + totalWip + ' wip' : '');
+    var sub = document.getElementById('progress-sub');
+    if (sub) sub.textContent = totalDone + '/' + totalAll + ' Steps done';
+  }
 
   function renderTrackCards() {
     var tracks = window.STATE && window.STATE.tracks;
     if (!tracks || !Object.keys(tracks).length) return;
+
+    var hw = tracks.hardware;
+    if (hw) {
+      renderHardwareBanner(hw);
+      updateProgressWithHardware(hw);
+    }
+
+    var sec = tracks.seclab;
     var section = document.getElementById('projekte-section');
-    if (!section) return;
+    if (!sec || !section || section.dataset.seclabRendered) return;
+    section.dataset.seclabRendered = '1';
 
-    var html = '<div class="section-label">Projekte</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:0">';
+    var meta = sec.meta;
+    var color = '#dc2626';
+    var prog = meta.progress || {};
+    var done = prog.done || 0, wip = prog.wip || 0, total = prog.total || 0;
+    var allSteps = (sec.sections || []).reduce(function(acc, s) { return acc.concat(s.steps || []); }, []);
+    var chipsHtml = allSteps.map(function(st) {
+      var emoji = TRACK_EMOJI[st.id] || '•';
+      var name = (st.title || '').split(' – ')[0].split(' (')[0];
+      if (name.length > 22) name = name.substring(0, 21) + '…';
+      return '<span style="font-size:11px;color:var(--muted)">' + emoji + ' ' + name + '</span>';
+    }).join('<span style="color:var(--border2)"> · </span>');
+    var progStr = done + '/' + total + ' done' + (wip > 0 ? ' · ' + wip + ' wip' : '');
 
-    // Render in stable order
-    ['hardware', 'seclab'].forEach(function(tid) {
-      var track = tracks[tid];
-      if (!track) return;
-      var meta  = track.meta;
-      var color = TRACK_COLOR[tid] || '#ef4444';
-      var page  = TRACK_PAGE[tid]  || '#';
-      var prog  = meta.progress || {};
-      var done  = prog.done || 0;
-      var wip   = prog.wip  || 0;
-      var total = prog.total || 0;
-
-      var dotColor = meta.status === 'ongoing' ? '#4fffb0'
-                   : meta.status === 'active'  ? '#4fffb0'
-                   : meta.status === 'done'    ? '#4fffb0'
-                   : 'var(--muted)';
-      var dotChar  = meta.status === 'planned' ? '○' : '●';
-      var statusDot = '<span style="color:' + dotColor + '">' + dotChar + '</span>';
-
-      var allSteps = (track.sections || []).reduce(function(acc, s) {
-        return acc.concat(s.steps || []);
-      }, []);
-
-      var chipsHtml = allSteps.map(function(st) {
-        var emoji = TRACK_EMOJI[st.id] || '•';
-        var col = st.status === 'wip'  ? '#f59e0b'
-                : st.status === 'done' ? '#4fffb0'
-                : 'var(--muted)';
-        var name = (st.title || '').split(' – ')[0].split(' (')[0];
-        if (name.length > 18) name = name.substring(0, 17) + '…';
-        return '<span style="font-size:11px;color:' + col + '">' + emoji + ' ' + name + '</span>';
-      }).join('<span style="color:var(--border2)"> · </span>');
-
-      var progHtml = done + '/' + total + ' done' + (wip > 0 ? ' · ' + wip + ' wip' : '');
-
-      html += '<a href="' + page + '" class="phase-card" style="border-left:3px solid ' + color + ';display:block;text-decoration:none">'
-        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-        +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:' + color + '20;color:' + color + ';border:1px solid ' + color + '40;letter-spacing:0.5px">' + meta.label + '</span>'
-        +   statusDot + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);margin-left:2px">' + meta.status + '</span>'
-        + '</div>'
-        + '<div class="phase-card-title">' + meta.title + '</div>'
-        + '<div class="phase-card-subtitle">' + (meta.subtitle || '') + '</div>'
-        + '<div style="font-size:11px;line-height:2;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin:8px 0">' + chipsHtml + '</div>'
-        + '<div class="phase-card-step-count">' + progHtml + '</div>'
-        + '<div style="font-size:11px;color:' + color + ';font-family:\'JetBrains Mono\',monospace;margin-top:6px;text-align:right">' + meta.label + '-Seite →</div>'
-        + '</a>';
-    });
-
-    html += '</div>';
-    section.innerHTML = html;
+    section.innerHTML = '<div class="section-label">Projekte</div>'
+      + '<a href="phases/seclab.html" class="phase-card" style="border-left:3px solid ' + color + ';display:block;text-decoration:none">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:#dc262620;color:#dc2626;border:1px solid #dc262640;letter-spacing:0.5px">SEC-LAB</span>'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">○ planned</span>'
+      + '</div>'
+      + '<div class="phase-card-title">Security &amp; Hacking Lab</div>'
+      + '<div class="phase-card-subtitle">Pentesting · AAA · IDS · Vulnerable Targets · Netzwerk-Simulation</div>'
+      + '<div style="font-size:11px;line-height:2;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin:8px 0">' + chipsHtml + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
+      +   '<div class="phase-card-step-count">' + progStr + '</div>'
+      +   '<span style="font-size:11px;color:#dc2626;font-family:\'JetBrains Mono\',monospace">SEC-LAB-Seite →</span>'
+      + '</div>'
+      + '</a>';
     section.style.display = '';
   }
 
@@ -327,51 +445,110 @@
     return '#ef4444';
   }
 
-  function buildDonut(pct, color, label, used, total, free) {
-    var circ = 2 * Math.PI * 14; // r=14 → ~87.96
+  function buildSmallDonut(pct, color, label, used, total, free, breakdown) {
+    var circ = 2 * Math.PI * 14;
     var fill = circ * pct / 100;
-    var freeColor = free < 4 ? '#fb923c' : 'var(--muted)';
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">'
-      + '<svg width="80" height="80" viewBox="0 0 36 36" style="overflow:visible">'
+    var freeColor = parseFloat(free) < 4 ? '#fb923c' : 'var(--muted)';
+    var bdHtml = '';
+    if (breakdown) {
+      breakdown.forEach(function(b) {
+        bdHtml += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--muted);white-space:nowrap">' + b + '</div>';
+      });
+    }
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      + '<svg width="60" height="60" viewBox="0 0 36 36" style="overflow:visible">'
       +   '<circle cx="18" cy="18" r="14" fill="none" stroke="var(--border)" stroke-width="3"/>'
       +   '<circle cx="18" cy="18" r="14" fill="none" stroke="' + color + '" stroke-width="3"'
       +     ' stroke-dasharray="' + fill.toFixed(2) + ' ' + circ.toFixed(2) + '"'
       +     ' stroke-dashoffset="0" stroke-linecap="round"'
       +     ' transform="rotate(-90 18 18)"/>'
-      +   '<text x="18" y="16" text-anchor="middle" fill="var(--text)" font-size="7" font-family="JetBrains Mono,monospace" font-weight="700">' + pct + '%</text>'
-      +   '<text x="18" y="23" text-anchor="middle" fill="var(--muted)" font-size="5" font-family="JetBrains Mono,monospace">' + label + '</text>'
+      +   '<text x="18" y="18" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-size="8" font-family="JetBrains Mono,monospace" font-weight="700">' + pct + '%</text>'
       + '</svg>'
-      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:' + color + ';font-weight:600;white-space:nowrap">' + used + ' / ' + total + ' GB</div>'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;margin-top:2px">' + label + '</div>'
+      + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text);white-space:nowrap">' + used + ' / ' + total + ' GB</div>'
       + '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:' + freeColor + ';white-space:nowrap">' + free + ' GB frei</div>'
+      + bdHtml
       + '</div>';
   }
 
-  function renderResources() {
-    var res = window.STATE && window.STATE.resources;
-    if (!res) return;
+  // ── Resources loader: homelab-resources.json → window.RESOURCES → 'resources-ready' ──
+  window._updateBannerDonuts = function() {
+    var R = window.RESOURCES;
+    if (!R || !R.hosts) return;
 
-    var card = document.getElementById('res-card');
-    var donutEl = document.getElementById('res-donuts');
-    if (!card || !donutEl) return;
-    card.style.display = 'block';
+    var CIRC = 2 * Math.PI * 14; // ≈ 87.96, matches SVG r=14
+    var totalRam = 0, totalDisk = 0, usedRam = 0, usedDisk = 0;
+    var breakdown = [];
 
-    var totalRam  = res.proxmox_total.ram_gb;
-    var totalDisk = res.proxmox_total.disk_gb;
-    var sysRam    = (res.proxmox_system && res.proxmox_system.ram_gb) || 1.5;
-    var hosts     = res.hosts || [];
+    Object.keys(R.hosts).forEach(function(hostKey) {
+      var host = R.hosts[hostKey];
+      totalRam  += host.ram_total_gb;
+      totalDisk += host.disk_total_gb;
+      usedRam   += host.ram_system_gb || 1.5;
+      (host.vms || []).forEach(function(vm) {
+        usedRam  += vm.ram_mb / 1024;
+        usedDisk += vm.disk_gb;
+      });
+      breakdown.push({
+        label: hostKey === 'esprimo' ? 'ESPRIMO' : 'Tower',
+        ram:   host.ram_total_gb,
+        disk:  host.disk_total_gb
+      });
+    });
 
-    var hostsRam  = hosts.reduce(function(s, h) { return s + h.ram_mb / 1024; }, 0);
-    var hostsDisk = hosts.reduce(function(s, h) { return s + h.disk_gb; }, 0);
-    var usedRam   = hostsRam + sysRam;
-    var freeRam   = Math.max(0, totalRam - usedRam);
-    var freeDisk  = Math.max(0, totalDisk - hostsDisk);
-    var ramPct    = Math.round(usedRam / totalRam * 100);
-    var diskPct   = Math.round(hostsDisk / totalDisk * 100);
+    var freeRam  = Math.max(0, totalRam  - usedRam);
+    var freeDisk = Math.max(0, totalDisk - usedDisk);
+    var ramPct   = Math.round(usedRam  / totalRam  * 100);
+    var diskPct  = Math.round(usedDisk / totalDisk * 100);
 
-    donutEl.innerHTML =
-      buildDonut(ramPct, resRingColor(ramPct), 'RAM', usedRam.toFixed(1), totalRam, freeRam.toFixed(1)) +
-      buildDonut(diskPct, resRingColor(diskPct), 'DISK', hostsDisk, totalDisk, freeDisk);
-  }
+    function donutColor(pct) {
+      if (pct < 50) return 'var(--accent)';
+      if (pct < 75) return '#f59e0b';
+      if (pct < 90) return '#fb923c';
+      return '#ef4444';
+    }
+    function updateRing(svgId, pct) {
+      var el = document.getElementById(svgId);
+      if (!el) return;
+      var ring = el.querySelector('.donut-ring');
+      var txt  = el.querySelector('.donut-pct');
+      var fill = (CIRC * pct / 100).toFixed(2);
+      if (ring) { ring.setAttribute('stroke', donutColor(pct)); ring.setAttribute('stroke-dasharray', fill + ' ' + CIRC.toFixed(2)); }
+      if (txt)  txt.textContent = pct + '%';
+    }
+
+    updateRing('donut-ram',  ramPct);
+    updateRing('donut-disk', diskPct);
+
+    var ramVal   = document.getElementById('donut-ram-val');
+    var diskVal  = document.getElementById('donut-disk-val');
+    var ramFree  = document.getElementById('donut-ram-free');
+    var diskFree = document.getElementById('donut-disk-free');
+    var ramBd    = document.getElementById('donut-ram-breakdown');
+    var diskBd   = document.getElementById('donut-disk-breakdown');
+
+    if (ramVal)  ramVal.textContent  = usedRam.toFixed(1)  + ' / ' + totalRam  + ' GB';
+    if (diskVal) diskVal.textContent = Math.round(usedDisk) + ' / ' + totalDisk + ' GB';
+    if (ramFree) { ramFree.textContent = freeRam.toFixed(1) + ' GB frei'; ramFree.style.color = freeRam < 4 ? '#fb923c' : 'var(--muted)'; }
+    if (diskFree){ diskFree.textContent = Math.round(freeDisk) + ' GB frei'; }
+
+    var bdStyle = 'font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--muted);white-space:nowrap';
+    if (ramBd)  ramBd.innerHTML  = breakdown.map(function(b) { return '<div style="' + bdStyle + '">' + b.label + ': ' + b.ram  + ' GB</div>'; }).join('');
+    if (diskBd) diskBd.innerHTML = breakdown.map(function(b) { return '<div style="' + bdStyle + '">' + b.label + ': ' + b.disk + ' GB</div>'; }).join('');
+  };
+
+  window.addEventListener('resources-ready', window._updateBannerDonuts);
+
+  (function() {
+    fetch('phasen-ideen-deferred/homelab-resources.json', { cache: 'no-cache' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        window.RESOURCES = data;
+        console.log('[state] Resources geladen:', Object.keys(data.hosts || {}).length, 'Hosts');
+        window.dispatchEvent(new Event('resources-ready'));
+      })
+      .catch(function(e) { console.warn('[state] Resources load failed:', e); });
+  })();
 
   // ===== END RESSOURCEN =====
 

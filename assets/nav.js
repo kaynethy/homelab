@@ -4,11 +4,14 @@
 
   function getDepth() {
     const path = window.location.pathname;
+    if (path.includes('/steps/hardware/')) return 2;
     return (path.includes('/phases/') || path.includes('/steps/') || path.includes('/demos/')) ? 1 : 0;
   }
 
   function getRoot() {
-    return getDepth() > 0 ? '../' : './';
+    const depth = getDepth();
+    if (depth === 2) return '../../';
+    return depth > 0 ? '../' : './';
   }
 
   function getCurrentFile() {

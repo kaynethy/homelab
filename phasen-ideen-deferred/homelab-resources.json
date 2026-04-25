@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-25",
+    "description": "Ressourcen-Übersicht aller Proxmox-Hosts und ihrer VMs/Container"
+  },
+  "hosts": {
+    "esprimo": {
+      "name": "Fujitsu ESPRIMO G558",
+      "role": "Primary Host (24/7)",
+      "status": "active",
+      "ip": "192.168.0.11",
+      "cpu": "Intel i5-8500T (6C/6T, 35W)",
+      "ram_total_gb": 16,
+      "ram_total_after_upgrade_gb": 32,
+      "ram_upgrade_pending": true,
+      "disk_total_gb": 476,
+      "ram_system_gb": 1.5,
+      "os": "Proxmox VE 9.1.1 (Bare-Metal)",
+      "vms": [
+        { "id": "vm100", "name": "OPNsense",     "ram_mb": 3072, "disk_gb": 16, "type": "VM",  "status": "active", "vlan": "mgmt", "ip": "10.0.1.100",  "role": "Firewall / Router" },
+        { "id": "ct101", "name": "AdGuard DNS",   "ram_mb": 1024, "disk_gb": 4,  "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.101",  "role": "DNS-Filter / DoH" },
+        { "id": "ct102", "name": "Kea DHCP",      "ram_mb": 256,  "disk_gb": 4,  "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.102",  "role": "DHCP für alle VLANs" },
+        { "id": "vm103", "name": "NTP-Server",    "ram_mb": 384,  "disk_gb": 4,  "type": "VM",  "status": "active", "vlan": "mgmt", "ip": "10.0.1.103",  "role": "OpenNTPD Zeitserver" },
+        { "id": "ct104", "name": "rsyslog",       "ram_mb": 512,  "disk_gb": 16, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.104",  "role": "Zentrales Logging" },
+        { "id": "ct105", "name": "Jumphost",      "ram_mb": 512,  "disk_gb": 10, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.105",  "role": "SSH-Sprungbrett (landvogt)" }
+      ]
+    },
+    "tower": {
+      "name": "AMD Ryzen 7 5800X Tower",
+      "role": "Cluster-Node (On-Demand)",
+      "status": "standby",
+      "ip": "192.168.0.10",
+      "cpu": "AMD Ryzen 7 5800X (8C/16T, 105W)",
+      "ram_total_gb": 16,
+      "disk_total_gb": 249,
+      "ram_system_gb": 1.5,
+      "os": "Windows 11 + Hyper-V → Proxmox (nested)",
+      "gpu": "RTX 3060 OC 12 GB",
+      "note": "Proxmox als Hyper-V VM, 16 GB RAM zugewiesen, 249 GB LVM-Thin-Pool",
+      "vms": [
+        { "id": "ct106", "name": "NetBox IPAM", "ram_mb": 2048, "disk_gb": 16, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.8", "role": "IPAM / DCIM (Docker Compose)" }
+      ]
+    }
+  },
+  "totals": {
+    "ram_total_gb": 32,
+    "disk_total_gb": 725,
+    "note": "ESPRIMO 16 GB (→32 GB nach Upgrade) + Tower 16 GB Proxmox-VM. Disk: ESPRIMO 476 GB + Tower 249 GB."
+  }
+}

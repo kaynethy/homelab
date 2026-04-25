@@ -1,219 +1,218 @@
 {
   "meta": {
-    "version": "1.0",
-    "updated": "2026-04-24",
+    "version": "1.2",
+    "updated": "2026-04-25",
     "track_id": "hardware",
     "label": "HARDWARE",
     "title": "Physische Infrastruktur",
     "subtitle": "Geräte · Upgrades · Verkabelung · Erweiterungen",
     "type": "parallel",
     "status": "ongoing",
-    "color": "red",
+    "color": "bronze",
     "progress": {
       "done": 0,
       "wip": 1,
-      "todo": 5,
-      "total": 6,
+      "todo": 1,
+      "total": 2,
       "pct": 0
     }
   },
-  "sections": [
+  "steps": [
     {
-      "label": "Server & Compute",
-      "steps": [
+      "id": "hw-esprimo",
+      "title": "Fujitsu ESPRIMO G558 – Bare-Metal Proxmox",
+      "status": "wip",
+      "tags": [
+        "Hardware",
+        "Proxmox",
+        "Bare-Metal",
+        "Migration",
+        "Cluster"
+      ],
+      "desc": "Fujitsu ESPRIMO G558 Mini-PC als dedizierter Bare-Metal Proxmox Host (Primary Node). Eliminiert Nested Virtualization und alle Hyper-V Workarounds. 35W TDP ermöglicht 24/7 Betrieb. Ryzen-Tower wird On-Demand Cluster-Node.",
+      "notes": "ESPRIMO Bare-Metal Proxmox läuft. Alle Kern-Services deployed und verifiziert. RAM-Upgrade auf 32 GB bestellt. Cluster-Prep und Cutover ausstehend.",
+      "details": {
+        "hardware": {
+          "model": "Fujitsu ESPRIMO G558",
+          "board": "D3654-A12",
+          "cpu": "Intel Core i5-8500T (6C/6T, 2.10 GHz, 35W TDP, VT-x, VT-d, AES-NI)",
+          "ram_current": "16 GB DDR4-2666 SO-DIMM (2x 8 GB Samsung M471A1K43CB1-CTD)",
+          "ram_upgrade": "2x 16 GB DDR4-2400 SO-DIMM → 32 GB total (~100€, bestellt)",
+          "storage": "512 GB ADATA NVMe SSD (M.2, PCIe 2.0 x4)",
+          "nic": "1x Gigabit Ethernet (Intel, MAC 4C:52:62:AB:AE:0F)",
+          "form_factor": "Mini-PC (146.9 x 164.5 x 36 mm, 0.86 Liter)",
+          "tpm": "Embedded TPM vorhanden"
+        },
+        "security": {
+          "reduced_attack_surface": "Bare-Metal: 1 OS (Proxmox/Debian) statt 3 (Windows + Hyper-V + Proxmox)",
+          "tpm": "TPM vorhanden — Disk-Encryption oder Secure Boot möglich",
+          "ssh_hardening": "Ed25519 Keys only, PasswordAuthentication no, PermitRootLogin prohibit-password"
+        }
+      },
+      "sub_steps": [
         {
-          "id": "hw-esprimo",
-          "title": "Fujitsu ESPRIMO G558 – Bare-Metal Proxmox",
-          "status": "wip",
-          "tags": [
-            "Hardware",
-            "Proxmox",
-            "Bare-Metal",
-            "Migration",
-            "Cluster"
-          ],
-          "desc": "Fujitsu ESPRIMO G558 Mini-PC als dedizierter Bare-Metal Proxmox Host. Eliminiert Nested Virtualization und alle Hyper-V Workarounds. 35W TDP ermöglicht 24/7 Betrieb.",
-          "notes": "Gerät vorhanden. RAM-Upgrade bestellt: 2x 16 GB DDR4-2400 SO-DIMM (~100€). Proxmox-Installation nach RAM-Ankunft.",
-          "details": {
-            "hardware": {
-              "model": "Fujitsu ESPRIMO G558",
-              "board": "D3654-A12",
-              "cpu": "Intel Core i5-8500T (6C/6T, 2.10 GHz, 35W TDP, VT-x, VT-d, AES-NI)",
-              "ram_current": "16 GB DDR4-2666 SO-DIMM (2x 8 GB Samsung M471A1K43CB1-CTD)",
-              "ram_upgrade": "2x 16 GB DDR4-2400 SO-DIMM → 32 GB total (Samsung M471A2K43BB1-CRC, ~100€)",
-              "ram_max": "32 GB offiziell (64 GB mit 32-GB-Modulen laut PHS-Memory, ungetestet)",
-              "storage": "512 GB ADATA NVMe SSD (IM2P32A8-512GCTB5IM, M.2, PCIe 2.0 x4)",
-              "nic": "1x Gigabit Ethernet (Intel, MAC 4C:52:62:AB:AE:0F)",
-              "psu": "65W extern",
-              "form_factor": "Mini-PC (146.9 x 164.5 x 36 mm, 0.86 Liter)",
-              "ports": "3x USB-A 3.0, 3x USB-A 2.0, 2x DisplayPort 1.2, 1x HDMI 1.4b, RJ-45",
-              "tpm": "Embedded TPM vorhanden"
-            },
-            "bare_metal_vs_nested": {
-              "eliminates": [
-                "Hyper-V MAC Spoofing Workaround",
-                "Dynamic RAM deaktiviert",
-                "VHDX-Limitierungen",
-                "Flüchtige Routen (ip route add)",
-                "Hyper-V Snapshot Konflikte",
-                "Doppelte Virtualisierungsebene (VMs in VM)"
-              ],
-              "gains": [
-                "Native VT-x Performance (keine Übersetzungsschicht)",
-                "Direkte NIC-Kontrolle (keine Bridges-in-Bridges)",
-                "VLANs nativ auf physischem Interface",
-                "KVM statt nested KVM-in-Hyper-V",
-                "Weniger Angriffsfläche (nur Proxmox/Debian statt Windows+Hyper-V+Proxmox)"
-              ]
-            },
-            "options": {
-              "option_a_primary": "ESPRIMO wird Primary Proxmox Host. Alle VMs/CTs migrieren. Ryzen-Tower bleibt reiner Windows-Desktop.",
-              "option_b_cluster": "ESPRIMO wird zweiter Node. Proxmox-Cluster mit HA, Live Migration. Enterprise-Skill."
-            },
-            "cost": "~100€ für RAM-Upgrade. ESPRIMO selbst ist vorhanden.",
-            "security": {
-              "reduced_attack_surface": "Bare-Metal: 1 OS (Proxmox/Debian) statt 3 (Windows + Hyper-V + Proxmox)",
-              "tpm": "TPM vorhanden — Disk-Encryption oder Secure Boot möglich",
-              "physical_security": "Mini-PC ist klein und unauffällig, Kensington Lock möglich"
-            }
-          },
-          "log": [
-            {
-              "date": "2026-04-24",
-              "entry": "ESPRIMO G558 identifiziert im BIOS: i5-8500T, 16 GB RAM (2x 8 GB Samsung 2666 MHz), ADATA 512 GB NVMe. Board D3654-A12."
-            },
-            {
-              "date": "2026-04-24",
-              "entry": "RAM-Upgrade geplant: 2x Samsung M471A2K43BB1-CRC (16 GB DDR4 2400 MHz) für ~100€. 2400 statt 2666 MHz — halber Preis, für Proxmox irrelevant."
-            },
-            {
-              "date": "2026-04-24",
-              "entry": "DDR4-Preisentwicklung: Geizhals zeigt 80-90€+ pro 16 GB 2400 MHz Riegel neu. Kaufland-Angebot 50€/Stück = guter Deal bei steigenden DDR4-Preisen."
-            }
-          ],
-          "deferred_reason": ""
+          "id": "hw-esprimo-01-ram",
+          "title": "RAM einbauen & BIOS verifizieren",
+          "status": "todo",
+          "desc": "2x 16 GB DDR4-2400 SO-DIMM einsetzen, BIOS verifizieren (32 GB, Dual Channel). RAM-Upgrade bestellt (~100€), Lieferung ausstehend. ESPRIMO läuft aktuell mit 16 GB — reicht für alle Kern-Services, aber knapp wenn weitere VMs dazukommen."
         },
         {
-          "id": "hw-mini-server",
-          "title": "Dedizierter Mini-Server (N100 o.ä.)",
+          "id": "hw-esprimo-02-proxmox",
+          "title": "Proxmox VE Bare-Metal Installation",
+          "status": "done",
+          "desc": "Proxmox VE 9.1.1 Bare-Metal auf ESPRIMO G558 installiert. ext4 Filesystem auf 476 GB ADATA NVMe. Hostname: homelab.local, IP: 192.168.0.11/24 (Blech-IP im Router-Netz). Gateway: 192.168.0.1 (TP-Link). DNS initial auf TP-Link (.1), später auf AdGuard (.101) umgestellt. Swap: 4 GB. Root-PW in KeePassXC.",
+          "security": "Nur HTTPS für Web-UI (Port 8006, self-signed Cert). Root-PW stark + in KeePassXC. BIOS: VT-x und VT-d enabled."
+        },
+        {
+          "id": "hw-esprimo-03-remote",
+          "title": "Remote-Zugang (SSH + Web-UI)",
+          "status": "done",
+          "desc": "SSH (Port 22) und Web-UI (https://192.168.0.11:8006) vom Tower verifiziert. KeePassXC-Eintrag mit cmd:// URL für PuTTY One-Click-SSH. Pageant als SSH-Agent eingerichtet und Ed25519 Key geladen. Ab diesem Punkt headless — ESPRIMO braucht keinen Bildschirm mehr. IP wurde von .210 auf .11 geändert (Hardware-Schema: Tower=.10, ESPRIMO=.11).",
+          "security": "Host-Key Fingerprint beim ersten SSH-Connect verifiziert. Headless = keine lokale Konsole = kleinere physische Angriffsfläche."
+        },
+        {
+          "id": "hw-esprimo-04-base",
+          "title": "Basis-Konfiguration (Repos, SSH-Keys, vim)",
+          "status": "done",
+          "desc": "Enterprise-Repo (pve-enterprise.sources) und Ceph-Repo deaktiviert (.disabled), pve-no-subscription.list angelegt. apt full-upgrade durchgeführt. vim installiert, .vimrc deployed (syntax on, number, relativenumber, hlsearch, expandtab, tabstop=4, scrolloff=5, smartcase, wildmenu). Ed25519 SSH-Key deployed in /root/.ssh/authorized_keys. Locale auf en_US.UTF-8 gesetzt. Neues Proxmox .sources-Format (statt .list) — Dateinamen anders als bei älteren Versionen.",
+          "security": "SSH gehärtet: PermitRootLogin prohibit-password, PasswordAuthentication no, MaxAuthTries 3, PubkeyAuthentication yes. Passwort-Login komplett deaktiviert — nur Ed25519 Key. Gegentest: Pageant geschlossen → Login wird abgewiesen."
+        },
+        {
+          "id": "hw-esprimo-05-network",
+          "title": "vmbr0 VLAN-aware + Netzwerk-Bridge",
+          "status": "done",
+          "desc": "vmbr0 mit physischer NIC (nic0/Intel Gigabit) als Bridge Port, bridge-vlan-aware yes gesetzt in /etc/network/interfaces. Typo-Fix: 'bridge-vla-aware' → 'bridge-vlan-aware' (fehlte das 'n'). Datei war falsch formatiert (Zeile nach source statt davor) — komplett neu geschrieben via cat heredoc. Proxmox-Reboot nötig (ifreload reicht nicht für VLAN-aware auf bestehender Bridge). Verifiziert: ip -d link show vmbr0 | grep vlan_filtering → vlan_filtering 1. Persistente Route 10.0.0.0/8 via 192.168.0.100 in interfaces (up ip route add).",
+          "security": "VLAN-Isolation direkt auf Hardware-Ebene — kein Hyper-V dazwischen, kein MAC Spoofing Workaround mehr nötig. Traffic zwischen VLANs muss durch OPNsense Firewall."
+        },
+        {
+          "id": "hw-esprimo-06-opnsense",
+          "title": "OPNsense Firewall VM (VM 100)",
+          "status": "done",
+          "desc": "OPNsense 26.1.2 als VM 100. 3 GB RAM, 16 GB Disk (ZFS — UFS Partition destroy failed 3x trotz dd zero + disk recreate, ZFS-Installer funktionierte sofort), x86-64-v2-AES CPU, 2 NICs (net0=LAN, net1=WAN) auf vmbr0. Config-Export vom Nested OPNsense (XML), LAN-IP von .202 auf .100 geändert, Import auf neuer VM — VLANs (10/20/30/40) + Firewall-Regeln + NAT + DHCP-Relay sofort aktiv. Boot: onboot=1, order=1, up=60 (Firewall-first). Web-UI: https://192.168.0.100.",
+          "security": "AES-NI via x86-64-v2-AES für performante VPN-Verschlüsselung. Firewall bootet als erster Service (order=1, delay=60s). Config-XML enthält Passwort-Hashes — in .secrets/ gespeichert, nicht im Git."
+        },
+        {
+          "id": "hw-esprimo-07-dns",
+          "title": "AdGuard Home DNS (CT 101, dual-homed)",
+          "status": "done",
+          "desc": "AdGuard Home als LXC Container CT 101, Debian 13. RAM von 512 MB auf 1024 MB erhöht (Blocklisten-Download crashte den Container). Dual-homed: eth0=192.168.0.101/24 (Router-Netz für Handy/Mac/iPad) + eth1=10.0.1.101/24 VLAN 10 (für VLAN-Hosts). DoH Upstream: Cloudflare 1.1.1.1 + 1.0.0.1 (Privacy-first, kein Google). Umfangreiche Blocklisten aktiviert: AdGuard DNS filter, OISD Small, HaGeZi Normal, Peter Lowe's, Steven Black, Phishing Army, Threat Intelligence Feeds, NoCoin, URLHaus, Stalkerware u.v.m. Admin-User: landvogt (Bud Spencer Referenz). TP-Link Primary DNS auf 192.168.0.101 umgestellt — gesamtes Heimnetz nutzt neuen AdGuard.",
+          "security": "DNS ist kritische Infrastruktur — DoH verschlüsselt Upstream-Traffic. DNS-Blocking als erste Verteidigungslinie: Phishing, Malware, C2-Server werden auf DNS-Ebene geblockt bevor Traffic das Netz erreicht. Dual-homed ist bewusster Trade-off: größere Angriffsfläche, aber DNS muss für alle erreichbar sein."
+        },
+        {
+          "id": "hw-esprimo-08-jumphost",
+          "title": "Jumphost LXC (CT 105, Debian 13)",
+          "status": "done",
+          "desc": "LXC Container CT 105, Debian 13, 512 MB RAM, 10 GB Disk, VLAN Tag 10, IP 10.0.1.105/24. User 'landvogt' angelegt mit sudo-Rechten (usermod -aG sudo). Ed25519 SSH-Key deployed für passwortlosen Login. .vimrc deployed. rsyslog installiert mit Forwarding an 10.0.1.104:514. Ping-Fix für unprivileged LXC: chmod u+s /bin/ping. KeePassXC-Eintrag mit cmd:// URL.",
+          "security": "Jumphost = einziger SSH-Einstiegspunkt ins MGMT-VLAN. Kein root-Login — nur landvogt mit sudo. Ed25519 Key-only Auth."
+        },
+        {
+          "id": "hw-esprimo-09-dhcp",
+          "title": "Kea DHCP Server (CT 102)",
+          "status": "done",
+          "desc": "Kea DHCP als LXC Container CT 102, Debian 13, 256 MB RAM, 4 GB Disk, VLAN Tag 10, IP 10.0.1.102/24. 4 Subnetze konfiguriert: MGMT (.200-.250), SVC (.200-.250), LAB (.200-.250), DMZ (.200-.250). DHCP-Pool bewusst auf .200-.250 verschoben (statt .100-.200) damit VM-IDs (.100-.105) als statische Host-IPs nutzbar sind. DNS-Option zeigt auf 10.0.1.101 (AdGuard), NTP auf 10.0.1.103 (OpenNTPD). MAC-Reservierungen noch leer — werden mit neuen MACs der finalen VMs gefüllt. Provisioning-Template (Dpkg::Pager, locale, vim) angewendet.",
+          "security": "Unprivileged LXC — Root im Container ≠ Root auf Host. DHCP-Pool getrennt von statischen IPs: unbekannte Geräte landen im Pool, Kern-Hosts haben feste IPs."
+        },
+        {
+          "id": "hw-esprimo-10-ntp-syslog",
+          "title": "OpenNTPD (VM 103) + rsyslog (CT 104)",
+          "status": "done",
+          "desc": "NTP: OpenNTPD als VM 103 (VM weil adjtimex eigenen Kernel braucht — LXC kann das nicht, auch nicht privilegiert), Debian 13, 384 MB RAM (512 für Install, danach reduziert), 4 GB Disk, VLAN 10, IP 10.0.1.103. Config: listen on *, servers 0-3.de.pool.ntp.org. User landvogt mit sudo. Proxmox Host synct via ntpdate gegen 10.0.1.103. LXC Container erben Host-Kernel-Clock automatisch — kein separater NTP-Client in Containern nötig (ntpdate scheitert in unprivileged LXC mit 'Operation not permitted'). Syslog: rsyslog als CT 104, Debian 13, 512 MB RAM, Disk von 8 GB auf 16 GB resized (nach Syslog-Loop). VLAN 10, IP 10.0.1.104. imtcp auf 0.0.0.0:514 (Least Privilege: wird auf 10.0.1.104 eingeschränkt nach VLAN-Cutover). Template RemotePerHost sortiert Logs nach /var/log/remote/<hostname>/<programm>.log. imklog deaktiviert (LXC hat keinen /proc/kmsg). Syslog-Loop entdeckt: rsyslog-Server hatte selbst eine Forwarding-Config → schrieb empfangene Nachrichten, forwarded sie an sich selbst, empfing sie wieder → 8 GB Disk in Sekunden voll. Fix: Forward-Config auf dem Server entfernt. Empfängt von: jumphost, ntp-server, kea-dhcp, adguard.",
+          "security": "Nur TCP für Syslog (kein UDP — verhindert IP-Spoofing). Zentrales Logging überlebt wenn Angreifer lokale Logs löschen. NTP gegen Zeitmanipulation (abgelaufene Certs gültig machen, Replay-Angriffe, Log-Timestamps fälschen)."
+        },
+        {
+          "id": "hw-esprimo-11-verify",
+          "title": "Verifizierung & Connectivity-Tests",
+          "status": "done",
+          "desc": "Systematische Verifizierung aller Services: DNS-Auflösung über VLAN (nslookup google.com 10.0.1.101 ✅), DNS-Blocking (ads.google.com → 0.0.0.0 ✅), DNS für Router-Netz/Handy/iPad (192.168.0.101 ✅), Kea DHCP Config valid (kea-dhcp4 -t, 4 Subnetze ✅), NTP synct (Offset < 20ms ✅), alle Container zeitsynchron (< 1s Differenz ✅), rsyslog empfängt von 4 Hosts (jumphost/, ntp-server/, kea-dhcp/, adguard/ in /var/log/remote/ ✅), Ping vom Jumphost (nach chmod u+s /bin/ping ✅), Inter-VLAN-Routing über OPNsense ✅, OPNsense Web-UI erreichbar ✅, AdGuard Web-UI + Dashboard zeigt Traffic ✅, SSH passwortlos auf alle Hosts ✅, Windows-Tower persistente Route ins VLAN (route add 10.0.0.0 mask 255.0.0.0 192.168.0.100 -p ✅), ESPRIMO persistente Route (up ip route add 10.0.0.0/8 via 192.168.0.100 in /etc/network/interfaces ✅).",
+          "security": "Segmentierungs-Tests: VLAN-Isolation verifiziert über OPNsense Firewall-Regeln. Alle Block-Regeln auf VLAN-Interfaces aktiv."
+        },
+        {
+          "id": "hw-esprimo-12-cluster-prep",
+          "title": "Proxmox Cluster vorbereiten",
           "status": "todo",
-          "tags": [
-            "Hardware",
-            "N100",
-            "Always-On"
-          ],
-          "desc": "Dedizierter Mini-PC (Intel N100 oder ähnlich) als Always-on-Server. Läuft 24/7 mit ~10-15W, unabhängig vom Gaming-PC. Ideal für DNS, VPN-Endpunkt und Monitoring.",
-          "notes": "Eventuell durch ESPRIMO (hw-esprimo) bereits abgedeckt — Entscheidung nach ESPRIMO-Evaluation.",
-          "log": [],
-          "deferred_reason": "",
-          "origin_idea": "idea-009"
+          "desc": "Corosync-Ring konfigurieren, SSH-Trust zwischen ESPRIMO und Tower, gemeinsames Netz für Cluster-Traffic (MGMT-VLAN oder dediziertes Cluster-VLAN). pvecm create auf ESPRIMO, pvecm add auf Tower. Cluster NICHT sofort erstellen — erst wenn Tower auch Bare-Metal Proxmox hat oder Nested Proxmox als zweiter Node joinbar ist."
+        },
+        {
+          "id": "hw-esprimo-13-cutover",
+          "title": "Cutover — ESPRIMO ist Primary",
+          "status": "todo",
+          "desc": "Alle Services auf ESPRIMO verifiziert und stabil. Nested Proxmox auf Tower herunterfahren (VM stoppen, VHDX nicht löschen — Fallback). NetBox IPAM bleibt auf Tower bis Cluster steht. KeePassXC SSH-Einträge auf neue Host-Keys aktualisieren. TP-Link DNS zeigt bereits auf ESPRIMO (192.168.0.101). Tower wird On-Demand Cluster-Node."
         }
-      ]
+      ],
+      "log": [
+        {
+          "date": "2026-04-24",
+          "entry": "ESPRIMO G558 identifiziert im BIOS: i5-8500T, 16 GB RAM, ADATA 512 GB NVMe."
+        },
+        {
+          "date": "2026-04-24",
+          "entry": "RAM-Upgrade bestellt: 2x Samsung 16 GB DDR4-2400 MHz für ~100€."
+        },
+        {
+          "date": "2026-04-24",
+          "entry": "Proxmox ISO bootready auf USB-Stick. Installation startet mit 16 GB RAM."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Proxmox 9.1.1 Bare-Metal installiert auf ESPRIMO. ext4, 476 GB, Hostname homelab.local."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "IP-Schema: VM/CT-ID = letzte Stelle der VLAN-IP. Proxmox Host = .11 (Blech). DHCP-Pool verschoben auf .200-.250."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "OPNsense VM 100: ZFS Install (UFS Partition destroy failed 3x). Config-Import von Nested Setup. LAN .100, VLANs aktiv."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "AdGuard CT 101: Dual-homed (192.168.0.101 + 10.0.1.101). 1 GB RAM. DoH Cloudflare. TP-Link DNS umgestellt. Admin: landvogt."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Kea DHCP CT 102, NTP VM 103 (OpenNTPD), rsyslog CT 104, Jumphost CT 105 — alle deployed und im VLAN 10."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Syslog-Loop: rsyslog-Server hatte Forwarding-Config an sich selbst → 8 GB Disk in Sekunden voll. Fix: Forward-Config entfernt."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Verifizierung komplett: DNS, Blocking, DHCP, NTP, Syslog, Routing, SSH, Web-UIs. Sub-Steps 02-11 done."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Ausstehend: RAM-Upgrade (01), Cluster-Prep (12), Cutover Nested→ESPRIMO (13)."
+        }
+      ],
+      "deferred_reason": "",
+      "origin_idea": "idea-039"
     },
     {
-      "label": "Storage & Backup",
-      "steps": [
+      "id": "hw-pi-dns",
+      "title": "Raspberry Pi Zero 2 W – Secondary DNS",
+      "status": "todo",
+      "tags": [
+        "DNS",
+        "Raspberry Pi",
+        "HA",
+        "Redundanz",
+        "Hardware"
+      ],
+      "desc": "Pi Zero 2 W als permanenter Secondary DNS unabhängig von Proxmox. Läuft 24/7 mit ~1-2W, WLAN onboard. Bei Proxmox-Ausfall springt der Pi ein.",
+      "notes": "Pi bereits gekauft. Router Primary DNS → AdGuard (Proxmox), Secondary → Pi-IP.",
+      "log": [
         {
-          "id": "hw-nas",
-          "title": "NAS – Synology DS223j",
-          "status": "todo",
-          "tags": [
-            "NAS",
-            "Storage",
-            "Backup",
-            "Hardware",
-            "Synology",
-            "RAID"
-          ],
-          "desc": "Dediziertes NAS zum Lernen: RAID-Konzepte praktisch üben, Proxmox Backup Server (PBS) auf NAS-Storage sichern, NFS-Mount in Proxmox einbinden.",
-          "notes": "Kaufzeitpunkt: erst wenn Phase 2 abgeschlossen. Empfohlen: DS223j + 2x 4TB Seagate IronWolf CMR in RAID1 (~445€).",
-          "details": {
-            "recommended_config": "Synology DS223j + 2x 4TB Seagate IronWolf CMR (ST4000VN006) in RAID1 = 4TB nutzbar gespiegelt",
-            "cost_estimate": "DS223j ~205€ + 2x 4TB IronWolf ~240€ = ~445€ total",
-            "storage_rules": "Immer CMR kaufen, NIEMALS SMR. WD Red OHNE 'Plus' war lange SMR — immer 'WD Red Plus' oder 'Seagate IronWolf'.",
-            "integration": "NAS per NFS einbinden, als Backup-Target für PBS nutzen",
-            "learning_value": "RAID1 aufbauen, Platte rausziehen, Rebuild beobachten, verstehen was passiert"
-          },
-          "log": [
-            {
-              "date": "2026-04-19",
-              "entry": "Preisrecherche: DS223j ~205€, 2x 4TB IronWolf CMR ~240€. Gesamtkosten ~445€. Preise ~46% gestiegen seit Sep 2025."
-            }
-          ],
-          "deferred_reason": "",
-          "origin_idea": "idea-038"
+          "date": "2026-04-19",
+          "entry": "Entstand nach AdGuard-Ausfall: Single Point of Failure wenn Proxmox down."
         },
         {
-          "id": "hw-pbs",
-          "title": "Proxmox Backup Server (PBS)",
-          "status": "todo",
-          "tags": [
-            "Backup",
-            "Proxmox",
-            "PBS"
-          ],
-          "desc": "Proxmox Backup Server als eigene VM – automatische Backups aller VMs. Braucht zweites Speichermedium (NAS oder externe SSD).",
-          "notes": "Zurückgestellt bis NAS (hw-nas) oder anderes Storage verfügbar. Auf einer einzelnen SSD kein echtes Backup.",
-          "log": [
-            {
-              "date": "2026-04-16",
-              "entry": "Direkt nach der ersten Proxmox-Installation eingeplant."
-            },
-            {
-              "date": "2026-04-19",
-              "entry": "Zurückgestellt: PBS braucht zweites Speichermedium. Bis dahin: Hyper-V Snapshots + vzdump."
-            }
-          ],
-          "deferred_reason": "PBS braucht zweites Speichermedium. Auf einer einzelnen SSD kein echtes Backup.",
-          "origin_idea": "idea-010"
+          "date": "2026-04-24",
+          "entry": "Raspberry Pi Zero 2 W gekauft."
         }
-      ]
-    },
-    {
-      "label": "Netzwerk & Peripherie",
-      "steps": [
-        {
-          "id": "hw-pi-dns",
-          "title": "Raspberry Pi Zero 2 W – Secondary DNS",
-          "status": "todo",
-          "tags": [
-            "DNS",
-            "Raspberry Pi",
-            "HA",
-            "Redundanz",
-            "Hardware"
-          ],
-          "desc": "Pi Zero 2 W als permanenter Secondary DNS unabhängig von Proxmox und Hyper-V. Läuft 24/7 mit ~1-2W, WLAN onboard. Bei Proxmox-Ausfall springt der Pi ein.",
-          "notes": "Pi bereits gekauft. Architektur: Router Primary DNS → AdGuard (Proxmox), Secondary → Pi-IP. Beide laufen dieselben Blocklisten.",
-          "log": [
-            {
-              "date": "2026-04-19",
-              "entry": "Entstand nach AdGuard-Ausfall: Single Point of Failure wenn Proxmox down."
-            },
-            {
-              "date": "2026-04-24",
-              "entry": "Raspberry Pi Zero 2 W gekauft."
-            }
-          ],
-          "deferred_reason": "",
-          "origin_idea": "idea-033"
-        },
-        {
-          "id": "hw-rack",
-          "title": "Mini-Rack (6U–12U)",
-          "status": "todo",
-          "tags": [
-            "Hardware",
-            "Rack",
-            "Verkabelung"
-          ],
-          "desc": "Kleines physisches Rack für strukturiertes Verkabeln von Raspberry Pi, Switches, Patch-Panel. Macht das Homelab übersichtlicher und skalierbar.",
-          "notes": "",
-          "log": [],
-          "deferred_reason": "",
-          "origin_idea": "idea-006"
-        }
-      ]
+      ],
+      "deferred_reason": "",
+      "origin_idea": "idea-033"
     }
   ]
 }

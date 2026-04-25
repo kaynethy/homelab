@@ -100,8 +100,10 @@
 
   async function loadState() {
     try {
-      const inSubdir = window.location.pathname.includes('/phases/') || window.location.pathname.includes('/steps/') || window.location.pathname.includes('/demos/');
-      const root = inSubdir ? '../' : './';
+      const path = window.location.pathname;
+      const root = path.includes('/steps/hardware/') ? '../../'
+                 : (path.includes('/phases/') || path.includes('/steps/') || path.includes('/demos/')) ? '../'
+                 : './';
       const dataDir = root + 'phasen-ideen-deferred/';
 
       // Step 1: Hauptdatei laden (meta, hardware, phase-summaries, file-index)
@@ -204,10 +206,11 @@
 
     // Tracks asynchron laden (jeder Track feuert 'tracks-ready' wenn geladen)
     if (window.STATE && window.STATE.files && window.STATE.files.tracks) {
-      const tInSub = window.location.pathname.includes('/phases/') ||
-                     window.location.pathname.includes('/steps/') ||
-                     window.location.pathname.includes('/demos/');
-      const tDataDir = (tInSub ? '../' : './') + 'phasen-ideen-deferred/';
+      const tPath = window.location.pathname;
+      const tRoot = tPath.includes('/steps/hardware/') ? '../../'
+                  : (tPath.includes('/phases/') || tPath.includes('/steps/') || tPath.includes('/demos/')) ? '../'
+                  : './';
+      const tDataDir = tRoot + 'phasen-ideen-deferred/';
       window.STATE.tracks = window.STATE.tracks || {};
       window.STATE.files.tracks.forEach(function(trackFile) {
         fetch(tDataDir + trackFile, { cache: 'no-cache' })

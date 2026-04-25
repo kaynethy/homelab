@@ -122,6 +122,36 @@
       return;
     }
     var result = window.findStep(stepId);
+
+    // NEU: Falls nicht gefunden, in Tracks suchen (Hardware sub_steps etc.)
+    if (!result && window.STATE.tracks) {
+      var foundStep = null;
+      var foundTrackId = null;
+      Object.keys(window.STATE.tracks).forEach(function(trackId) {
+        if (foundStep) return;
+        var track = window.STATE.tracks[trackId];
+        (track.sections || []).forEach(function(sec) {
+          (sec.steps || []).forEach(function(s) {
+            if (s.id === stepId) { foundStep = s; foundTrackId = trackId; }
+            if (s.sub_steps) {
+              s.sub_steps.forEach(function(sub) {
+                if (sub.id === stepId) { foundStep = sub; foundTrackId = trackId; }
+              });
+            }
+          });
+        });
+      });
+      if (foundStep) {
+        var trackMeta = (window.STATE.tracks[foundTrackId] && window.STATE.tracks[foundTrackId].meta) || {};
+        result = {
+          step: foundStep,
+          phase: { id: foundTrackId, title: trackMeta.title || foundTrackId },
+          isTrack: true,
+          trackLabel: trackMeta.label || foundTrackId.toUpperCase()
+        };
+      }
+    }
+
     if (!result) {
       document.getElementById('step-content').innerHTML = '<p style="color:var(--muted)">Step nicht gefunden: ' + escHtml(stepId) + '</p>';
       return;
@@ -133,7 +163,11 @@
 
     document.title = 'Homelab – ' + step.title;
     document.getElementById('bc-phase').href = '../phases/' + phase.id + '.html';
-    document.getElementById('bc-phase').textContent = 'Phase ' + pNum + ' – ' + phase.title;
+    if (result.isTrack) {
+      document.getElementById('bc-phase').textContent = (result.trackLabel || phase.id.toUpperCase()) + ' – ' + phase.title;
+    } else {
+      document.getElementById('bc-phase').textContent = 'Phase ' + pNum + ' – ' + phase.title;
+    }
     document.getElementById('bc-step').textContent = step.title;
 
     renderStep(step, phase, pNum);
@@ -170,7 +204,9 @@
     document.getElementById('step-content').innerHTML =
       '<div class="step-header">' +
         '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">' +
-          '<span class="phase-num p' + pNum + '" style="display:inline-block">PHASE ' + pNum + '</span>' +
+          (pNum
+            ? '<span class="phase-num p' + pNum + '" style="display:inline-block">PHASE ' + pNum + '</span>'
+            : '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#b8733320;color:#b87333;border:1px solid #b8733340;letter-spacing:0.5px">' + escHtml(phase.id.toUpperCase()) + '</span>') +
           statusBadge +
         '</div>' +
         '<div class="step-title">' + escHtml(step.title) + '</div>' +
