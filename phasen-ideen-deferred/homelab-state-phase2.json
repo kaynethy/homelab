@@ -9,42 +9,135 @@
     "status": "active",
     "color": "blue",
     "progress": {
-      "done": 5,
-      "wip": 1,
+      "done": 6,
+      "wip": 2,
       "todo": 4,
-      "total": 10,
+      "total": 12,
       "pct": 50
     }
   },
   "steps": [
     {
-      "id": "p2-wireguard",
-      "title": "WireGuard VPN",
-      "status": "todo",
-      "tags": [
-        "VPN",
-        "WireGuard",
-        "Security"
-      ],
-      "desc": "Homelab von außen erreichbar machen. Eigener VPN-Endpunkt, sichere Verbindung von unterwegs.",
-      "log": [],
-      "notes": "",
-      "deferred_reason": ""
+  "id": "p2-wireguard",
+  "title": "WireGuard VPN",
+  "status": "done",
+  "tags": ["VPN", "WireGuard", "Security", "nftables", "Linode", "Tunnel"],
+  "desc": "Homelab von außen erreichbar über WireGuard-Tunnel. VPS plattfuss (Linode Frankfurt, 139.162.155.120) als öffentlicher Endpoint. ESPRIMO initiiert Tunnel von innen (Uni-Netz, kein Port-Forwarding nötig). Mobile Clients (Handy, Laptop, iPad) greifen über 5G/WLAN auf alle Homelab-Services zu.",
+  "notes": "WireGuard-Tunnel zwischen plattfuss (10.0.5.1) und ESPRIMO (10.0.5.2) steht. 2ms Latenz, 0% Packet Loss. Drei Mobile Clients konfiguriert: Handy (10.0.5.3), Laptop (10.0.5.4), iPad (10.0.5.5). Alle getestet — Proxmox-UI, AdGuard, Internet über VPN funktionieren. MASQUERADE auf ESPRIMO für VPN→Homelab Routing (Workaround bis OPNsense sauberes Routing übernimmt). PersistentKeepalive=25 hält Tunnel durch Uni-NAT offen.",
+  "details": {
+    "tunnel": {
+      "server": "plattfuss (Linode VPS Frankfurt)",
+      "server_vpn_ip": "10.0.5.1",
+      "server_public_ip": "139.162.155.120",
+      "client": "ESPRIMO (homelab)",
+      "client_vpn_ip": "10.0.5.2",
+      "subnet": "10.0.5.0/24 (Overlay-Netz, existiert nur im WireGuard-Tunnel)",
+      "port": "51820/udp",
+      "encryption": "ChaCha20-Poly1305",
+      "key_exchange": "Curve25519 (ECDH)",
+      "hash": "BLAKE2s",
+      "latency": "2ms (Frankfurt ↔ Mainz)",
+      "direction": "ESPRIMO initiiert Tunnel (Outbound, kein Port-Forwarding im Uni-Netz nötig)",
+      "keepalive": "PersistentKeepalive = 25 (hält NAT-Session im Uni-Netz offen)"
     },
-    {
-      "id": "p2-reverseproxy",
-      "title": "Reverse Proxy",
-      "status": "todo",
-      "tags": [
-        "Nginx",
-        "Traefik",
-        "TLS"
-      ],
-      "desc": "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
-      "log": [],
-      "notes": "",
-      "deferred_reason": ""
+    "mobile_clients": [
+      { "device": "Handy (iPhone)", "vpn_ip": "10.0.5.3", "key_file": "handy.key/pub", "config": "handy-client.conf", "status": "active", "tested_over": "5G Telekom (80.187.100.31)" },
+      { "device": "Laptop (Mac)", "vpn_ip": "10.0.5.4", "key_file": "laptop.key/pub", "config": "laptop-client.conf", "status": "active" },
+      { "device": "iPad", "vpn_ip": "10.0.5.5", "key_file": "ipad.key/pub", "config": "ipad-client.conf", "status": "active" }
+    ],
+    "client_config_template": {
+      "dns": "10.0.1.101 (AdGuard — Tracking-Schutz + Werbefilter über VPN)",
+      "allowed_ips_full_tunnel": "0.0.0.0/0 (alles über VPN, inkl. DNS + Internet)",
+      "allowed_ips_split_tunnel": "10.0.0.0/8 (nur Homelab-Traffic, Internet direkt)",
+      "endpoint": "139.162.155.120:51820",
+      "persistent_keepalive": 25
     },
+    "server_config": {
+      "config_file": "/etc/wireguard/wg0.conf",
+      "interface_address": "10.0.5.1/24",
+      "listen_port": 51820,
+      "peers": ["ESPRIMO (10.0.5.2)", "Handy (10.0.5.3)", "Laptop (10.0.5.4)", "iPad (10.0.5.5)"],
+      "esprimo_allowed_ips": "10.0.5.2/32, 10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24, 10.0.4.0/24, 192.168.0.0/24",
+      "forwarding": "net.ipv4.ip_forward = 1 (/etc/sysctl.d/99-wireguard.conf)",
+      "nftables_forward": "iifname wg0 accept, oifname wg0 accept"
+    },
+    "esprimo_config": {
+      "config_file": "/etc/wireguard/wg0.conf",
+      "interface_address": "10.0.5.2/24",
+      "peer_endpoint": "139.162.155.120:51820",
+      "allowed_ips": "10.0.5.0/24",
+      "persistent_keepalive": 25,
+      "masquerade": "iptables -t nat -A POSTROUTING -s 10.0.5.0/24 -o vmbr0 -j MASQUERADE (persistent via iptables-persistent)",
+      "masquerade_note": "Workaround: maskiert VPN-Client-IPs als ESPRIMO-IP. AdGuard sieht alle VPN-Clients als 192.168.0.11. Wird durch sauberes OPNsense-Routing ersetzt (idea-043)."
+    },
+    "opnsense_route": {
+      "network": "10.0.5.0/24",
+      "gateway": "ESPRIMO_WG (192.168.0.11)",
+      "description": "ESPRIMO_WireGuard — Traffic für VPN-Subnetz zum ESPRIMO routen"
+    },
+    "services_reachable_over_vpn": [
+      "Proxmox-UI (10.0.5.2:8006 oder 192.168.0.11:8006)",
+      "AdGuard-UI (10.0.1.101)",
+      "OPNsense-UI (192.168.0.100)",
+      "NetBox-UI (192.168.0.106:8080 oder 10.0.1.8:8080)",
+      "Alle zukünftigen Services in MGMT/SVC/LAB VLANs"
+    ],
+    "security_notes": [
+      "WireGuard-Keys: ein Keypair pro Gerät — Kompromittierung eines Keys betrifft nur ein Gerät",
+      "Private Keys niemals in Git, Chat, oder unverschlüsselt speichern — nur in KeePassXC und /etc/wireguard/ mit chmod 600",
+      "plattfuss nftables: nur SSH (22/tcp) + WireGuard (51820/udp) offen — minimale Angriffsfläche",
+      "Defense in Depth: Angreifer müsste WireGuard Key + plattfuss Zugang + OPNsense Firewall überwinden",
+      "PersistentKeepalive verhindert NAT-Timeout im Uni-Netz — Tunnel bleibt dauerhaft offen",
+      "AllowedIPs = 0.0.0.0/0 routet allen Traffic über VPN — AdGuard filtert auch unterwegs Tracking/Werbung",
+      "QR-Codes für Mobile Clients enthalten Private Keys — nie fotografieren oder teilen"
+    ],
+    "bash_learned": [
+      "wg genkey | tee private.key | wg pubkey | tee public.pub — Keypair in einer Pipe generieren",
+      "wg-quick up/down wg0 — WireGuard Interface starten/stoppen",
+      "systemctl enable wg-quick@wg0 — WireGuard beim Boot automatisch starten",
+      "sudo wg show — aktive Peers, Handshakes und Traffic anzeigen",
+      "qrencode -t ansiutf8 < config.conf — QR-Code im Terminal für Mobile-Import",
+      "tcpdump -i wg0 -n port 53 — DNS-Traffic auf dem WireGuard-Interface beobachten",
+      "iptables -t nat -A POSTROUTING -s 10.0.5.0/24 -o vmbr0 -j MASQUERADE — NAT für VPN-Traffic",
+      "sysctl -p /etc/sysctl.d/99-wireguard.conf — IP-Forwarding aktivieren ohne Reboot"
+    ],
+    "vim_learned": [
+      "G — ans Ende der Datei springen",
+      "o — neue Zeile unter Cursor, Insert Mode",
+      "/chain forward — nach Text suchen"
+    ],
+    "gotchas_learned": [
+      "Uni-Netz blockiert Inbound → WireGuard-Tunnel muss von innen initiiert werden (Outbound)",
+      "PersistentKeepalive nötig hinter NAT — ohne Keepalive schließt NAT die UDP-Session nach Minuten",
+      "MASQUERADE maskiert alle VPN-Clients als ESPRIMO-IP — AdGuard kann Geräte nicht unterscheiden",
+      "AllowedIPs = 10.0.0.0/8 → Split-Tunnel: DNS geht durch VPN aber Internet-Traffic direkt (iOS bevorzugt manchmal Mobilfunk-DNS)",
+      "AllowedIPs = 0.0.0.0/0 → Full-Tunnel: alles über VPN, DNS über AdGuard, aber gesamter Traffic über den Tunnel (langsamer)",
+      "192.168.0.x Adressen sind über VPN erreichbar wenn in AllowedIPs und plattfuss Peer-Config eingetragen",
+      "wg-quick down/up unterbricht den Tunnel kurz — PersistentKeepalive stellt ihn innerhalb von 25s wieder her",
+      "Server Private Key im Screenshot → Key nach Session rotieren"
+    ]
+  },
+  "log": [
+    { "date": "2026-04-25", "entry": "Step auf wip gesetzt. WireGuard auf plattfuss und ESPRIMO installiert." },
+    { "date": "2026-04-25", "entry": "Server-Keypair auf plattfuss generiert, Client-Keypair auf ESPRIMO. chmod 600 auf Private Keys." },
+    { "date": "2026-04-25", "entry": "Server-Config (wg0.conf) auf plattfuss: Address 10.0.5.1/24, ListenPort 51820, ESPRIMO als Peer mit AllowedIPs für alle VLANs." },
+    { "date": "2026-04-25", "entry": "Client-Config (wg0.conf) auf ESPRIMO: Address 10.0.5.2/24, Endpoint 139.162.155.120:51820, PersistentKeepalive 25." },
+    { "date": "2026-04-25", "entry": "TUNNEL STEHT: wg-quick up wg0 auf beiden Seiten. ping 10.0.5.1 ↔ 10.0.5.2 erfolgreich, 2ms Latenz, 0% Loss." },
+    { "date": "2026-04-25", "entry": "IP-Forwarding auf plattfuss aktiviert (sysctl net.ipv4.ip_forward=1). nftables forward-Chain für wg0 geöffnet." },
+    { "date": "2026-04-25", "entry": "Drei Mobile-Client-Keypairs generiert: Handy (10.0.5.3), Laptop (10.0.5.4), iPad (10.0.5.5). Alle als Peers in plattfuss wg0.conf eingetragen." },
+    { "date": "2026-04-25", "entry": "QR-Codes für Handy und iPad generiert (qrencode). Configs in KeePassXC gespeichert." },
+    { "date": "2026-04-25", "entry": "Handy-Test über 5G (Telekom 80.187.100.31): Tunnel steht, Handshake aktiv. Aber kein Zugriff auf Homelab-Services (10.0.1.x)." },
+    { "date": "2026-04-25", "entry": "Routing-Problem identifiziert: ESPRIMO empfängt VPN-Traffic auf wg0, leitet aber nicht an vmbr0 weiter. MASQUERADE-Regel fehlte." },
+    { "date": "2026-04-25", "entry": "Fix: iptables -t nat -A POSTROUTING -s 10.0.5.0/24 -o vmbr0 -j MASQUERADE. Persistent gemacht mit iptables-persistent." },
+    { "date": "2026-04-25", "entry": "OPNsense: Statische Route 10.0.5.0/24 → Gateway ESPRIMO_WG (192.168.0.11) angelegt. Apply." },
+    { "date": "2026-04-25", "entry": "AdGuard über Mobilfunk+VPN erreichbar! Internet funktioniert. DNS-Anfragen gehen über AdGuard (als 192.168.0.11 wegen MASQUERADE)." },
+    { "date": "2026-04-25", "entry": "Laptop eingerichtet und getestet — funktioniert einwandfrei." },
+    { "date": "2026-04-25", "entry": "MASQUERADE-Nebeneffekt: AdGuard sieht alle VPN-Clients als ESPRIMO-IP, nicht als individuelle VPN-IPs. Lösung als idea-043 erfasst." },
+    { "date": "2026-04-25", "entry": "Step auf DONE gesetzt. WireGuard-Tunnel funktional, 4 Clients aktiv (ESPRIMO + Handy + Laptop + iPad), Homelab von überall erreichbar." }
+  ],
+  "deferred_reason": ""
+},
+    
     {
       "id": "p2-dns",
       "title": "Interner DNS",
@@ -674,7 +767,7 @@
     {
       "id": "p2-ddns",
       "title": "Dynamisches DNS (DDNS)",
-      "status": "todo",
+      "status": "deferred",
       "tags": [
         "DDNS",
         "Cloudflare",
@@ -683,138 +776,117 @@
       "desc": "Externe Erreichbarkeit trotz wechselnder Heim-IP. Cloudflare DDNS oder DuckDNS.",
       "log": [],
       "notes": "",
-      "deferred_reason": ""
+      "deferred_reason": "Aktuell hinter Uni-Netz (JGU Mainz) — kein eigener Router, keine eigene öffentliche Heim-IP. DDNS wird erst relevant wenn wieder ein eigener Heimnetz-Anschluss mit wechselnder IP vorhanden ist. Bis dahin: Externe Erreichbarkeit läuft ausschließlich über VPS plattfuss (feste IP 139.162.155.120)."
     },
     {
-      "id": "p2-domain",
-      "title": "Eigene Domain registrieren",
-      "status": "todo",
-      "tags": [
-        "DNS",
-        "Domain",
-        "Cloudflare",
-        ".dev",
-        "HSTS"
-      ],
-      "desc": "mynooblab.dev bei Cloudflare Registrar kaufen (~12$/Jahr). .dev TLD erzwingt HTTPS (HSTS preloaded). Basis für DDNS, Reverse Proxy, WireGuard und Split-DNS.",
-      "notes": "Domain entschieden: mynooblab.dev (Cloudflare Registrar). Zweite Domain equinox151.de kommt später separat (INWX, da Cloudflare .de noch nicht unterstützt). Beide Domains können im selben Cloudflare-Account verwaltet werden.",
-      "details": {
-        "provider": "Cloudflare Registrar — at-cost Pricing, DNS automatisch konfiguriert, DNSSEC per Klick, WHOIS Privacy inklusive",
-        "domain": "mynooblab.dev",
-        "tld_security_bonus": ".dev ist auf der HSTS-Preload-Liste: Browser erzwingen HTTPS, kein HTTP möglich, kein Downgrade-Angriff",
-        "cost": "~12$/Jahr für .dev bei Cloudflare (at-cost, keine Aufschläge)",
-        "future_domain": {
-          "domain": "equinox151.de",
-          "registrar": "INWX empfohlen (deutscher Registrar, ~5€/Jahr für .de). Cloudflare unterstützt .de noch nicht (angekündigt für 2026).",
-          "integration": "Bei INWX kaufen → Nameserver auf Cloudflare umstellen → gleicher Cloudflare-Account, gleiche API, gleicher Workflow",
-          "timeline": "Kommt deutlich später — erst Homelab-Infra fertig, dann Kollektiv-Website"
-        },
-        "prerequisite_for": [
-          "p2-ddns",
-          "p2-reverseproxy",
-          "p2-wireguard"
-        ],
-        "lets_encrypt_later": "Wildcard-Zertifikate (idea-002) kommen erst mit dem Reverse Proxy — nicht Teil dieses Steps",
-        "preparation_checklist": {
-          "step_1_choose_domain": {
-            "desc": "Domain-Name gewählt ✓",
-            "chosen": "mynooblab.dev",
-            "why_dev": ".dev erzwingt HTTPS (HSTS preloaded) — Security-Bonus ohne Konfiguration. Google-Registry, stabil.",
-            "tip": "Subdomains kosten nichts extra: wiki.mynooblab.dev, git.mynooblab.dev, vpn.mynooblab.dev — alles nur DNS-Records"
-          },
-          "step_2_cloudflare_account": {
-            "desc": "Cloudflare Account erstellen (kostenlos)",
-            "url": "https://dash.cloudflare.com/sign-up",
-            "security": "Sofort 2FA aktivieren (TOTP oder Hardware-Key). Cloudflare-Account = Kontrolle über deine Domain = kritisch."
-          },
-          "step_3_register_domain": {
-            "desc": "Domain direkt bei Cloudflare Registrar kaufen",
-            "why_cloudflare_registrar": "At-cost Pricing (keine Aufschläge), DNS ist automatisch konfiguriert, kein Transfer nötig",
-            "alternative": "Bei Namecheap/INWX kaufen und dann Nameserver auf Cloudflare umstellen"
-          },
-          "step_4_api_token": {
-            "desc": "Cloudflare API Token erstellen (für DDNS + Let's Encrypt)",
-            "path": "Dashboard → My Profile → API Tokens → Create Token",
-            "permissions": "Zone:DNS:Edit — NUR DNS-Bearbeitung (Least Privilege)",
-            "storage": "Token in KeePassXC speichern, NICHT in Git oder Config-Dateien im Klartext"
-          },
-          "step_5_dns_records": {
-            "desc": "Basis-DNS-Records anlegen",
-            "external_records_cloudflare": [
-              "A Record: mynooblab.dev → öffentliche IP (wird per DDNS aktualisiert)",
-              "CNAME: *.mynooblab.dev → mynooblab.dev (Wildcard für Subdomains)",
-              "A Record: vpn.mynooblab.dev → öffentliche IP (für WireGuard)"
-            ],
-            "internal_records_adguard": [
-              "wiki.mynooblab.dev → 10.0.2.x (internes Wiki, nur im Heimnetz)",
-              "git.mynooblab.dev → 10.0.2.x (Gitea, nur im Heimnetz)",
-              "opnsense.mynooblab.dev → 10.0.1.1 (Firewall-UI, nur MGMT-VLAN)",
-              "pve.mynooblab.dev → 10.0.1.2 (Proxmox-UI, nur MGMT-VLAN)",
-              "adguard.mynooblab.dev → 10.0.1.3 (DNS-UI, nur MGMT-VLAN)"
-            ],
-            "split_dns_concept": "Extern (Cloudflare): nur 2-3 public Subdomains. Intern (AdGuard DNS-Rewrites): alle internen Services. Von außen unsichtbar = minimale Angriffsfläche."
-          },
-          "step_6_verify": {
-            "desc": "Testen ob DNS funktioniert",
-            "commands": [
-              "dig mynooblab.dev @1.1.1.1",
-              "dig vpn.mynooblab.dev @1.1.1.1",
-              "curl -s https://api.cloudflare.com/client/v4/user/tokens/verify -H 'Authorization: Bearer TOKEN'",
-              "curl -s https://mynooblab.dev -I | head -5"
-            ]
-          }
-        },
-        "domain_block_order": {
-          "desc": "Diese 4 Steps werden als Block nacheinander gemacht",
-          "order": [
-            "1. p2-domain — mynooblab.dev bei Cloudflare kaufen, 2FA, API Token",
-            "2. p2-ddns — DDNS-Client aktualisiert A-Record bei IP-Wechsel",
-            "3. p2-reverseproxy — Traefik + Let's Encrypt, Dienste über Subdomains",
-            "4. p2-wireguard — VPN über vpn.mynooblab.dev, Port-Forwarding UDP 51820"
-          ]
-        },
-        "what_to_prepare_now": [
-          "Cloudflare Account erstellen + sofort 2FA aktivieren",
-          "mynooblab.dev bei Cloudflare Registrar kaufen",
-          "Öffentliche IP herausfinden: curl -s https://ifconfig.me",
-          "TP-Link Port-Forwarding Menü finden (für WireGuard: UDP 51820)",
-          "OPNsense DDNS Plugin prüfen: System → Firmware → Plugins → os-ddclient"
-        ],
-        "security_notes": [
-          "Cloudflare API Token mit minimalen Rechten (Zone:DNS:Edit) — Least Privilege",
-          "Domain-Registrar-Account mit 2FA absichern — Domain-Hijacking ist ein realer Angriffsvektor",
-          "WHOIS Privacy: Cloudflare Registrar hat das standardmäßig aktiv",
-          "API Token ≠ Global API Key: Token hat eingeschränkte Rechte, Global Key hat vollen Zugriff. Immer Token verwenden."
-        ]
+  "id": "p2-domain",
+  "title": "Eigene Domain registrieren",
+  "status": "done",
+  "tags": ["DNS", "Domain", "Cloudflare", ".dev", "HSTS", "INWX"],
+  "desc": "mynooblab.dev bei Cloudflare Registrar. equinox151.de bei INWX mit Nameserver-Umstellung auf Cloudflare. .dev TLD erzwingt HTTPS (HSTS preloaded). Basis für VPS, Reverse Proxy, WireGuard und Split-DNS.",
+  "notes": "Beide Domains aktiv bei Cloudflare. mynooblab.dev direkt bei Cloudflare Registrar. equinox151.de bei INWX gekauft, Nameserver auf Cloudflare umgestellt (james/ziggy). API Token (Zone:DNS:Edit, mynooblab.dev) erstellt und verifiziert. 2FA auf beiden Registraren aktiv.",
+  "details": {
+    "domains": {
+      "mynooblab_dev": {
+        "registrar": "Cloudflare Registrar",
+        "dns_provider": "Cloudflare",
+        "cost": "~12$/Jahr (at-cost)",
+        "status": "active",
+        "purpose": "Homelab-Domain — Subdomains für interne und externe Services",
+        "tld_security": ".dev ist auf der HSTS-Preload-Liste: Browser erzwingen HTTPS, kein Downgrade-Angriff"
       },
-      "log": [
-        {
-          "date": "2026-04-23",
-          "entry": "Step erstellt aus idea-001. Let's Encrypt (idea-002) wieder entmerged — Certs kommen erst mit Reverse Proxy."
-        },
-        {
-          "date": "2026-04-23",
-          "entry": "Vorbereitungs-Checkliste und Domain-Block-Plan dokumentiert."
-        },
-        {
-          "date": "2026-04-23",
-          "entry": "Domain entschieden: mynooblab.dev — .dev TLD erzwingt HTTPS via HSTS Preload, ~12$/Jahr bei Cloudflare at-cost."
-        },
-        {
-          "date": "2026-04-23",
-          "entry": "Cloudflare Registrar unterstützt .de noch nicht (Stand April 2026, angekündigt). equinox151.de wird später separat bei INWX registriert."
-        },
-        {
-          "date": "2026-04-23",
-          "entry": "Split-DNS-Plan dokumentiert: Extern (Cloudflare) nur 2-3 public Subdomains, intern (AdGuard DNS-Rewrites) alle Services. Information Disclosure minimieren."
-        },
-        {
-          "date": "2026-04-23",
-          "entry": "Subdomains kosten nichts extra — sind nur DNS-Records. Unbegrenzt viele möglich."
-        }
-      ],
-      "deferred_reason": ""
+      "equinox151_de": {
+        "registrar": "INWX (5,97€ erstes Jahr, 4,65€ Verlängerung)",
+        "dns_provider": "Cloudflare (Nameserver umgestellt)",
+        "nameservers": ["james.ns.cloudflare.com", "ziggy.ns.cloudflare.com"],
+        "status": "active",
+        "registered": "2026-04-25",
+        "expires": "2027-04-25",
+        "transfer_lock": "aktiv (gesperrt)",
+        "purpose": "Equinox Kollektiv Website + Mailserver (kommerziell)",
+        "cloudflare_plan": "Free (DDoS, WAF 5 Rules, CDN, Universal SSL)"
+      }
     },
+    "cloudflare_account": {
+      "email": "yck.schulz@gmail.com",
+      "two_factor": "TOTP aktiv, Backup Codes generiert",
+      "api_token": {
+        "name": "Edit zone DNS",
+        "permissions": "Zone:DNS:Edit",
+        "scope": "Specific zone: mynooblab.dev",
+        "ip_filter": "none (dynamische IP, kein Lockdown möglich)",
+        "ttl": "kein Ablaufdatum",
+        "status": "active, verifiziert via API",
+        "storage": "KeePassXC — NICHT in Git oder Configs"
+      },
+      "api_token_todo": "Zweiten Token für equinox151.de erstellen wenn VPS steht"
+    },
+    "inwx_account": {
+      "two_factor": "aktiv",
+      "transfer_lock": "aktiv",
+      "note": "INWX bleibt Registrar, Cloudflare ist nur DNS-Provider. Nameserver ≠ Transfer."
+    },
+    "ai_crawler_blocking": {
+      "equinox151_de": "Block on all pages + robots.txt",
+      "note": "AI Training Bots werden auf allen Seiten blockiert — Content-Schutz"
+    },
+    "infrastructure_pivot": {
+      "reason": "ESPRIMO steht im Uni-Wohnheim (JGU Mainz). Öffentliche IP 134.93.69.146 gehört der Uni. Kein Port-Forwarding möglich, keine Kontrolle über Router.",
+      "decision": "Zwei dedizierte VPS bei Hetzner statt Homelab-Exposure",
+      "vps_equinox": "Equinox Website + Mailserver (eigene IP, eigener Blast Radius)",
+      "vps_gateway": "WireGuard-Relay zum Homelab (Tunnel von innen initiiert, kein Port-Forwarding nötig)",
+      "impact_on_steps": {
+        "p2-ddns": "Obsolet — feste VPS-IPs statt dynamischer Heim-IP",
+        "p2-wireguard": "Ersetzt durch p2-vps-gateway (WireGuard auf VPS statt Heim-Router)",
+        "p2-reverseproxy": "Läuft auf VPS statt im Homelab"
+      }
+    },
+    "parking_records_deleted": "INWX Parking-IP 185.181.104.242 (3 A-Records: *, equinox151.de, www) gelöscht — Subdomain-Takeover-Vektor eliminiert",
+    "prerequisite_for": ["p2-vps-equinox", "p2-vps-gateway", "p2-reverseproxy"],
+    "security_notes": [
+      "Cloudflare API Token mit minimalen Rechten (Zone:DNS:Edit) — Least Privilege",
+      "Domain-Registrar-Accounts (Cloudflare + INWX) beide mit 2FA abgesichert",
+      "INWX Transfer-Lock aktiv — Domain-Hijacking via Transfer verhindert",
+      "WHOIS Privacy: Cloudflare + INWX beide standardmäßig aktiv",
+      "API Token ≠ Global API Key: Token hat eingeschränkte Rechte. Global Key NICHT verwenden",
+      "Parking-Records sofort gelöscht — verhindert Subdomain-Takeover über verwaiste DNS-Einträge",
+      "Shell-History bereinigen nach API-Token-Nutzung (HISTCONTROL=ignoreboth)",
+      "Cloudflare Proxy-Modus versteckt VPS-Origin-IP vor Angreifern (wenn VPS steht)"
+    ],
+    "bash_learned": [
+      "curl -s URL | jq . — API-Responses menschenlesbar formatieren",
+      "history -d $(history 1 | awk '{print $1}') — letzten History-Eintrag löschen (Credential-Leak verhindern)",
+      "HISTCONTROL=ignoreboth — Befehle mit führendem Space landen nicht in History",
+      "curl -s 'https://cloudflare-dns.com/dns-query?name=DOMAIN&type=NS' -H 'accept: application/dns-json' | jq . — DNS-Lookup über DoH wenn Port 53 blockiert ist"
+    ],
+    "gotchas_learned": [
+      "Uni-Netz (JGU Mainz): Öffentliche IP gehört der Uni, kein Port-Forwarding, kein DDNS sinnvoll",
+      "Port 53 blockiert im Uni-Netz/OPNsense — dig @1.1.1.1 funktioniert nicht, DoH über curl als Workaround",
+      "Nameserver ändern ≠ Domain transferieren — Transfer-Lock kann aktiv bleiben bei NS-Wechsel",
+      "INWX Parking-Records (185.181.104.242) sofort löschen — zeigen ins Nichts, Takeover-Risiko",
+      "Proxmox Host hat weder curl noch jq vorinstalliert — apt install -y curl jq als Grundausstattung"
+    ]
+  },
+  "log": [
+    { "date": "2026-04-23", "entry": "Step erstellt aus idea-001. Let's Encrypt (idea-002) wieder entmerged." },
+    { "date": "2026-04-23", "entry": "Domain entschieden: mynooblab.dev — .dev TLD erzwingt HTTPS via HSTS Preload." },
+    { "date": "2026-04-23", "entry": "Split-DNS-Plan dokumentiert: Extern nur public Subdomains, intern alle Services." },
+    { "date": "2026-04-25", "entry": "Step auf wip gesetzt. mynooblab.dev bei Cloudflare bereits registriert und aktiv." },
+    { "date": "2026-04-25", "entry": "2FA (TOTP) auf Cloudflare-Account verifiziert — aktiv mit Backup Codes." },
+    { "date": "2026-04-25", "entry": "API Token 'Edit zone DNS' erstellt: Zone:DNS:Edit, Scope mynooblab.dev, kein IP-Filter, kein TTL. Token in KeePassXC gespeichert." },
+    { "date": "2026-04-25", "entry": "API Token verifiziert: curl gegen /client/v4/user/tokens/verify → status: active. Shell-History bereinigt." },
+    { "date": "2026-04-25", "entry": "Öffentliche IP geprüft: 134.93.69.146 = JGU Mainz Uni-Netz. Kein Port-Forwarding möglich." },
+    { "date": "2026-04-25", "entry": "Architektur-Pivot: Zwei separate Hetzner VPS geplant (Equinox Prod + Homelab Gateway) statt Homelab-Exposure. DDNS obsolet, WireGuard auf VPS." },
+    { "date": "2026-04-25", "entry": "equinox151.de bei INWX registriert (5,97€, läuft bis 25.04.2027). 2FA aktiviert, Transfer-Lock gesperrt." },
+    { "date": "2026-04-25", "entry": "equinox151.de in Cloudflare eingebunden: Free Plan, AI Bots blocked, Nameserver james.ns.cloudflare.com + ziggy.ns.cloudflare.com." },
+    { "date": "2026-04-25", "entry": "INWX Nameserver von ns.inwx.de/ns2.inwx.de/ns3.inwx.eu auf Cloudflare umgestellt." },
+    { "date": "2026-04-25", "entry": "Parking-Records gelöscht (3x A-Record auf 185.181.104.242) — Subdomain-Takeover-Vektor eliminiert." },
+    { "date": "2026-04-25", "entry": "Cloudflare zeigt 'Your domain is now protected by Cloudflare' — Propagierung abgeschlossen." },
+    { "date": "2026-04-25", "entry": "curl + jq auf Proxmox-Host (homelab) nachinstalliert — Grundausstattung für API-Arbeit." },
+    { "date": "2026-04-25", "entry": "Step auf DONE gesetzt. Beide Domains aktiv bei Cloudflare, alle Security-Maßnahmen umgesetzt." }
+  ],
+  "deferred_reason": ""
+  },
     {
       "id": "p2-syslog-ntp",
       "title": "Syslog-Server + interner NTP (OpenNTPD)",
@@ -969,6 +1041,181 @@
         }
       ],
       "deferred_reason": ""
+    },
+    {
+  "id": "p2-vps-equinox",
+  "title": "VPS Equinox Prod",
+  "status": "done",
+  "tags": [
+    "VPS",
+    "Hetzner",
+    "Equinox",
+    "Production",
+    "Webserver",
+    "Mail"
+  ],
+  "desc": "Dedizierter VPS für Equinox Website und Mailserver. Feste IPv4, öffentlich erreichbar, gehärtet. Strikte Trennung von Homelab — kompromittierter Webserver hat keinen Zugriff auf Lab-Infrastruktur.",
+  "notes": "Hetzner Cloud CAX21 ARM (Ampere), Standort Nürnberg, DSGVO-konform. Backups aktiviert. SSH Key-only mit separatem Key (equinox-prod.ppk). Domain equinox151.de live mit Let's Encrypt TLS + Cloudflare Full (Strict).",
+  "details": {
+    "provider": "Hetzner Cloud — Nürnberg (nbg1), deutsches Rechenzentrum, DSGVO-konform",
+    "plan": "CAX21 — 4 vCPU (Ampere ARM), 8 GB RAM, 80 GB SSD, 20 TB Traffic",
+    "cost": "~€12/Monat (€9,51 Server + €0,60 IPv4 + ~€1,90 Backups)",
+    "ip": "128.140.5.13 (IPv4, feste IP)",
+    "hostname": "equinox-prod",
+    "os": "Debian 13 (konsistent mit Homelab)",
+    "ssh_user": "landvogt",
+    "ssh_key": "equinox-prod.ppk (separater Ed25519 Key, Blast Radius Isolation)",
+    "keepassxc": "cmd://\"C:\\Program Files\\PuTTY\\putty.exe\" -ssh landvogt@128.140.5.13 -i \"Y:\\HomeLab\\.secrets\\equinox-prod.ppk\"",
+    "services_active": [
+      "Nginx (Webserver, equinox151.de)",
+      "Let's Encrypt TLS (Certbot, auto-renew)"
+    ],
+    "services_planned": [
+      "Mailcow (Phase 3)",
+      "Matomo (optional)",
+      "AzuraCast (optional)"
+    ],
+    "website": {
+      "repo": "github.com/kaynethy/equinox151 (privat)",
+      "stack": "Vite + React + TypeScript + Tailwind CSS",
+      "build": "npm run build → dist/",
+      "deploy_workflow": "git pull && npm install && npm run build",
+      "root": "/var/www/equinox151.de/dist",
+      "github_pat": "Fine-grained, nur equinox151 Repo, Read-only, 90 Tage Ablauf"
+    },
+    "dns": {
+      "registrar": "INWX",
+      "nameservers": "Cloudflare (james + ziggy)",
+      "records": [
+        "A @ → 128.140.5.13 (Proxied)",
+        "A www → 128.140.5.13 (Proxied)"
+      ],
+      "ssl_mode": "Full (Strict)",
+      "tls_cert": "Let's Encrypt (Certbot, ECDSA, auto-renew, expires 2026-07-25)"
+    },
+    "ports_open": [
+      "22/tcp (SSH, Key-only)",
+      "80/tcp (HTTP → HTTPS redirect via Certbot)",
+      "443/tcp (HTTPS)"
+    ],
+    "hardening_done": [
+      "SSH Key-only, PasswordAuth off, PermitRootLogin no, MaxAuthTries 3",
+      "nftables — input policy drop, nur SSH/HTTP/HTTPS offen",
+      "fail2ban aktiv",
+      "unattended-upgrades aktiv",
+      "HISTCONTROL=ignoreboth",
+      "Separater SSH-Key (equinox-prod.ppk)",
+      "Cloudflare Proxy — echte Server-IP versteckt",
+      "Security Headers: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy",
+      "Hetzner Backups aktiviert (tägliche automatische Snapshots)"
+    ],
+    "security_rationale": "Blast Radius Minimierung: Equinox Prod ist ein eigener Server mit eigener IP bei eigenem Provider (Hetzner). Kompromittierung betrifft nur Equinox, nicht das Homelab (Linode). Kein VPN-Tunnel, kein Cluster, kein geteilter SSH-Key. Separation of Concerns auf Infrastruktur-Ebene."
+  },
+  "log": [
+    "2026-04-26: VPS erstellt bei Hetzner Cloud (CAX21 ARM, Nürnberg, €12/Monat inkl. Backups)",
+    "2026-04-26: Gehärtet (SSH, nftables, fail2ban, unattended-upgrades)",
+    "2026-04-26: Nginx + equinox151 Repo deployed (Vite/React build)",
+    "2026-04-26: Let's Encrypt TLS via Certbot, Cloudflare Full (Strict)",
+    "2026-04-26: equinox151.de LIVE — Ende-zu-Ende HTTPS"
+  ],
+  "deferred_reason": ""
+},
+{
+  "id": "p2-vps-gateway",
+  "title": "VPS Homelab Gateway (plattfuss)",
+  "status": "done",
+  "tags": ["VPS", "Linode", "Akamai", "WireGuard", "VPN", "Gateway", "nftables", "Hardening"],
+  "desc": "Dedizierter VPS als VPN-Relay zum Homelab. Feste IPv4 (139.162.155.120) als WireGuard-Endpoint. Baut Tunnel zum ESPRIMO auf (initiated von innen, kein Port-Forwarding im Uni-Netz nötig). Gehärtet mit nftables, fail2ban, Key-only SSH.",
+  "notes": "Linode/Akamai Cloud, Nanode 1GB, $5/Monat, Frankfurt eu-central. Hostname plattfuss. User landvogt mit sudo, separater Ed25519 Key (plattfuss-gateway.ppk). Root-Login deaktiviert. nftables statt ufw (Lerneffekt, direkter Nachfolger von iptables). Bots klopften innerhalb von Minuten an — 34 Failed-Attempts in 30 Min, 6 IPs gebannt.",
+  "details": {
+    "provider": "Linode (Akamai Cloud) — kein Ausweis nötig, $100 Credit für 60 Tage",
+    "cost": "$5/Monat (Nanode 1GB, $100 Credit reicht ~4 Monate)",
+    "server": {
+      "name": "plattfuss",
+      "linode_id": 96640756,
+      "region": "DE, Frankfurt (eu-central)",
+      "plan": "Nanode 1GB",
+      "cpu": "1 Shared CPU Core",
+      "ram_gb": 1,
+      "storage_gb": 25,
+      "transfer_tb": 1,
+      "os": "Debian 13.2",
+      "kernel": "6.12.57+deb13-amd64",
+      "disk_encryption": true,
+      "created": "2026-04-25T17:08:00Z"
+    },
+    "network": {
+      "public_ipv4": "139.162.155.120",
+      "public_ipv6": "2a01:7e01::2000:97ff:fee9:740a",
+      "vpn_ip": "10.0.5.1",
+      "ports_open": ["22/tcp (SSH)", "51820/udp (WireGuard)"],
+      "dns_planned": "vpn.mynooblab.dev → 139.162.155.120 (DNS-only, kein Cloudflare Proxy — UDP)"
+    },
+    "tunnel_architecture": {
+      "direction": "ESPRIMO → Gateway-VPS (Outbound-initiated, kein Inbound im Uni-Netz nötig)",
+      "wireguard_subnet": "10.0.5.0/24 (Overlay-Netz, existiert nur im WireGuard-Tunnel)",
+      "why_not_dmz": "DMZ (10.0.4.0/24) ist für isolierte public-facing Services — VPN braucht Zugriff auf MGMT/SVC/LAB, das Gegenteil von DMZ-Isolation",
+      "gateway_vps_ip": "10.0.5.1 (plattfuss)",
+      "esprimo_ip": "10.0.5.2 (homelab)",
+      "mobile_client_ip": "10.0.5.3",
+      "routing": "Mobile Client → plattfuss (10.0.5.1) → WireGuard Tunnel → ESPRIMO (10.0.5.2) → OPNsense → Homelab VLANs"
+    },
+    "ssh_access": {
+      "user": "landvogt",
+      "auth": "Ed25519 Key-only (plattfuss-gateway.ppk)",
+      "root_login": "deaktiviert (PermitRootLogin no)",
+      "password_auth": "deaktiviert (PasswordAuthentication no)",
+      "max_auth_tries": 3,
+      "key_separation": "Eigener Key pro Infrastruktur-Zone: homelab-admin.ppk (intern), plattfuss-gateway.ppk (VPS Gateway), equinox-prod.ppk (VPS Equinox, geplant)"
+    },
+    "firewall": {
+      "tool": "nftables (nicht ufw — direkter Nachfolger von iptables, mehr Kontrolle, besserer Lerneffekt)",
+      "why_not_ufw": "ufw ist Abstraktions-Layer über nftables, versteckt was passiert. nftables direkt = du verstehst jede Regel",
+      "why_not_bpfilter": "bpfilter/eBPF ist die Zukunft, aber noch nicht production-ready auf Debian 13. Konzepte ähnlich, Umstieg später möglich.",
+      "config_file": "/etc/nftables.conf",
+      "rules": {
+        "input_policy": "drop (alles blocken was nicht explizit erlaubt)",
+        "allowed_inbound": ["lo (loopback)", "established/related (bestehende Verbindungen)", "ICMP/ICMPv6 (Ping, PMTUD)", "SSH tcp/22", "WireGuard udp/51820"],
+        "forward_policy": "drop (wird für WireGuard-Routing geöffnet)",
+        "output_policy": "accept"
+      }
+    },
+    "hardening_completed": [
+      "Hostname plattfuss gesetzt",
+      "Debian 13 Pager-Bug gefixt (Dpkg::Pager)",
+      "curl, jq, vim, fail2ban, unattended-upgrades installiert",
+      "User landvogt mit sudo, separater Ed25519 Key",
+      "Root-Login deaktiviert (PermitRootLogin no)",
+      "Password-Auth deaktiviert (PasswordAuthentication no)",
+      "MaxAuthTries 3",
+      "nftables: input policy drop, nur SSH + WireGuard offen",
+      "fail2ban aktiv: 6 IPs gebannt in ersten 30 Minuten",
+      "unattended-upgrades aktiviert (automatische Security-Patches)",
+      "HISTCONTROL=ignoreboth in .bashrc (Credentials nicht in History)",
+      "/etc/hosts gefixt (plattfuss Hostname-Resolution)"
+    ],
+    "security_rationale": "Eigener Server, eigene IP, eigener Blast Radius. Kompromittierung des Gateway gibt Zugang zum WireGuard-Tunnel, aber nicht zu Equinox Prod. Defense in Depth: Angreifer müsste Gateway + WireGuard Key + OPNsense Firewall überwinden um ins MGMT-VLAN zu kommen.",
+    "replaces_note": "Ersetzt das ursprüngliche p2-wireguard Konzept (Port-Forwarding am Heim-Router). WireGuard selbst kommt als eigener Step — dieser Step stellt nur den VPS als öffentlichen Endpoint bereit.",
+    "bot_reality_check": {
+      "time_to_first_attack": "< 30 Minuten nach Server-Erstellung",
+      "failed_attempts_30min": 34,
+      "ips_banned": 6,
+      "lesson": "Öffentliche Server werden sofort angegriffen. Password-Login deaktivieren ist nicht optional, sondern überlebenswichtig."
     }
+  },
+  "log": [
+    { "date": "2026-04-25", "entry": "Architektur-Entscheidung: Zwei separate VPS (Gateway + Equinox Prod) statt Homelab-Exposure. Homelab hinter Uni-Netz (JGU Mainz), kein Port-Forwarding möglich." },
+    { "date": "2026-04-25", "entry": "Linode/Akamai Account erstellt. 2FA (TOTP) aktiviert. $100 Credit für 60 Tage." },
+    { "date": "2026-04-25", "entry": "VPS plattfuss erstellt: Debian 13, Frankfurt eu-central, Nanode 1GB, $5/month, Disk Encryption aktiv." },
+    { "date": "2026-04-25", "entry": "Erster SSH-Login als root. Hostname auf plattfuss gesetzt. curl, jq, vim, ufw, fail2ban, unattended-upgrades installiert." },
+    { "date": "2026-04-25", "entry": "User landvogt erstellt mit sudo. Separater Ed25519 Key generiert (plattfuss-gateway.ppk) — Key Separation: ein Key pro Infrastruktur-Zone." },
+    { "date": "2026-04-25", "entry": "SSH gehärtet: PermitRootLogin no, PasswordAuthentication no, MaxAuthTries 3. Root-Session geschlossen." },
+    { "date": "2026-04-25", "entry": "nftables konfiguriert statt ufw: input policy drop, nur SSH (22/tcp) + WireGuard (51820/udp) offen. Bewusste Entscheidung für nftables wegen Lerneffekt und direkter Kontrolle." },
+    { "date": "2026-04-25", "entry": "fail2ban aktiv: 34 Failed SSH-Attempts in 30 Minuten, 6 IPs gebannt. Bots klopften sofort an — Reality-Check warum Hardening als erstes kommt." },
+    { "date": "2026-04-25", "entry": "unattended-upgrades aktiviert. /etc/hosts gefixt. HISTCONTROL=ignoreboth gesetzt." },
+    { "date": "2026-04-25", "entry": "Step auf DONE gesetzt. Server gehärtet und bereit für WireGuard-Tunnel-Setup." }
+  ],
+  "deferred_reason": ""
+}
   ]
 }

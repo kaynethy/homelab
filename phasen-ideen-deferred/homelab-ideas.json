@@ -592,7 +592,7 @@
       "phase_id": "phase2",
       "step_id": null,
       "prio": "high",
-      "status": "idea",
+      "status": "realized",
       "tags": [
         "Hardware",
         "Proxmox",
@@ -662,6 +662,12 @@
           "date": "2026-04-24",
           "text": "PCIe 2.0 x4 Limitierung auf M.2 Slot — NVMe-Speed halbiert (max 1.5 GB/s statt 3 GB/s). Für Homelab-VMs kein Problem, die SSD ist trotzdem 10x schneller als jede HDD.",
           "edited": false
+        },
+        {
+          "id": "c-039-4",
+          "date": "2026-04-25",
+          "text": "ESPRIMO Bare-Metal Proxmox vollständig deployed. Alle Kern-Services (OPNsense, AdGuard, Kea, NTP, rsyslog, Jumphost) laufen. VLANs aktiv. Cluster mit Tower (bulldozer) erstellt. hw-esprimo Sub-Steps 02-11 done.",
+          "edited": false
         }
       ],
       "track_id": "hardware"
@@ -692,40 +698,94 @@
       ]
     },
     {
-  "id": "idea-041",
-  "title": "Datenbankserver – MariaDB / PostgreSQL VM",
-  "desc": "Dedizierte Datenbank-VM als zentraler Backend-Service für alle Dienste im Homelab. MariaDB oder PostgreSQL je nach Anwendungsfall. Verknüpft mit dem Webserver (p3-webserver) und ermöglicht dynamische Web-Apps, Wiki-Backends, Gitea, Vaultwarden, NetBox und weitere Dienste die eine DB brauchen. Sicherer als lokale SQLite-Dateien – zentrales Backup, Zugriffssteuerung, Replikation möglich.",
-  "phase_id": "phase3",
-  "step_id": "p3-webserver",
-  "prio": "high",
+      "id": "idea-042",
+      "title": "Managed Switch – Zyxel XMG1915-10EP (VLAN-Trunking zwischen Hosts)",
+      "desc": "Managed 2.5G Switch mit VLAN-Support als physische Grundlage für Cross-Host VLANs. Ohne managed Switch können VLANs nur innerhalb eines einzelnen Proxmox-Hosts existieren — der TP-Link Archer C80 versteht keine 802.1Q VLAN-Tags und strippt sie. Mit dem Switch fließen VLANs zwischen ESPRIMO, Tower, Pi, NAS und zukünftigen Geräten sauber über Trunk-Ports.",
+      "phase_id": null,
+      "step_id": null,
+      "track_id": "hardware",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Hardware",
+        "Switch",
+        "VLAN",
+        "Netzwerk",
+        "2.5G",
+        "PoE",
+        "Security"
+      ],
+      "details": {
+        "recommended": {
+          "model": "Zyxel XMG1915-10EP",
+          "ports": "8x 2.5G RJ-45 (alle PoE++, 60W/Port) + 2x 10G SFP+",
+          "poe_budget": "130W total",
+          "management": "Smart-managed, Web-UI + Zyxel Nebula Cloud (optional, lizenzfrei)",
+          "features": "802.1Q VLAN, QoS, IGMP Snooping, LAG (static + LACP), Port Isolation, Loop Prevention",
+          "fanless": true,
+          "dimensions": "250 x 104 x 27 mm",
+          "power": "4.67W idle, 13.13W max (ohne PoE-Last)",
+          "price_eur": "~231€ (Geizhals, April 2026)"
+        },
+        "alternatives": {
+          "ohne_poe": {
+            "model": "Zyxel XMG1915-10E",
+            "desc": "Gleiche Features ohne PoE, ~173€. Spart 58€, aber kein PoE für Pi/AP.",
+            "price_eur": "~173€"
+          },
+          "mehr_ports": {
+            "model": "Zyxel XMG1915-18EP",
+            "desc": "16x 2.5G (8x PoE++) + 2x 10G SFP+, Rackmount, ~379€. Für größeres Setup.",
+            "price_eur": "~379€"
+          },
+          "budget": {
+            "model": "TP-Link TL-SG108E",
+            "desc": "8x 1G, VLAN-Support, ~19€. Günstigste Option, aber nur Gigabit und kein PoE.",
+            "price_eur": "~19€"
+          }
+        },
+        "port_plan": {
+          "port_1": "TP-Link Router (Uplink) — Trunk",
+          "port_2": "ESPRIMO (homelab) — Trunk (alle VLANs)",
+          "port_3": "Tower (bulldozer) — Trunk (alle VLANs)",
+          "port_4": "Raspberry Pi (DNS) — Access (VLAN 10)",
+          "port_5": "NAS (Synology) — Access (VLAN 10) via SFP+",
+          "port_6_8": "Frei für Erweiterung (IoT, APs, weitere Server)"
+        },
+        "requirements_met": [
+          "2x 10G SFP+ Ports (NAS-Uplink + Firewall/Server-Uplink)",
+          "Min. 6 Netzwerk-Ports (8 vorhanden, alle 2.5G)",
+          "PoE+ / PoE++ Support (802.3bt, 60W/Port, 130W Budget)",
+          "Fully managed mit VLAN, QoS, LAG",
+          "Fanless (komplett lüfterlos, passiv gekühlt)"
+        ],
+        "solves": "Ohne managed Switch können VLANs nicht zwischen physischen Hosts (ESPRIMO ↔ Tower) fließen. TP-Link Consumer-Router strippt VLAN-Tags. NetBox auf Tower ist deshalb aktuell nur über Router-Netz (192.168.0.106) erreichbar statt über VLAN-IP.",
+        "security": "Physische VLAN-Isolation über alle Hosts hinweg. Port-based Access Control. Trunk-Ports nur für Server, Access-Ports für Endgeräte. PoE-Scheduling (Ports zeitgesteuert an/aus) für Lab-Geräte."
+      },
+      "comments": [
+        {
+          "id": "c-042-1",
+          "date": "2026-04-25",
+          "text": "Preisrecherche April 2026: XMG1915-10EP ab ~231€ (Geizhals). XMG1915-10E (ohne PoE) ab ~173€. Budget-Alternative TL-SG108E ab ~19€ (nur 1G, kein PoE). Empfehlung: XMG1915-10EP — PoE für Pi/AP, 2.5G zukunftssicher, SFP+ für NAS.",
+          "edited": false
+        },
+        {
+          "id": "c-042-2",
+          "date": "2026-04-25",
+          "text": "Anforderungsanalyse basierend auf Homelab-Community-Best-Practices: SFP+ für NAS/Server-Uplink, 2.5G für alle LAN-Ports (zukunftssicher 5-10 Jahre), PoE für APs und Pi, fanless Pflicht (Arbeitsplatz-Nähe), managed für VLAN-Flexibilität.",
+          "edited": false
+        }
+      ]
+    },
+    {
+  "id": "idea-043",
+  "title": "VPN-Client-Auflösung in AdGuard — MASQUERADE durch OPNsense-Routing ersetzen",
   "status": "idea",
-  "tags": ["Datenbank", "MariaDB", "PostgreSQL", "Backend", "Web", "Security"],
-  "comments": [
-    {
-      "id": "c-041-1",
-      "date": "2026-04-25",
-      "text": "Warum dedizierte DB-VM statt lokal pro Dienst: Zentrales Backup (ein Dump statt viele), Zugriffssteuerung via DB-User (Least Privilege pro Dienst), Replikation/HA später nachrüstbar, Ressourcen skalierbar unabhängig vom App-Server.",
-      "edited": false
-    },
-    {
-      "id": "c-041-2",
-      "date": "2026-04-25",
-      "text": "MariaDB vs PostgreSQL: MariaDB für einfache Web-Apps (Gitea, Wikijs), PostgreSQL für komplexere Anwendungen (NetBox, Vaultwarden, Authentik). Beide können parallel laufen oder: eine VM mit beiden Instanzen auf verschiedenen Ports.",
-      "edited": false
-    },
-    {
-      "id": "c-041-3",
-      "date": "2026-04-25",
-      "text": "Security by Design: DB-VM hat keinen öffentlichen Zugang, nur internes Netz (10.0.2.0/24 Services-VLAN). Pro Dienst eigener DB-User mit GRANT nur auf die eigene Datenbank. Backups via mysqldump/pg_dump täglich, gesichert auf NAS (idea-038). SSL-Verbindungen zwischen App und DB erzwingen.",
-      "edited": false
-    },
-    {
-      "id": "c-041-4",
-      "date": "2026-04-25",
-      "text": "Verknüpfte Dienste: Gitea (p3-git), Vaultwarden (p3-vaultwarden), Wikijs (p3-dokuwiki), NetBox (p2-ipam), Authentik (p4-sso), Mailcow (idea-039), Grafana (p4-grafana). Ressourcen: 1-2 Cores, 2-4 GB RAM, 20-50 GB Disk.",
-      "edited": false
-    }
-  ]
- }
+  "tags": ["DNS", "AdGuard", "WireGuard", "OPNsense", "Routing", "MASQUERADE"],
+  "desc": "Aktuell maskiert MASQUERADE auf dem ESPRIMO alle VPN-Clients (10.0.5.x) als 192.168.0.11. AdGuard kann Handy/Laptop/iPad nicht unterscheiden. Ziel: MASQUERADE entfernen und sauberes Routing über OPNsense einrichten, sodass AdGuard die echten VPN-Client-IPs (10.0.5.3, .4, .5) sieht. Ermöglicht per-Client DNS-Statistiken, individuelle Filterregeln und Security-Audit (wer hat wann was aufgelöst). Hängt zusammen mit der Migration auf 10.0.1.x und dem OPNsense WireGuard-Routing.",
+  "priority": "medium",
+  "depends_on": ["ESPRIMO Migration auf 10.0.1.x", "OPNsense kennt WireGuard-Subnetz"],
+  "created": "2026-04-25"
+}
   ]
 }

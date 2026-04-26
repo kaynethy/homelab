@@ -1,51 +1,130 @@
 {
   "meta": {
-    "version": "1.0",
-    "updated": "2026-04-25",
-    "description": "Ressourcen-Übersicht aller Proxmox-Hosts und ihrer VMs/Container"
+    "version": "1.1",
+    "updated": "2026-04-26",
+    "description": "Ressourcen-Übersicht aller Hosts — Proxmox (homelab + bulldozer) + VPS (plattfuss + equinox-prod)"
   },
   "hosts": {
     "esprimo": {
+      "category": "proxmox",
       "name": "Fujitsu ESPRIMO G558",
-      "role": "Primary Host (24/7)",
+      "hostname": "homelab",
+      "role": "Primary Host (24/7, Bare-Metal)",
       "status": "active",
       "ip": "192.168.0.11",
-      "cpu": "Intel i5-8500T (6C/6T, 35W)",
-      "ram_total_gb": 16,
-      "ram_total_after_upgrade_gb": 32,
-      "ram_upgrade_pending": true,
-      "disk_total_gb": 476,
-      "ram_system_gb": 1.5,
+      "cpu": "Intel i5-8500T (6C/6T, 35W TDP)",
+      "ram": {
+        "physical_gb": 16,
+        "available_gb": 9.5,
+        "used_gb": 5.9,
+        "buff_cache_gb": 4.7,
+        "swap_gb": 4.0,
+        "upgrade_pending": true,
+        "upgrade_target_gb": 32,
+        "note": "'available' ist die relevante Zahl — Buff/Cache wird bei Bedarf freigegeben"
+      },
+      "disk": {
+        "nvme_total_gb": 476,
+        "vg_pve_total_gb": 475,
+        "vg_pve_free_gb": 16,
+        "lv_root_gb": 96,
+        "lv_root_used_gb": 6.9,
+        "lv_swap_gb": 4,
+        "thinpool_data_gb": 351.81,
+        "thinpool_data_used_pct": 4.32,
+        "thinpool_data_used_gb": 15.2,
+        "note": "Thin-Pool nur 4% belegt, effektiv ~336 GB frei"
+      },
       "os": "Proxmox VE 9.1.1 (Bare-Metal)",
       "vms": [
-        { "id": "vm100", "name": "OPNsense",     "ram_mb": 3072, "disk_gb": 16, "type": "VM",  "status": "active", "vlan": "mgmt", "ip": "10.0.1.100",  "role": "Firewall / Router" },
-        { "id": "ct101", "name": "AdGuard DNS",   "ram_mb": 1024, "disk_gb": 4,  "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.101",  "role": "DNS-Filter / DoH" },
-        { "id": "ct102", "name": "Kea DHCP",      "ram_mb": 256,  "disk_gb": 4,  "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.102",  "role": "DHCP für alle VLANs" },
-        { "id": "vm103", "name": "NTP-Server",    "ram_mb": 384,  "disk_gb": 4,  "type": "VM",  "status": "active", "vlan": "mgmt", "ip": "10.0.1.103",  "role": "OpenNTPD Zeitserver" },
-        { "id": "ct104", "name": "rsyslog",       "ram_mb": 512,  "disk_gb": 16, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.104",  "role": "Zentrales Logging" },
-        { "id": "ct105", "name": "Jumphost",      "ram_mb": 512,  "disk_gb": 10, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.105",  "role": "SSH-Sprungbrett (landvogt)" }
-      ]
+        { "id": "vm100", "name": "OPNsense", "type": "VM", "status": "running", "ram_mb": 3072, "disk_gb": 16, "disk_used_pct": 14.98, "vlan": "mgmt", "ip_vlan": "10.0.1.1", "ip_router": "192.168.0.100", "role": "Firewall / Router / Gateway" },
+        { "id": "ct101", "name": "AdGuard DNS", "type": "LXC", "status": "running", "ram_mb": 1024, "disk_gb": 4, "disk_used_pct": 25.63, "vlan": "mgmt", "ip_vlan": "10.0.1.101", "ip_router": "192.168.0.101", "role": "DNS-Filter / DoH Cloudflare" },
+        { "id": "ct102", "name": "Kea DHCP", "type": "LXC", "status": "running", "ram_mb": 256, "disk_gb": 4, "disk_used_pct": 24.53, "vlan": "mgmt", "ip_vlan": "10.0.1.102", "role": "DHCP für alle VLANs" },
+        { "id": "vm103", "name": "NTP-Server", "type": "VM", "status": "running", "ram_mb": 384, "disk_gb": 4, "disk_used_pct": 49.19, "vlan": "mgmt", "ip_vlan": "10.0.1.103", "role": "OpenNTPD Zeitserver" },
+        { "id": "ct104", "name": "rsyslog", "type": "LXC", "status": "running", "ram_mb": 512, "disk_gb": 16, "disk_used_pct": 48.23, "vlan": "mgmt", "ip_vlan": "10.0.1.104", "role": "Zentrales Logging (TCP 514)" },
+        { "id": "ct105", "name": "Jumphost", "type": "LXC", "status": "running", "ram_mb": 512, "disk_gb": 10, "disk_used_pct": 11.15, "vlan": "mgmt", "ip_vlan": "10.0.1.105", "role": "SSH-Sprungbrett (User: landvogt)" }
+      ],
+      "ram_summary": { "allocated_to_vms_mb": 5760, "proxmox_overhead_mb": 1500, "effectively_free_mb": 8740 }
     },
-    "tower": {
+    "bulldozer": {
+      "category": "proxmox",
       "name": "AMD Ryzen 7 5800X Tower",
-      "role": "Cluster-Node (On-Demand)",
-      "status": "standby",
-      "ip": "192.168.0.10",
-      "cpu": "AMD Ryzen 7 5800X (8C/16T, 105W)",
-      "ram_total_gb": 16,
-      "disk_total_gb": 249,
-      "ram_system_gb": 1.5,
-      "os": "Windows 11 + Hyper-V → Proxmox (nested)",
-      "gpu": "RTX 3060 OC 12 GB",
-      "note": "Proxmox als Hyper-V VM, 16 GB RAM zugewiesen, 249 GB LVM-Thin-Pool",
+      "hostname": "bulldozer",
+      "role": "Cluster-Node (On-Demand, Nested)",
+      "status": "active",
+      "ip_proxmox": "192.168.0.200",
+      "cpu": "AMD Ryzen 7 5800X (8C/16T, 105W TDP)",
+      "gpu": "NVIDIA RTX 3060 OC 12 GB",
+      "ram": {
+        "physical_host_gb": 64,
+        "assigned_to_proxmox_gb": 16,
+        "proxmox_available_gb": 13,
+        "proxmox_used_gb": 1.8,
+        "swap_gb": 8.0
+      },
+      "disk": {
+        "vhdx_total_gb": 299,
+        "thinpool_data_gb": 249.25,
+        "thinpool_data_used_pct": 1.28,
+        "thinpool_data_used_gb": 3.2
+      },
+      "os": "Windows 11 + Hyper-V → Proxmox VE (nested VM)",
       "vms": [
-        { "id": "ct106", "name": "NetBox IPAM", "ram_mb": 2048, "disk_gb": 16, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.8", "role": "IPAM / DCIM (Docker Compose)" }
-      ]
+        { "id": "ct106", "name": "NetBox IPAM", "type": "LXC", "status": "running", "ram_mb": 2048, "disk_gb": 10, "disk_used_pct": 31.79, "vlan": "none", "ip_router": "192.168.0.106", "role": "IPAM / DCIM (Docker Compose)" }
+      ],
+      "ram_summary": { "allocated_to_vms_mb": 2048, "proxmox_overhead_mb": 1800, "effectively_free_mb": 12152 }
+    },
+    "plattfuss": {
+      "name": "plattfuss (VPS Gateway)",
+      "hostname": "plattfuss",
+      "role": "WireGuard VPN Relay",
+      "category": "vps",
+      "provider": "Linode (Akamai)",
+      "region": "Frankfurt",
+      "status": "active",
+      "ip": "139.162.155.120",
+      "vpn_ip": "10.0.5.1",
+      "cpu": "1 Shared vCPU",
+      "cost": "$5/mo",
+      "ram": { "total_gb": 1 },
+      "disk": { "total_gb": 25 },
+      "os": "Debian 13.2",
+      "services": [
+        { "name": "WireGuard", "port": "51820/udp", "status": "active", "peers": 4 },
+        { "name": "SSH", "port": "22/tcp", "status": "active" }
+      ],
+      "hardening": ["Key-only SSH", "Root off", "nftables (drop)", "fail2ban", "unattended-upgrades"]
+    },
+    "equinox-prod": {
+      "name": "equinox-prod (Hetzner)",
+      "hostname": "equinox-prod",
+      "role": "Website + Mailserver",
+      "category": "vps",
+      "provider": "Hetzner Cloud",
+      "region": "Nürnberg",
+      "status": "active",
+      "ip": "128.140.5.13",
+      "cpu": "4 vCPU (Ampere ARM)",
+      "cost": "€12/mo",
+      "ram": { "total_gb": 8 },
+      "disk": { "total_gb": 80, "backups": true },
+      "os": "Debian 13",
+      "domain": "equinox151.de",
+      "services": [
+        { "name": "Nginx", "port": "80/443", "status": "active", "detail": "equinox151.de" },
+        { "name": "Let's Encrypt", "status": "active", "detail": "ECDSA, auto-renew" },
+        { "name": "Mailcow", "port": "25/587/993", "status": "planned", "detail": "Phase 3" }
+      ],
+      "hardening": ["Key-only SSH", "Root off", "nftables (drop)", "fail2ban", "unattended-upgrades", "Cloudflare Proxy"]
     }
   },
-  "totals": {
-    "ram_total_gb": 32,
-    "disk_total_gb": 725,
-    "note": "ESPRIMO 16 GB (→32 GB nach Upgrade) + Tower 16 GB Proxmox-VM. Disk: ESPRIMO 476 GB + Tower 249 GB."
+  "cluster": {
+    "name": "homelab-cluster",
+    "nodes": ["esprimo", "bulldozer"],
+    "quorum_note": "ESPRIMO funktioniert alleine mit pvecm expected 1",
+    "ram_total_allocated_gb": 32,
+    "ram_total_cluster_free_gb": 20.5,
+    "disk_total_thinpool_gb": 601,
+    "disk_total_thinpool_free_gb": 583
   }
 }

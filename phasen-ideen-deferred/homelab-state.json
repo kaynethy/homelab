@@ -3,10 +3,10 @@
     "version": "2.3",
     "updated": "2026-04-25",
     "description": "Homelab Roadmap – Hauptdatei mit Gesamtfortschritt und Referenzen auf Phase-Dateien",
-    "progress_pct": 42,
+    "progress_pct": 40,
     "progress_done": 16,
     "progress_wip": 1,
-    "progress_total": 38,
+    "progress_total": 40,
     "repository": {
       "url": "https://github.com/kaynethy/homelab",
       "ssh": "git@github.com:kaynethy/homelab.git",

@@ -322,6 +322,7 @@
     .topo-legend-toggle[data-toggle-subnet="svc"].active     { border-color: #4db8ff; background: rgba(77,184,255,0.08); }
     .topo-legend-toggle[data-toggle-subnet="lab"].active     { border-color: #a78bfa; background: rgba(167,139,250,0.08); }
     .topo-legend-toggle[data-toggle-subnet="dmz"].active     { border-color: #fb923c; background: rgba(251,146,60,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="vpn"].active     { border-color: #22c55e; background: rgba(34,197,94,0.08); }
     .topo-legend-sep {
       width: 1px;
       height: 14px;
@@ -370,6 +371,7 @@
       <span class="topo-legend-toggle active" data-toggle-subnet="svc"><span class="topo-legend-dot" style="background:#4db8ff"></span> SVC</span>
       <span class="topo-legend-toggle active" data-toggle-subnet="lab"><span class="topo-legend-dot" style="background:#a78bfa"></span> LAB</span>
       <span class="topo-legend-toggle active" data-toggle-subnet="dmz"><span class="topo-legend-dot" style="background:#fb923c"></span> DMZ</span>
+      <span class="topo-legend-toggle active" data-toggle-subnet="vpn"><span class="topo-legend-dot" style="background:#22c55e"></span> VPN</span>
       <span class="topo-legend-sep"></span>
       <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#22c55e"></span> erlaubt</span>
       <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#ef4444"></span> geblockt</span>
@@ -403,6 +405,7 @@
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Typ</th>
             <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">RAM</th>
             <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Disk</th>
+            <th style="text-align:right;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Used%</th>
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">VLAN</th>
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">IP</th>
             <th style="text-align:left;color:var(--muted);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px">Status</th>
@@ -418,6 +421,10 @@
   <div class="section-label">Subnetze</div>
   <div id="subnet-sections"></div>
 
+  <!-- Router-Netz (Übergang) -->
+  <div class="section-label" style="margin-top:32px">Router-Netz (Übergang)</div>
+  <div id="router-netz-section" style="margin-bottom:24px"></div>
+
   <!-- Firewall Rules -->
   <div class="section-label" style="margin-top:32px">Firewall-Regeln</div>
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px">
@@ -426,6 +433,14 @@
       <tbody></tbody>
     </table>
   </div>
+
+  <!-- VPS Infrastruktur -->
+  <div class="section-label">VPS-Infrastruktur</div>
+  <div id="vps-section" style="margin-bottom:24px"></div>
+
+  <!-- Domains -->
+  <div class="section-label">Domains</div>
+  <div id="domains-section" style="margin-bottom:24px"></div>
 
   <!-- Migration Mapping -->
   <div class="section-label">Migrations-Mapping</div>
@@ -456,7 +471,9 @@
     teal:   { fill: 'rgba(0,212,170,0.12)', stroke: '#00d4aa', text: '#00d4aa', bg: '#00d4aa' },
     blue:   { fill: 'rgba(77,184,255,0.12)', stroke: '#4db8ff', text: '#4db8ff', bg: '#4db8ff' },
     purple: { fill: 'rgba(167,139,250,0.12)', stroke: '#a78bfa', text: '#a78bfa', bg: '#a78bfa' },
-    amber:  { fill: 'rgba(251,146,60,0.12)',  stroke: '#fb923c', text: '#fb923c', bg: '#fb923c' }
+    amber:  { fill: 'rgba(251,146,60,0.12)',  stroke: '#fb923c', text: '#fb923c', bg: '#fb923c' },
+    green:  { fill: 'rgba(34,197,94,0.12)',   stroke: '#22c55e', text: '#22c55e', bg: '#22c55e' },
+    cyan:   { fill: 'rgba(0,212,255,0.12)',   stroke: '#00d4ff', text: '#00d4ff', bg: '#00d4ff' }
   };
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -466,7 +483,7 @@
   var migrationVisible = false;
   var firewallVisible = false;
   var firewallEdgeIds = [];
-  var subnetVisible = { mgmt: true, svc: true, lab: true, dmz: true };
+  var subnetVisible = { mgmt: true, svc: true, lab: true, dmz: true, vpn: true };
   var statusVisible = { active: true, planned: true };
   var POSITIONS_KEY = 'homelab_network_positions';
   var CUSTOM_DEFAULT_KEY = 'homelab_network_custom_default';
@@ -477,23 +494,23 @@
   // Layout Presets — hardcoded default + profile slots
   var LAYOUT_PRESETS = {
     "default": {
-      "1": {"x": -111, "y": -5},
-      "2": {"x": -80, "y": 150},
-      "3": {"x": 66, "y": -75},
-      "4": {"x": -384, "y": 97},
-      "5": {"x": -345, "y": 395},
-      "6": {"x": 95, "y": 393},
-      "7": {"x": 214, "y": 149},
-      "8": {"x": -249, "y": 37},
-      "9": {"x": -320, "y": -20},
-      "10": {"x": -407, "y": -58},
-      "11": {"x": -532, "y": -20},
-      "12": {"x": -584, "y": 57},
-      "13": {"x": -551, "y": 140},
-      "14": {"x": -434, "y": 211},
-      "15": {"x": -304, "y": 209},
-      "16": {"x": -184, "y": 549},
-      "17": {"x": -270, "y": 593},
+      "1":  {"x": -86,  "y": -170},
+      "2":  {"x": -80,  "y": 150},
+      "3":  {"x": 9,    "y": -63},
+      "4":  {"x": -384, "y": 97},
+      "5":  {"x": -345, "y": 395},
+      "6":  {"x": 191,  "y": 407},
+      "7":  {"x": 214,  "y": 149},
+      "8":  {"x": 264,  "y": -118},
+      "9":  {"x": -270, "y": -21},
+      "10": {"x": -352, "y": -49},
+      "11": {"x": -467, "y": -52},
+      "12": {"x": -556, "y": -27},
+      "13": {"x": -571, "y": 40},
+      "14": {"x": -559, "y": 101},
+      "15": {"x": -531, "y": 157},
+      "16": {"x": -359, "y": 286},
+      "17": {"x": -246, "y": 590},
       "18": {"x": -356, "y": 610},
       "19": {"x": -441, "y": 594},
       "20": {"x": -512, "y": 548},
@@ -502,18 +519,27 @@
       "23": {"x": -588, "y": 392},
       "24": {"x": -555, "y": 336},
       "25": {"x": -474, "y": 290},
-      "26": {"x": 260, "y": 325},
-      "27": {"x": 287, "y": 392},
-      "28": {"x": 295, "y": 448},
-      "29": {"x": 269, "y": 497},
-      "30": {"x": 196, "y": 533},
-      "31": {"x": 100, "y": 551},
-      "32": {"x": 6, "y": 527},
-      "33": {"x": -76, "y": 455},
-      "34": {"x": 380, "y": 108},
-      "35": {"x": 382, "y": 172},
-      "36": {"x": 306, "y": 45},
-      "37": {"x": 321, "y": 233}
+      "26": {"x": 60,   "y": 347},
+      "27": {"x": 337,  "y": 344},
+      "28": {"x": 385,  "y": 410},
+      "29": {"x": 371,  "y": 478},
+      "30": {"x": 277,  "y": 517},
+      "31": {"x": 170,  "y": 517},
+      "32": {"x": 52,   "y": 482},
+      "33": {"x": 24,   "y": 412},
+      "34": {"x": 215,  "y": 50},
+      "35": {"x": 345,  "y": 95},
+      "37": {"x": 380,  "y": 179},
+      "38": {"x": 280,  "y": -255},
+      "39": {"x": 422,  "y": -217},
+      "40": {"x": 488,  "y": -139},
+      "41": {"x": 492,  "y": -89},
+      "42": {"x": 492,  "y": -41},
+      "43": {"x": -251, "y": -125},
+      "44": {"x": -62,  "y": -305},
+      "45": {"x": 76,   "y": -178},
+      "46": {"x": 900,  "y": -300},
+      "47": {"x": 1060, "y": -300}
     },
     "profil1": null,
     "profil2": null
@@ -643,7 +669,10 @@
 
     renderVisTopology(N);
     renderSubnetSections(N);
+    renderRouterNetz(N);
     renderFirewall(N);
+    renderVpsInfra(N);
+    renderDomains(N);
     renderMigration(N);
     renderPrinciples(N);
     bindTopoControls(N);
@@ -694,6 +723,8 @@
   var migrationHostMap = {};
 
   function renderVisTopology(N) {
+    // Clear saved positions so new default layout applies
+    localStorage.removeItem('homelab_network_positions');
     var nodes = [];
     var edges = [];
     var nodeId = 1;
@@ -834,7 +865,7 @@
         if (h.core) tooltip += '\nCore-Infrastruktur';
 
         // Store base label for migration toggle
-        var baseLabel = h.name + '\n' + fullIp;
+        var baseLabel = (h.name === 'OPNsense (VLAN)' ? 'OPNsense VM' : h.name) + '\n' + fullIp;
 
         nodes.push({
           id: hId,
@@ -875,6 +906,161 @@
       });
     });
 
+    // ——— Ebene 4: VPS / VPN externe Nodes ———
+    var cGreen = COLOR_MAP.green;
+    var cGray  = { fill: 'rgba(90,98,120,0.08)', stroke: '#5a6278', text: '#5a6278', bg: '#5a6278' };
+
+    // VPN-Subnetz-Node (zwischen Internet und OPNsense — Overlay-Ebene)
+    var vpnSnId = nodeId++;
+    subnetNodeMap['vpn'] = vpnSnId;
+    nodes.push({
+      id: vpnSnId,
+      label: 'WireGuard VPN\n10.0.5.0/24',
+      shape: 'box',
+      x: 650, y: 200,
+      color: { background: cGreen.fill, border: cGreen.stroke, highlight: { background: cGreen.fill, border: cGreen.text } },
+      font: { color: cGreen.text, size: 12, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 2,
+      margin: { top: 10, bottom: 10, left: 14, right: 14 },
+      title: 'WireGuard Overlay-Netz\nCIDR: 10.0.5.0/24\nEndpoint: 139.162.155.120:51820\nVerbindet VPS plattfuss ↔ ESPRIMO',
+      _subnetId: 'vpn'
+    });
+
+    // VPS plattfuss — öffentlicher Internet-Node
+    var vpsId = nodeId++;
+    nodes.push({
+      id: vpsId,
+      label: 'plattfuss (VPS)\n139.162.155.120\nLinode Frankfurt',
+      shape: 'box',
+      x: 650, y: 0,
+      color: { background: cGreen.fill, border: cGreen.stroke, highlight: { background: cGreen.fill, border: cGreen.text } },
+      font: { color: cGreen.text, size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 3,
+      margin: { top: 10, bottom: 10, left: 14, right: 14 },
+      title: 'plattfuss — WireGuard VPN Gateway\nLinode Frankfurt (Nanode 1GB)\nDebian 13.2 · Ed25519 Key\nnftables: drop default, SSH (22) + WG (51820/udp)\nfail2ban aktiv · unattended-upgrades',
+      _subnetId: 'vpn',
+      _hostStatus: 'active',
+      _isHost: true
+    });
+
+    // equinox-prod — AKTIV (Hetzner Nürnberg, 128.140.5.13)
+    var cCyan = COLOR_MAP.cyan;
+    var equinoxId = nodeId++;
+    nodes.push({
+      id: equinoxId,
+      label: 'equinox-prod\n128.140.5.13\nHetzner Nürnberg',
+      shape: 'box',
+      x: 900, y: 0,
+      color: { background: cCyan.fill, border: cCyan.stroke, highlight: { background: cCyan.fill, border: cCyan.text } },
+      font: { color: cCyan.text, size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 2,
+      margin: { top: 10, bottom: 10, left: 14, right: 14 },
+      title: 'Equinox Production VPS\nHetzner Cloud, Nürnberg (nbg1)\nCAX21: 4 vCPU ARM, 8 GB RAM, 80 GB SSD\nIPv4: 128.140.5.13\nDomain: equinox151.de\nServices: Nginx + Let\'s Encrypt (aktiv), Mailcow (geplant)\nStack: Vite + React + TypeScript + Tailwind\nSSH: landvogt@128.140.5.13\n\nKomplett getrennt vom Homelab — eigener Provider, eigener Blast Radius.',
+      _subnetId: 'vpn',
+      _hostStatus: 'active',
+      _isHost: true
+    });
+
+    // Website Sub-Node
+    var eqWebsiteId = nodeId++;
+    nodes.push({
+      id: eqWebsiteId,
+      label: '🌐 Website\nequinox151.de',
+      shape: 'box',
+      x: 900, y: -200,
+      color: { background: 'rgba(0,212,255,0.08)', border: '#00d4ff80', highlight: { background: 'rgba(0,212,255,0.12)', border: '#00d4ff' } },
+      font: { color: cCyan.text, size: 10, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 1.5,
+      margin: 6,
+      title: 'Equinox Website\nNginx + Let\'s Encrypt (ECDSA)\nVite + React + TypeScript + Tailwind\nCloudflare Proxy (Full Strict)\nRepo: github.com/kaynethy/equinox151',
+      _subnetId: 'vpn',
+      _hostStatus: 'active',
+      _isHost: true
+    });
+
+    // Mailcow Sub-Node (geplant)
+    var eqMailId = nodeId++;
+    nodes.push({
+      id: eqMailId,
+      label: '📧 Mailcow\n(Phase 3)',
+      shape: 'box',
+      x: 1060, y: -200,
+      color: { background: 'rgba(90,98,120,0.08)', border: '#5a6278', highlight: { background: 'rgba(90,98,120,0.12)', border: '#5a6278' } },
+      font: { color: '#5a6278', size: 10, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 1.5,
+      shapeProperties: { borderDashes: [6, 3] },
+      margin: 6,
+      title: 'Mailcow Mailserver (geplant)\nSMTP (25), Submission (587), IMAPS (993)\nequinox151.de MX Records\nKommt in Phase 3',
+      _subnetId: 'vpn',
+      _hostStatus: 'planned',
+      _isHost: true
+    });
+
+    // equinox-prod → Website
+    edges.push({
+      from: equinoxId, to: eqWebsiteId,
+      color: { color: '#00d4ff', opacity: 0.4 },
+      width: 1, arrows: { to: { enabled: false } },
+      smooth: false,
+      _edgeType: 'subnet-link'
+    });
+    // equinox-prod → Mailcow (gestrichelt, geplant)
+    edges.push({
+      from: equinoxId, to: eqMailId,
+      color: { color: '#5a6278', opacity: 0.3 },
+      width: 1, dashes: [4, 4], arrows: { to: { enabled: false } },
+      smooth: false,
+      _edgeType: 'subnet-link'
+    });
+
+    // Internet → VPS plattfuss
+    edges.push({
+      from: internetId, to: vpsId,
+      color: { color: cGreen.stroke, opacity: 0.6, highlight: cGreen.stroke },
+      width: 1.5,
+      dashes: false,
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      smooth: { type: 'curvedCW', roundness: 0.15 },
+      _edgeType: 'infra'
+    });
+
+    // Internet → equinox-prod (aktiv, HTTPS)
+    edges.push({
+      from: internetId, to: equinoxId,
+      color: { color: cCyan.stroke, highlight: cCyan.stroke },
+      width: 1.5,
+      dashes: false,
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      label: 'HTTPS',
+      font: { color: cCyan.text, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      smooth: { type: 'curvedCW', roundness: 0.2 },
+      _edgeType: 'infra'
+    });
+
+    // VPS plattfuss → VPN-Subnetz (WireGuard-Tunnel)
+    edges.push({
+      from: vpsId, to: vpnSnId,
+      color: { color: cGreen.stroke, opacity: 0.6, highlight: cGreen.stroke },
+      width: 1.5,
+      dashes: [6, 3],
+      label: 'WG Tunnel',
+      arrows: { to: { enabled: true, scaleFactor: 0.5 }, from: { enabled: true, scaleFactor: 0.5 } },
+      font: { color: cGreen.text, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0, background: 'transparent' },
+      smooth: { type: 'curvedCW', roundness: 0.2 },
+      _edgeType: 'infra'
+    });
+
+    // VPN-Subnetz → OPNsense (Tunnel-Endpunkt im Homelab)
+    edges.push({
+      from: vpnSnId, to: opnsenseId,
+      color: { color: cGreen.stroke, opacity: 0.5, highlight: cGreen.stroke },
+      width: 1.5,
+      dashes: [6, 3],
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      smooth: { type: 'curvedCCW', roundness: 0.2 },
+      _edgeType: 'infra'
+    });
+
     // ——— Firewall rule edges between subnets ———
     function resolveSubnetTargets(name) {
       var upper = (name || '').toUpperCase().trim();
@@ -883,6 +1069,7 @@
       if (upper === 'SVC') return ['svc'];
       if (upper === 'LAB') return ['lab'];
       if (upper === 'DMZ') return ['dmz'];
+      if (upper === 'VPN') return ['vpn'];
       if (upper === 'INTERNET') return ['internet'];
       if (upper === 'ALLE SUBNETZE') return ['svc', 'lab', 'dmz'];
       if (upper === 'ALLE SUBNETZE + INTERNET') return ['svc', 'lab', 'dmz', 'internet'];
@@ -893,6 +1080,7 @@
       if (upper.startsWith('SVC')) return ['svc'];
       if (upper.startsWith('LAB')) return ['lab'];
       if (upper.startsWith('DMZ')) return ['dmz'];
+      if (upper.startsWith('VPN')) return ['vpn'];
       return [];
     }
 
@@ -1103,13 +1291,14 @@
   function filterVisibleHosts(sn) {
     return (sn.hosts || []).filter(function(h) {
       if (h.status === 'reserved') return false;
-      if (h.ip.includes('–')) return false;
+      if (h.ip.includes('–') || h.ip.includes('-')) return false;
       if (h.name.indexOf('Reserve') !== -1) return false;
       return true;
     });
   }
 
   function resolveFullIp(sn, h) {
+    if (h.vlan_ip) return h.vlan_ip;
     return sn.cidr.replace(/\.\d+\/\d+$/, '') + h.ip.replace(/^\./, '.');
   }
 
@@ -1447,10 +1636,16 @@
         html += '<div class="dhcp-info">DHCP-Range: ' + esc(sn.dhcp_range) + '</div>';
       }
 
-      // IP table
-      html += '<table class="ip-table"><thead><tr><th>IP</th><th>Host</th><th>Rolle</th><th>Status</th><th></th></tr></thead><tbody>';
+      // IP table — VMID | IP | Host | Typ | Rolle | Status | Link
+      html += '<table class="ip-table"><thead><tr><th>VMID</th><th>IP</th><th>Host</th><th>Typ</th><th>Rolle</th><th>Status</th><th></th></tr></thead><tbody>';
       (sn.hosts || []).forEach(function(h) {
         var statusClass = h.status || 'planned';
+        var fullIp = resolveFullIp(sn, h);
+        var vmid = h.vmid || '—';
+        var typ  = h.type  || '—';
+        var noteHtml = h.note
+          ? ' <span title="' + esc(h.note) + '" style="cursor:help;opacity:0.55;font-size:12px">ℹ️</span>'
+          : '';
         var ideaLink = '';
         if (h.idea_id) {
           ideaLink = '<a href="ideas.html?highlight=' + encodeURIComponent(h.idea_id) + '" class="idea-link" title="Idee anzeigen">💡 ' + esc(h.idea_id) + '</a>';
@@ -1459,14 +1654,40 @@
           ideaLink = '<a href="steps/step.html?id=' + encodeURIComponent(h.step_id) + '" class="idea-link" title="Step anzeigen">📋 ' + esc(h.step_id) + '</a>';
         }
         html += '<tr>';
-        html += '<td class="ip-col">' + esc(sn.cidr.replace(/\.\d+\/\d+$/, '') + h.ip.replace(/^\./, '.')) + '</td>';
-        html += '<td>' + esc(h.name) + (h.core ? ' <span style="font-size:9px;color:var(--accent);font-family:\'JetBrains Mono\',monospace">CORE</span>' : '') + '</td>';
+        html += '<td class="mono" style="font-size:10px;color:var(--muted)">' + esc(vmid) + '</td>';
+        html += '<td class="ip-col">' + esc(fullIp) + '</td>';
+        html += '<td>' + esc(h.name) + (h.core ? ' <span style="font-size:9px;color:var(--accent);font-family:\'JetBrains Mono\',monospace">CORE</span>' : '') + noteHtml + '</td>';
+        html += '<td style="font-size:10px;color:var(--muted);white-space:nowrap">' + esc(typ) + '</td>';
         html += '<td style="font-size:11px;color:var(--muted)">' + esc(h.role) + '</td>';
         html += '<td><span class="status-dot ' + statusClass + '"></span>' + esc(h.status || 'planned') + '</td>';
         html += '<td>' + ideaLink + '</td>';
         html += '</tr>';
       });
       html += '</tbody></table>';
+
+      // WireGuard config box (only for subnets with wireguard_config)
+      if (sn.wireguard_config) {
+        var wg = sn.wireguard_config;
+        html += '<div style="margin-top:16px;padding:14px 16px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:8px">';
+        html += '<div style="font-size:11px;font-weight:700;color:#22c55e;font-family:\'JetBrains Mono\',monospace;margin-bottom:10px;letter-spacing:0.05em">⬡ WireGuard Konfiguration</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-family:\'JetBrains Mono\',monospace;font-size:11px">';
+        if (wg.endpoint)          html += '<tr><td style="color:var(--muted);padding:3px 0;width:160px">Endpoint</td><td style="color:#c8cedd">' + esc(wg.endpoint) + '</td></tr>';
+        if (wg.dns_endpoint)      html += '<tr><td style="color:var(--muted);padding:3px 0">DNS-Endpoint</td><td style="color:#c8cedd">' + esc(wg.dns_endpoint) + '</td></tr>';
+        if (wg.port)              html += '<tr><td style="color:var(--muted);padding:3px 0">Port</td><td style="color:#c8cedd">' + esc(wg.port) + '/udp</td></tr>';
+        if (wg.encryption)        html += '<tr><td style="color:var(--muted);padding:3px 0">Verschlüsselung</td><td style="color:#c8cedd">' + esc(wg.encryption) + '</td></tr>';
+        if (wg.key_exchange)      html += '<tr><td style="color:var(--muted);padding:3px 0">Key Exchange</td><td style="color:#c8cedd">' + esc(wg.key_exchange) + '</td></tr>';
+        if (wg.tunnel_direction)  html += '<tr><td style="color:var(--muted);padding:3px 0">Richtung</td><td style="color:var(--muted);font-style:italic">' + esc(wg.tunnel_direction) + '</td></tr>';
+        if (wg.routing)           html += '<tr><td style="color:var(--muted);padding:3px 0;vertical-align:top">Routing</td><td style="color:var(--muted);font-style:italic">' + esc(wg.routing) + '</td></tr>';
+        if (wg.masquerade_note)   html += '<tr><td style="color:var(--muted);padding:3px 0;vertical-align:top">MASQUERADE</td><td style="color:#fb923c;font-style:italic">' + esc(wg.masquerade_note) + '</td></tr>';
+        if (wg.why_own_subnet)    html += '<tr><td style="color:var(--muted);padding:3px 0;vertical-align:top">Warum eigenes Subnetz</td><td style="color:var(--muted);font-style:italic">' + esc(wg.why_own_subnet) + '</td></tr>';
+        if (wg.client_config) {
+          html += '<tr><td colspan="2" style="padding-top:8px;color:var(--muted);font-weight:600">Client-Konfigurationen</td></tr>';
+          if (wg.client_config.full_tunnel)  html += '<tr><td style="color:var(--muted);padding:3px 0 3px 8px">Full Tunnel</td><td style="color:#c8cedd">' + esc(wg.client_config.full_tunnel) + '</td></tr>';
+          if (wg.client_config.split_tunnel) html += '<tr><td style="color:var(--muted);padding:3px 0 3px 8px">Split Tunnel</td><td style="color:#c8cedd">' + esc(wg.client_config.split_tunnel) + '</td></tr>';
+        }
+        html += '</table>';
+        html += '</div>';
+      }
 
       html += '</div></div>'; // body-inner, body
       html += '</div>'; // subnet-section
@@ -1506,6 +1727,208 @@
       html += '</tr>';
     });
     tbody.innerHTML = html;
+  }
+
+  /* ===================== */
+  /* Router-Netz (Übergang) */
+  /* ===================== */
+  function renderRouterNetz(N) {
+    var container = document.getElementById('router-netz-section');
+    if (!container || !N.router_netz) { if (container) container.innerHTML = ''; return; }
+    var rn = N.router_netz;
+
+    var html = '<div style="background:var(--bg2);border:1px dashed #5a6278;border-radius:10px;padding:20px">';
+    // Header
+    html += '<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">';
+    html += '<span style="font-family:\'JetBrains Mono\',monospace;font-size:13px;font-weight:700;color:#5a6278">' + esc(rn.cidr) + '</span>';
+    html += '<span style="font-size:11px;color:var(--muted)">' + esc(rn.gateway) + '</span>';
+    html += '</div>';
+    html += '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:14px">' + esc(rn.purpose) + '</div>';
+    if (rn.dns) html += '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">DNS: ' + esc(rn.dns) + '</div>';
+
+    // Host table
+    html += '<table class="ip-table"><thead><tr><th>IP</th><th>Host</th><th>Rolle</th><th>Status</th></tr></thead><tbody>';
+    (rn.hosts || []).forEach(function(h) {
+      var fullIp = '192.168.0' + (h.ip.startsWith('.') ? h.ip : '.' + h.ip);
+      var statusClass = h.status || 'active';
+      var noteHtml = h.note
+        ? ' <span title="' + esc(h.note) + '" style="cursor:help;opacity:0.55;font-size:12px">ℹ️</span>'
+        : '';
+      var migHtml = h.migration_target
+        ? ' <span style="font-size:10px;color:#eab308" title="Migrationsziel: ' + esc(h.migration_target) + '">→ ' + esc(h.migration_target) + '</span>'
+        : '';
+      html += '<tr>';
+      html += '<td class="ip-col" style="color:#5a6278">' + esc(fullIp) + '</td>';
+      html += '<td style="color:#8b92a8">' + esc(h.name) + noteHtml + '</td>';
+      html += '<td style="font-size:11px;color:var(--muted)">' + esc(h.role) + migHtml + '</td>';
+      html += '<td><span class="status-dot ' + statusClass + '"></span>' + esc(h.status || 'active') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  /* ===================== */
+  /* Domains               */
+  /* ===================== */
+  function renderDomains(N) {
+    var container = document.getElementById('domains-section');
+    if (!container || !N.domains) { if (container) container.innerHTML = ''; return; }
+    var d = N.domains;
+
+    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">';
+
+    function domainCard(name, obj) {
+      if (!obj) return;
+      html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px">';
+      html += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:700;color:#c8cedd;margin-bottom:4px">' + esc(name) + '</div>';
+      var regParts = [obj.registrar, obj.dns_provider].filter(Boolean);
+      if (regParts.length) html += '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">' + esc(regParts.join(' · ')) + '</div>';
+
+      // External DNS records
+      var extRecords = obj.dns_records_todo || obj.dns_records_planned || [];
+      if (extRecords.length) {
+        html += '<div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">DNS Records</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-family:\'JetBrains Mono\',monospace;font-size:10px">';
+        extRecords.forEach(function(r) {
+          var noteStr = r.note ? ' <span style="color:var(--muted);font-style:italic">(' + esc(r.note) + ')</span>' : '';
+          html += '<tr><td style="color:#4db8ff;padding:2px 0;width:40px">' + esc(r.type || '') + '</td>'
+            + '<td style="color:#c8cedd;padding:2px 4px">' + esc(r.name || name) + '</td>'
+            + '<td style="color:var(--muted);padding:2px 0">' + esc(r.target || 'TBD') + noteStr + '</td></tr>';
+        });
+        html += '</table>';
+      }
+
+      // Internal DNS (AdGuard)
+      var intRecords = obj.internal_dns_adguard || [];
+      if (intRecords.length) {
+        html += '<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">AdGuard Intern</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-family:\'JetBrains Mono\',monospace;font-size:10px">';
+        intRecords.forEach(function(r) {
+          var noteStr = r.note ? ' <span style="color:#eab308">(' + esc(r.note) + ')</span>' : '';
+          html += '<tr><td style="color:#00d4aa;padding:2px 0">' + esc(r.domain) + '</td>'
+            + '<td style="color:var(--muted);padding:2px 0 2px 8px">→ ' + esc(r.target) + noteStr + '</td></tr>';
+        });
+        html += '</table>';
+      }
+
+      // Security features
+      if (obj.security && obj.security.length) {
+        html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">';
+        obj.security.forEach(function(s) {
+          html += '<span style="font-size:9px;font-family:\'JetBrains Mono\',monospace;color:#22c55e;border:1px solid rgba(34,197,94,0.3);padding:2px 6px;border-radius:3px">' + esc(s) + '</span>';
+        });
+        html += '</div>';
+      }
+
+      html += '</div>';
+    }
+
+    // Render each domain from the domains object
+    Object.keys(d).forEach(function(key) {
+      var displayName = key.replace('_dev', '.dev').replace('_de', '.de').replace(/_/g, '.');
+      domainCard(displayName, d[key]);
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  /* ===================== */
+  /* VPS-Infrastruktur     */
+  /* ===================== */
+  function renderVpsInfra(N) {
+    var container = document.getElementById('vps-section');
+    if (!container) return;
+
+    // Support both old vps_infrastructure.servers and new vps array
+    var infra = N.vps_infrastructure || {};
+    var servers = infra.servers ? infra.servers : (N.vps || []);
+    if (!servers.length) { container.innerHTML = ''; return; }
+
+    var statusColor = { active: '#22c55e', planned: '#5a6278', obsolete: '#ef4444' };
+
+    var html = '';
+
+    // Provider header
+    if (infra.provider) {
+      var headerParts = [infra.provider];
+      if (infra.account) headerParts.push('Account: ' + infra.account);
+      if (infra.two_factor) headerParts.push('2FA: ' + infra.two_factor);
+      html += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted);margin-bottom:12px">' + esc(headerParts.join(' · ')) + '</div>';
+    }
+
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">';
+    servers.forEach(function(s) {
+      var sc = statusColor[s.status] || '#5a6278';
+      var dotColor = s.status === 'active' ? '#22c55e' : '#5a6278';
+      html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px">';
+
+      // Header
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+      html += '<span style="width:8px;height:8px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;display:inline-block"></span>';
+      html += '<span style="font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:700;color:#c8cedd">' + esc(s.name) + '</span>';
+      html += '<span style="margin-left:auto;font-family:\'JetBrains Mono\',monospace;font-size:10px;color:' + sc + ';padding:2px 7px;border:1px solid ' + sc + ';border-radius:4px">' + esc(s.status || 'planned') + '</span>';
+      html += '</div>';
+
+      // Role
+      var role = s.role || s.label || '';
+      if (role) html += '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-style:italic">' + esc(role) + '</div>';
+
+      // Key-value table
+      html += '<table style="width:100%;border-collapse:collapse;font-family:\'JetBrains Mono\',monospace;font-size:11px">';
+      function kv(label, val) {
+        if (!val) return;
+        html += '<tr><td style="color:var(--muted);padding:3px 0;width:130px;vertical-align:top">' + esc(label) + '</td><td style="color:#c8cedd">' + esc(val) + '</td></tr>';
+      }
+      kv('Provider', s.provider || infra.provider);
+      kv('Region / Plan', [s.location || s.region, s.plan].filter(Boolean).join(' · '));
+      kv('IPv4', s.ipv4 || s.public_ipv4);
+      kv('IPv6', s.ipv6 || s.public_ipv6);
+      kv('VPN-IP', s.vpn_ip);
+      kv('OS', s.os);
+      kv('Domain', s.domain);
+      kv('Ports', Array.isArray(s.ports) ? s.ports.join(', ') : (Array.isArray(s.ports_planned) ? s.ports_planned.join(', ') : null));
+      if (s.note) html += '<tr><td colspan="2" style="color:var(--muted);font-style:italic;padding:6px 0 0 0;font-size:10px">' + esc(s.note) + '</td></tr>';
+      html += '</table>';
+
+      // Hardening list
+      var hardeningList = s.hardening_done || (Array.isArray(s.hardening) ? s.hardening : null);
+      if (hardeningList && hardeningList.length) {
+        html += '<details style="margin-top:10px"><summary style="font-size:11px;color:var(--muted);cursor:pointer;font-family:\'JetBrains Mono\',monospace">Härtungs-Checkliste</summary>';
+        html += '<ul style="margin:6px 0 0 16px;padding:0;font-size:10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">';
+        hardeningList.forEach(function(h) {
+          html += '<li style="margin-bottom:3px">✓ ' + esc(h) + '</li>';
+        });
+        html += '</ul></details>';
+      }
+
+      // WireGuard peers
+      if (s.wireguard_peers && s.wireguard_peers.length) {
+        html += '<div style="margin-top:10px;font-size:10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">';
+        html += '<span style="color:#22c55e">Peers: </span>' + s.wireguard_peers.map(function(p) { return esc(p); }).join(', ');
+        html += '</div>';
+      }
+
+      html += '</div>'; // card
+    });
+    html += '</div>'; // grid
+
+    // SSH Key Separation
+    var keySep = infra.key_separation || [];
+    if (keySep.length) {
+      html += '<div style="margin-top:16px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px">';
+      html += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;text-transform:uppercase;letter-spacing:0.05em">SSH-Key Separation</div>';
+      html += '<table style="border-collapse:collapse;font-family:\'JetBrains Mono\',monospace;font-size:11px">';
+      keySep.forEach(function(k) {
+        html += '<tr><td style="color:#c8cedd;padding:3px 16px 3px 0;white-space:nowrap">' + esc(k.file) + '</td>'
+          + '<td style="color:var(--muted)">→ ' + esc(k.scope) + '</td></tr>';
+      });
+      html += '</table></div>';
+    }
+
+    container.innerHTML = html;
   }
 
   /* =================== */
@@ -1577,21 +2000,16 @@
   }
 
   function renderNetResources() {
-    var res = window.STATE && window.STATE.resources;
-    if (!res) return;
+    var R = window.RESOURCES;
+    if (!R || !R.hosts) return;
     var section = document.getElementById('net-res-section');
     if (!section) return;
     section.style.display = '';
 
-    var TEAL = ['#4fffb0','#00d4aa','#26c6b0','#00b894','#1db899','#42e8c8'];
-    var BLUE = ['#4db8ff','#3b9fe6','#2d87cd','#1e6fb4','#60c0ff','#80d0ff'];
-    var SYS  = '#5a6278';
-    var sysRam   = (res.proxmox_system && res.proxmox_system.ram_gb) || 1.5;
-    var allHosts = res.hosts || [];
-    var hostDefs = [
-      { key: 'esprimo', name: 'ESPRIMO G558', role: 'Primary · 24/7',      totalKey: 'proxmox_total', colors: TEAL },
-      { key: 'tower',   name: 'Ryzen Tower',  role: 'Cluster · On-Demand', totalKey: 'tower_total',   colors: BLUE }
-    ];
+    var HOST_COLORS = {
+      esprimo:   ['#4fffb0','#00d4aa','#26c6b0','#00b894','#1db899','#42e8c8'],
+      bulldozer: ['#4db8ff','#3b9fe6','#2d87cd','#1e6fb4','#60c0ff','#80d0ff']    };
+    var SYS = '#5a6278';
 
     function statBlock(usedStr, total, freeVal, freeStr, pct) {
       var col = netResBarColor(pct);
@@ -1612,55 +2030,64 @@
     var grandTotalRam = 0, grandTotalDisk = 0, grandUsedRam = 0, grandUsedDisk = 0;
     var combRam = [], combDisk = [];
 
-    hostDefs.forEach(function(hd) {
-      var tot = res[hd.totalKey];
-      if (!tot) return;
-      var totalRam = tot.ram_gb, totalDisk = tot.disk_gb;
-      grandTotalRam += totalRam; grandTotalDisk += totalDisk;
-      var vms    = allHosts.filter(function(h) { return (h.host_node || 'esprimo') === hd.key; });
-      var vmRam  = vms.reduce(function(s, h) { return s + h.ram_mb / 1024; }, 0);
-      var vmDisk = vms.reduce(function(s, h) { return s + h.disk_gb; }, 0);
-      var usedRam  = vmRam + sysRam;
-      var freeRam  = Math.max(0, totalRam  - usedRam);
-      var freeDisk = Math.max(0, totalDisk - vmDisk);
-      var ramPct  = Math.round(usedRam / totalRam  * 100);
-      var diskPct = Math.round(vmDisk  / totalDisk * 100);
-      grandUsedRam += usedRam; grandUsedDisk += vmDisk;
+    Object.keys(R.hosts).forEach(function(hostKey) {
+      var host   = R.hosts[hostKey];
+      if (host.category === 'vps') return; // VPS-Hosts überspringen
+      var colors = HOST_COLORS[hostKey] || HOST_COLORS.esprimo;
+      var totalRam  = host.ram.assigned_to_proxmox_gb || host.ram.physical_gb;
+      var totalDisk = host.disk.thinpool_data_gb;
+      var sysRam    = (host.ram_summary.proxmox_overhead_mb || 1500) / 1024;
+      var vms       = host.vms || [];
+      var vmRam     = vms.reduce(function(s, v) { return s + v.ram_mb / 1024; }, 0);
+      var usedRam   = vmRam + sysRam;
+      var freeRam   = Math.max(0, totalRam - usedRam);
+      var ramPct    = Math.round(usedRam / totalRam * 100);
+      var diskUsed  = host.disk.thinpool_data_used_gb;
+      var diskPct   = Math.round(host.disk.thinpool_data_used_pct);
+      var diskFree  = Math.max(0, totalDisk - diskUsed);
+      grandTotalRam  += totalRam;  grandTotalDisk += totalDisk;
+      grandUsedRam   += usedRam;   grandUsedDisk  += vms.reduce(function(s, v) { return s + v.disk_gb; }, 0);
 
+      var upgradeHint = host.ram.upgrade_pending
+        ? ' <span style="font-size:9px;color:#f59e0b">\u2b06 Upgrade auf ' + host.ram.upgrade_target_gb + ' GB bestellt</span>'
+        : '';
       htmlBars += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;margin-bottom:8px">'
-        + '<span style="color:' + hd.colors[0] + '">' + hd.name + '</span>'
-        + '<span style="color:var(--muted);font-weight:400;margin-left:8px">' + hd.role + '</span></div>';
+        + '<span style="color:' + colors[0] + '">' + host.name + '</span>'
+        + '<span style="color:var(--muted);font-weight:400;margin-left:8px">' + host.role + '</span>'
+        + upgradeHint + '</div>';
 
-      var ramSegs = [{ color: SYS, pct: sysRam / totalRam * 100, tooltip: hd.name + ' Proxmox System\nRAM: ' + sysRam + ' GB' }];
+      var ramSegs = [{ color: SYS, pct: sysRam / totalRam * 100, tooltip: host.name + ' Proxmox System\nRAM: ' + sysRam.toFixed(2) + ' GB' }];
       var ramLeg  = [{ color: SYS, label: 'PVE' }];
-      vms.forEach(function(h, i) {
-        var c = hd.colors[i % hd.colors.length];
-        ramSegs.push({ color: c, pct: (h.ram_mb / 1024) / totalRam * 100,
-          tooltip: h.name + ' (' + h.type + ' ' + h.id.toUpperCase() + ')\nRAM: ' + h.ram_mb + ' MB | Disk: ' + h.disk_gb + ' GB\nHost: ' + hd.name + (h.ip ? '\nIP: ' + h.ip : '') });
-        ramLeg.push({ color: c, label: h.name });
+      vms.forEach(function(vm, i) {
+        var c = colors[i % colors.length];
+        var ip = vm.ip_vlan || vm.ip_router || '';
+        ramSegs.push({ color: c, pct: (vm.ram_mb / 1024) / totalRam * 100,
+          tooltip: vm.name + ' (' + vm.type + ' ' + vm.id.toUpperCase() + ')\nRAM: ' + vm.ram_mb + ' MB | Disk: ' + vm.disk_gb + ' GB\nHost: ' + host.name + (ip ? '\nIP: ' + ip : '') });
+        ramLeg.push({ color: c, label: vm.name });
       });
       ramSegs.push({ free: true, pct: freeRam / totalRam * 100 });
+
       var diskSegs = [], diskLeg = [];
-      vms.slice().sort(function(a, b) { return b.disk_gb - a.disk_gb; }).forEach(function(h, i) {
-        var c = hd.colors[i % hd.colors.length];
-        diskSegs.push({ color: c, pct: h.disk_gb / totalDisk * 100,
-          tooltip: h.name + ' — ' + h.disk_gb + ' GB\nHost: ' + hd.name });
-        diskLeg.push({ color: c, label: h.name + ' ' + h.disk_gb + 'G' });
+      vms.slice().sort(function(a, b) { return b.disk_gb - a.disk_gb; }).forEach(function(vm, i) {
+        var c = colors[i % colors.length];
+        diskSegs.push({ color: c, pct: vm.disk_gb / totalDisk * 100,
+          tooltip: vm.name + ' \u2014 ' + vm.disk_gb + ' GB\nHost: ' + host.name });
+        diskLeg.push({ color: c, label: vm.name + ' ' + vm.disk_gb + 'G' });
       });
-      diskSegs.push({ free: true, pct: freeDisk / totalDisk * 100 });
+      diskSegs.push({ free: true, pct: diskFree / totalDisk * 100 });
 
       htmlBars += barRow('RAM',  buildNetBar(ramSegs,  netResBarColor(ramPct)),  buildNetLegend(ramLeg),
         statBlock(usedRam.toFixed(1), totalRam, freeRam, freeRam.toFixed(1) + ' GB', ramPct));
       htmlBars += '<div style="height:6px"></div>';
       htmlBars += barRow('DISK', buildNetBar(diskSegs, netResBarColor(diskPct)), buildNetLegend(diskLeg),
-        statBlock(String(vmDisk), totalDisk, freeDisk, freeDisk + ' GB', diskPct));
+        statBlock(diskUsed.toFixed(1), Math.round(totalDisk), null, diskFree.toFixed(0) + ' GB', diskPct));
       htmlBars += '<div style="height:20px"></div>';
 
-      combRam.push({ color: SYS, _v: sysRam, tooltip: hd.name + ' Proxmox System\n' + sysRam + ' GB' });
-      vms.forEach(function(h, i) {
-        var c = hd.colors[i % hd.colors.length];
-        combRam.push({ color: c, _v: h.ram_mb / 1024, tooltip: h.name + ' [' + hd.name + ']\nRAM: ' + h.ram_mb + ' MB' });
-        combDisk.push({ color: c, _v: h.disk_gb, tooltip: h.name + ' [' + hd.name + ']\nDisk: ' + h.disk_gb + ' GB' });
+      combRam.push({ color: SYS, _v: sysRam, tooltip: host.name + ' Proxmox System\n' + sysRam.toFixed(2) + ' GB' });
+      vms.forEach(function(vm, i) {
+        var c = colors[i % colors.length];
+        combRam.push({ color: c, _v: vm.ram_mb / 1024, tooltip: vm.name + ' [' + host.name + ']\nRAM: ' + vm.ram_mb + ' MB' });
+        combDisk.push({ color: c, _v: vm.disk_gb, tooltip: vm.name + ' [' + host.name + ']\nDisk: ' + vm.disk_gb + ' GB' });
       });
     });
 
@@ -1676,70 +2103,146 @@
     htmlBars += '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:10px">'
       + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Gesamt (beide Hosts)</span></div>';
     htmlBars += barRow('RAM',  buildNetBar(combRam,  netResBarColor(grandRamPct)),  '',
-      statBlock(grandUsedRam.toFixed(1),  grandTotalRam,  grandFreeRam,  grandFreeRam.toFixed(1)  + ' GB', grandRamPct));
+      statBlock(grandUsedRam.toFixed(1), grandTotalRam, grandFreeRam, grandFreeRam.toFixed(1) + ' GB', grandRamPct));
     htmlBars += '<div style="height:6px"></div>';
     htmlBars += barRow('DISK', buildNetBar(combDisk, netResBarColor(grandDiskPct)), '',
-      statBlock(String(grandUsedDisk), grandTotalDisk, grandFreeDisk, grandFreeDisk + ' GB', grandDiskPct));
+      statBlock(grandUsedDisk.toFixed(1), grandTotalDisk, grandFreeDisk, grandFreeDisk.toFixed(1) + ' GB', grandDiskPct));
     htmlBars += '<div style="display:flex;gap:16px;margin-top:10px;font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">'
       + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4fffb0;margin-right:4px"></span>ESPRIMO</span>'
-      + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4db8ff;margin-right:4px"></span>Tower</span>'
+      + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4db8ff;margin-right:4px"></span>Bulldozer</span>'
       + '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#5a6278;margin-right:4px"></span>Proxmox System</span>'
       + '</div>';
+    if (R.cluster) {
+      var cl = R.cluster;
+      htmlBars += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
+        + 'CLUSTER: ' + cl.name + ' (' + cl.nodes.length + ' Nodes)'
+        + ' \u00b7 RAM: ' + cl.ram_total_allocated_gb + ' GB zugewiesen, ~' + cl.ram_total_cluster_free_gb + ' GB frei'
+        + ' \u00b7 Thin-Pool: ' + cl.disk_total_thinpool_gb + ' GB, ~' + cl.disk_total_thinpool_free_gb + ' GB frei'
+        + '</div>';
+    }
     document.getElementById('net-res-bars').innerHTML = htmlBars;
 
     // Host table
     var tbody = document.getElementById('net-res-table-body');
     if (!tbody) return;
-    var sysRamMb = Math.round(sysRam * 1024);
-    var vmRamMbTotal = 0, vmDiskGbTotal = 0;
-    var activeHDs = hostDefs.filter(function(hd) { return !!res[hd.totalKey]; });
+    var vmRamMbTotal = 0, vmDiskGbTotal = 0, sysMbTotal = 0;
     var rows = '';
-    activeHDs.forEach(function(hd, hi) {
-      var vms = allHosts.filter(function(h) { return (h.host_node || 'esprimo') === hd.key; });
-      if (hi > 0) rows += '<tr><td colspan="9" style="height:1px;background:var(--border);padding:0"></td></tr>';
-      vms.forEach(function(h) {
-        var dot = h.status === 'active'
+    var hostKeys = Object.keys(R.hosts).filter(function(k) { return R.hosts[k].category !== 'vps'; });
+    hostKeys.forEach(function(hostKey, hi) {
+      var host   = R.hosts[hostKey];
+      var colors = HOST_COLORS[hostKey] || HOST_COLORS.esprimo;
+      var vms    = host.vms || [];
+      if (hi > 0) rows += '<tr><td colspan="10" style="height:1px;background:var(--border);padding:0"></td></tr>';
+      vms.forEach(function(vm) {
+        var isRunning = vm.status === 'running';
+        var dot = isRunning
           ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--done);margin-right:5px;vertical-align:middle"></span>'
           : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:middle"></span>';
-        var idLabel = h.id.toUpperCase().replace(/([A-Z]+)(\d+)/, '$1 $2');
-        vmRamMbTotal += h.ram_mb; vmDiskGbTotal += h.disk_gb;
+        var idLabel   = vm.id.toUpperCase().replace(/([A-Z]+)(\d+)/, '$1 $2');
+        var ip        = vm.ip_vlan || vm.ip_router || '\u2014';
+        var vlan      = (!vm.vlan || vm.vlan === 'none') ? '\u2014' : vm.vlan.toUpperCase();
+        var usedPct   = vm.disk_used_pct || 0;
+        var usedColor = usedPct >= 80 ? '#ef4444' : usedPct >= 50 ? '#f59e0b' : 'var(--accent)';
+        vmRamMbTotal += vm.ram_mb; vmDiskGbTotal += vm.disk_gb;
         rows += '<tr style="border-bottom:1px solid var(--border)">'
           + '<td style="padding:6px 10px;color:var(--muted);white-space:nowrap">' + idLabel + '</td>'
-          + '<td style="padding:6px 10px;color:var(--text)">' + h.name + '</td>'
-          + '<td style="padding:6px 10px;color:' + hd.colors[0] + ';font-size:10px;white-space:nowrap">' + hd.name + '</td>'
-          + '<td style="padding:6px 10px;color:var(--muted)">' + h.type + '</td>'
-          + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.ram_mb + ' MB</td>'
-          + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + h.disk_gb + ' GB</td>'
-          + '<td style="padding:6px 10px;color:var(--muted)">' + (h.vlan || 'mgmt').toUpperCase() + '</td>'
-          + '<td style="padding:6px 10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + (h.ip || '—') + '</td>'
-          + '<td style="padding:6px 10px">' + dot + '<span style="color:var(--muted)">' + (h.status || 'active') + '</span></td>'
+          + '<td style="padding:6px 10px;color:var(--text)">' + vm.name + '</td>'
+          + '<td style="padding:6px 10px;color:' + colors[0] + ';font-size:10px;white-space:nowrap">' + host.hostname + '</td>'
+          + '<td style="padding:6px 10px;color:var(--muted)">' + vm.type + '</td>'
+          + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + vm.ram_mb + ' MB</td>'
+          + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + vm.disk_gb + ' GB</td>'
+          + '<td style="padding:6px 10px;text-align:right;color:' + usedColor + ';font-weight:600">' + usedPct.toFixed(0) + '%</td>'
+          + '<td style="padding:6px 10px;color:var(--muted)">' + vlan + '</td>'
+          + '<td style="padding:6px 10px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + ip + '</td>'
+          + '<td style="padding:6px 10px">' + dot + '<span style="color:var(--muted)">' + vm.status + '</span></td>'
           + '</tr>';
       });
+      sysMbTotal += Math.round(host.ram_summary.proxmox_overhead_mb || 1500);
     });
     tbody.innerHTML = rows;
 
-    var sysTotalMb = sysRamMb * activeHDs.length;
     var foot = '';
-    activeHDs.forEach(function(hd) {
+    hostKeys.forEach(function(hostKey) {
+      var host     = R.hosts[hostKey];
+      var colors   = HOST_COLORS[hostKey] || HOST_COLORS.esprimo;
+      var sysRamMb = Math.round(host.ram_summary.proxmox_overhead_mb || 1500);
       foot += '<tr style="border-top:1px solid var(--border);color:var(--muted)">'
         + '<td style="padding:6px 10px">+ PVE</td>'
         + '<td style="padding:6px 10px">Proxmox Sys.</td>'
-        + '<td style="padding:6px 10px;color:' + hd.colors[0] + ';font-size:10px">' + hd.name + '</td>'
-        + '<td style="padding:6px 10px">—</td>'
+        + '<td style="padding:6px 10px;color:' + colors[0] + ';font-size:10px">' + host.hostname + '</td>'
+        + '<td style="padding:6px 10px">\u2014</td>'
         + '<td style="padding:6px 10px;text-align:right">' + sysRamMb + ' MB</td>'
-        + '<td style="padding:6px 10px;text-align:right">—</td>'
+        + '<td style="padding:6px 10px;text-align:right">\u2014</td>'
+        + '<td style="padding:6px 10px">\u2014</td>'
         + '<td colspan="3" style="padding:6px 10px">system</td></tr>';
     });
+    var gFreeRam  = Math.max(0, grandTotalRam  - grandUsedRam);
+    var gFreeDisk = Math.max(0, grandTotalDisk - grandUsedDisk);
     foot += '<tr style="border-top:2px solid var(--border2)">'
-      + '<td style="padding:6px 10px"></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Zugewiesen</td><td></td><td></td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + (vmRamMbTotal + sysTotalMb) + ' MB</td>'
+      + '<td style="padding:6px 10px"></td>'
+      + '<td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Zugewiesen</td>'
+      + '<td></td><td></td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + (vmRamMbTotal + sysMbTotal) + ' MB</td>'
       + '<td style="padding:6px 10px;text-align:right;color:var(--text)">' + vmDiskGbTotal + ' GB</td>'
-      + '<td colspan="3"></td></tr>'
-      + '<tr><td></td><td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Frei</td><td></td><td></td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + grandFreeRam.toFixed(1) + ' GB</td>'
-      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + grandFreeDisk + ' GB</td>'
-      + '<td colspan="3"></td></tr>';
+      + '<td colspan="4"></td></tr>'
+      + '<tr><td></td>'
+      + '<td style="padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Frei</td>'
+      + '<td></td><td></td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + gFreeRam.toFixed(1) + ' GB</td>'
+      + '<td style="padding:6px 10px;text-align:right;color:var(--muted)">~' + gFreeDisk.toFixed(0) + ' GB</td>'
+      + '<td colspan="4"></td></tr>';
     document.getElementById('net-res-table-foot').innerHTML = foot;
+
+    // VPS resource cards — appended after Proxmox section
+    renderNetVpsCards(R, section);
+  }
+
+  function renderNetVpsCards(R, parentSection) {
+    var vpsHosts = Object.keys(R.hosts).filter(function(k) { return R.hosts[k].category === 'vps'; });
+    var existing = document.getElementById('net-vps-cards');
+    if (existing) existing.remove();
+    if (!vpsHosts.length) return;
+
+    var totalRam = 0, totalDisk = 0, costParts = [];
+    var html = '<div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">';
+    html += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">VPS-Infrastruktur</div>';
+
+    vpsHosts.forEach(function(key) {
+      var h = R.hosts[key];
+      var isHetzner = (h.provider || '').toLowerCase().indexOf('hetzner') !== -1;
+      var accentColor = isHetzner ? '#00d4ff' : '#22c55e';
+      totalRam  += (h.ram  && h.ram.total_gb)  || 0;
+      totalDisk += (h.disk && h.disk.total_gb) || 0;
+      if (h.cost) costParts.push(h.cost);
+
+      html += '<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid ' + accentColor + ';border-radius:6px;padding:12px 16px;margin-bottom:8px;font-family:\'JetBrains Mono\',monospace">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">';
+      html += '<span style="font-size:13px;font-weight:600;color:' + accentColor + '">● ' + esc(h.hostname) + '</span>';
+      html += '<span style="font-size:11px;color:var(--muted)">' + esc(h.cost || '') + '</span>';
+      html += '</div>';
+      html += '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">' + esc(h.role) + ' · ' + esc(h.provider) + ' ' + esc(h.region) + '</div>';
+      html += '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">' + esc(h.ram.total_gb + ' GB RAM · ' + h.disk.total_gb + ' GB Disk · ' + (h.cpu || '')) + '</div>';
+      html += '<div style="font-size:11px;color:var(--muted)">' + esc(h.ip) + (h.domain ? ' · ' + esc(h.domain) : '') + '</div>';
+      if (h.services && h.services.length) {
+        html += '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">';
+        h.services.forEach(function(svc) {
+          var sColor = svc.status === 'active' ? '#22c55e' : '#5a6278';
+          var icon = svc.status === 'active' ? '✓' : '○';
+          html += '<span style="font-size:10px;color:' + sColor + '">' + icon + ' ' + esc(svc.name) + '</span>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+
+    html += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted);margin-top:4px">';
+    html += 'Gesamt VPS: ' + totalRam + ' GB RAM · ' + totalDisk + ' GB Disk · ' + costParts.join(' + ');
+    html += '</div></div>';
+
+    var div = document.createElement('div');
+    div.id = 'net-vps-cards';
+    div.innerHTML = html;
+    parentSection.appendChild(div);
   }
 
   window.toggleNetResDetails = function() {
@@ -1751,10 +2254,19 @@
     btn.textContent = open ? '▼ Details' : '▲ Details';
   };
 
-  // Trigger resources render when STATE is available
-  window.addEventListener('state-ready', renderNetResources);
-  // Also try immediately in case state already loaded before this listener
-  if (window.STATE && window.STATE.resources) renderNetResources();
+  // Trigger resources render when RESOURCES is available
+  window.addEventListener('resources-ready', renderNetResources);
+  if (window.RESOURCES) renderNetResources();
+  (function() {
+    if (window.RESOURCES) return;
+    fetch('phasen-ideen-deferred/homelab-resources.json', { cache: 'no-cache' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        window.RESOURCES = data;
+        window.dispatchEvent(new Event('resources-ready'));
+      })
+      .catch(function(e) { console.warn('[net] Resources load failed:', e); });
+  })();
   // ===== END RESSOURCEN =====
 
 })();

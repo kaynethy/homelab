@@ -102,6 +102,20 @@
           "log": [],
           "notes": "",
           "deferred_reason": ""
+        },
+        {
+          "id": "p3-reverseproxy",
+          "title": "Reverse Proxy",
+          "status": "wip",
+          "tags": [
+            "Nginx",
+            "Traefik",
+            "TLS"
+          ],
+          "desc": "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
         }
       ]
     },
@@ -111,7 +125,7 @@
         {
           "id": "p3-mail",
           "title": "Mailserver",
-          "status": "todo",
+          "status": "wip",
           "tags": [
             "Mail",
             "Mailcow",

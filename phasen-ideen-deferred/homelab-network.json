@@ -1,12 +1,12 @@
 {
   "meta": {
-    "version": "1.0",
-    "updated": "2026-04-25",
-    "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, Migrations-Mapping",
-    "status": "ESPRIMO Bare-Metal aktiv. Neues IP-Schema: VM-ID = Host-IP. VLANs aktiv auf allen Services.",
+    "version": "1.4",
+    "updated": "2026-04-26",
+    "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, VPS-Infrastruktur, WireGuard-Tunnel",
+    "status": "ESPRIMO Bare-Metal aktiv (192.168.0.11, Migration auf 10.0.1.11 pending). Proxmox Cluster mit Tower (bulldozer). VPS plattfuss live. VPS equinox-prod live. WireGuard-Tunnel aktiv mit 4 Clients. MASQUERADE entfernt — transparentes VPN-Routing über OPNsense.",
     "current_subnet": "192.168.0.0/24",
-    "target_subnets": "10.0.1-4.0/24",
-    "prerequisite": "OPNsense (p2-firewall) + VLANs (p2-vlans)"
+    "target_subnets": "10.0.1-5.0/24",
+    "migration_note": "ESPRIMO Proxmox-Host noch auf 192.168.0.11. Alle VMs/CTs bereits auf 10.0.1.x (VLAN 10). OPNsense dual-homed (192.168.0.100 + 10.0.1.1). AdGuard dual-homed (192.168.0.101 + 10.0.1.101)."
   },
   "subnets": [
     {
@@ -17,88 +17,17 @@
       "color": "teal",
       "purpose": "Kern-Infrastruktur — wenn hier was ausfällt, steht alles still",
       "dhcp_range": "10.0.1.200 – 10.0.1.250",
+      "location": "ESPRIMO (homelab)",
       "hosts": [
-        {
-          "ip": ".1",
-          "name": "OPNsense",
-          "role": "Gateway / Firewall (VM 100)",
-          "status": "active",
-          "core": true,
-          "current_ip": "192.168.0.100",
-          "vm_id": 100
-        },
-        {
-          "ip": ".11",
-          "name": "Proxmox (ESPRIMO)",
-          "role": "homelab.local — Bare-Metal Host",
-          "status": "active",
-          "core": true,
-          "current_ip": "192.168.0.11",
-          "note": "Blech, kein VLAN-Tag"
-        },
-        {
-          "ip": ".100",
-          "name": "OPNsense (VLAN)",
-          "role": "Gateway MGMT-VLAN (VM 100)",
-          "status": "active",
-          "core": true,
-          "vm_id": 100
-        },
-        {
-          "ip": ".101",
-          "name": "AdGuard DNS",
-          "role": "Primärer DNS, dual-homed (CT 101). Router-Netz: 192.168.0.101",
-          "status": "active",
-          "core": true,
-          "current_ip": "192.168.0.101",
-          "vm_id": 101
-        },
-        {
-          "ip": ".102",
-          "name": "Kea DHCP",
-          "role": "Kea DHCP – 4 Subnetze, Pool .200-.250 (CT 102)",
-          "status": "active",
-          "core": true,
-          "vm_id": 102
-        },
-        {
-          "ip": ".103",
-          "name": "NTP / OpenNTPD",
-          "role": "Zeitserver (VM 103, OpenNTPD, de.pool.ntp.org)",
-          "status": "active",
-          "core": true,
-          "vm_id": 103
-        },
-        {
-          "ip": ".104",
-          "name": "Syslog / rsyslog",
-          "role": "Zentrales Logging (CT 104, rsyslog, TCP 514, 16 GB Disk)",
-          "status": "active",
-          "core": true,
-          "vm_id": 104
-        },
-        {
-          "ip": ".105",
-          "name": "Jumphost",
-          "role": "SSH-Sprungbrett (CT 105, Debian 13, User landvogt)",
-          "status": "active",
-          "core": true,
-          "vm_id": 105
-        },
-        {
-          "ip": ".106-.199",
-          "name": "— Reserve —",
-          "role": "Weitere MGMT-Hosts (VM-ID = IP)",
-          "status": "reserved",
-          "core": false
-        },
-        {
-          "ip": ".200-.250",
-          "name": "— DHCP Pool —",
-          "role": "Dynamische Vergabe",
-          "status": "active",
-          "core": false
-        }
+        { "ip": ".1", "name": "OPNsense", "vmid": "VM 100", "type": "VM", "role": "Gateway / Firewall / NAT / VLAN-Router", "status": "active", "core": true, "vlan_ip": "10.0.1.1", "router_ip": "192.168.0.100", "note": "Dual-homed. Statische Route 10.0.5.0/24 → ESPRIMO_WG (192.168.0.11). FW-Regel: LAN Pass 10.0.5.0/24 → 10.0.1.0/24" },
+        { "ip": ".11", "name": "Proxmox (ESPRIMO)", "type": "Bare-Metal", "role": "Proxmox VE 9.1.1 Hypervisor", "status": "active", "core": true, "current_ip": "192.168.0.11", "target_ip": "10.0.1.11", "migration_status": "pending", "note": "WireGuard-Client (wg0: 10.0.5.2). MASQUERADE entfernt — transparentes Routing. IP-Forwarding aktiv." },
+        { "ip": ".101", "name": "AdGuard DNS", "vmid": "CT 101", "type": "LXC", "role": "DNS-Filter / DoH Cloudflare", "status": "active", "core": true, "vlan_ip": "10.0.1.101", "router_ip": "192.168.0.101", "note": "Dual-homed: eth0=Router-Netz, eth1=VLAN 10. Statische Route: 10.0.5.0/24 via 10.0.1.1 (persistent in /etc/network/interfaces)" },
+        { "ip": ".102", "name": "Kea DHCP", "vmid": "CT 102", "type": "LXC", "role": "DHCP für alle VLANs (4 Subnetze)", "status": "active", "core": true, "vlan_ip": "10.0.1.102" },
+        { "ip": ".103", "name": "NTP-Server", "vmid": "VM 103", "type": "VM", "role": "OpenNTPD (de.pool.ntp.org)", "status": "active", "core": true, "vlan_ip": "10.0.1.103", "note": "VM weil adjtimex eigenen Kernel braucht" },
+        { "ip": ".104", "name": "rsyslog", "vmid": "CT 104", "type": "LXC", "role": "Zentrales Logging (TCP 514)", "status": "active", "core": true, "vlan_ip": "10.0.1.104", "disk_gb": 16 },
+        { "ip": ".105", "name": "Jumphost", "vmid": "CT 105", "type": "LXC", "role": "SSH-Sprungbrett (User: landvogt)", "status": "active", "core": true, "vlan_ip": "10.0.1.105" },
+        { "ip": ".9", "name": "— Reserve —", "role": "Proxmox Backup Server (PBS)", "status": "reserved", "core": false, "idea_id": "idea-010" },
+        { "ip": ".10", "name": "— Reserve —", "role": "Weitere Management-Infra", "status": "reserved", "core": false }
       ],
       "vlan_tag": 10,
       "opnsense_interface": "vlan01"
@@ -111,108 +40,21 @@
       "color": "blue",
       "purpose": "Self-hosted Apps — erweiterbar, mit Lücken für Wachstum",
       "dhcp_range": "10.0.2.200 – 10.0.2.250",
+      "location": "ESPRIMO (homelab)",
       "hosts": [
-        {
-          "ip": ".1",
-          "name": "OPNsense",
-          "role": "Gateway",
-          "status": "active",
-          "core": true,
-          "current_ip": "192.168.0.202"
-        },
-        {
-          "ip": ".10",
-          "name": "Reverse Proxy",
-          "role": "Nginx / Traefik (TLS-Terminierung)",
-          "status": "planned",
-          "core": false,
-          "step_id": "p2-reverseproxy"
-        },
-        {
-          "ip": ".11",
-          "name": "Vaultwarden",
-          "role": "Passwort-Manager",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-vaultwarden"
-        },
-        {
-          "ip": ".12",
-          "name": "Gitea",
-          "role": "Git Server",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-git"
-        },
-        {
-          "ip": ".13",
-          "name": "DokuWiki",
-          "role": "Internes Wiki",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-dokuwiki"
-        },
-        {
-          "ip": ".14",
-          "name": "n8n",
-          "role": "Workflow-Automation",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-n8n"
-        },
-        {
-          "ip": ".15 – .19",
-          "name": "— Reserve —",
-          "role": "Weitere Kern-Services",
-          "status": "reserved",
-          "core": false
-        },
-        {
-          "ip": ".20",
-          "name": "Webserver",
-          "role": "Nginx / Caddy",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-webserver"
-        },
-        {
-          "ip": ".21",
-          "name": "Mailserver",
-          "role": "Mailcow / Maddy",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-mail"
-        },
-        {
-          "ip": ".22",
-          "name": "Chat / Ntfy",
-          "role": "Matrix oder Ntfy",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-chat"
-        },
-        {
-          "ip": ".23 – .29",
-          "name": "— Reserve —",
-          "role": "Weitere Kommunikation",
-          "status": "reserved",
-          "core": false
-        },
-        {
-          "ip": ".30",
-          "name": "Home Assistant",
-          "role": "Smarthome",
-          "status": "planned",
-          "core": false,
-          "idea_id": "idea-025"
-        },
-        {
-          "ip": ".31 – .49",
-          "name": "— Reserve —",
-          "role": "Weitere Dienste",
-          "status": "reserved",
-          "core": false
-        }
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway", "status": "active", "core": true, "vlan_ip": "10.0.2.1" },
+        { "ip": ".10", "name": "Reverse Proxy", "role": "Nginx / Traefik (TLS-Terminierung)", "status": "planned", "core": false, "step_id": "p3-reverseproxy", "note": "Verschoben von Phase 2 nach Phase 3" },
+        { "ip": ".11", "name": "Vaultwarden", "role": "Passwort-Manager", "status": "planned", "core": false, "step_id": "p3-vaultwarden" },
+        { "ip": ".12", "name": "Gitea", "role": "Git Server (intern, nur über VPN)", "status": "planned", "core": false, "step_id": "p3-git" },
+        { "ip": ".13", "name": "DokuWiki", "role": "Internes Wiki (nur über VPN)", "status": "planned", "core": false, "step_id": "p3-dokuwiki" },
+        { "ip": ".14", "name": "n8n", "role": "Workflow-Automation", "status": "planned", "core": false, "step_id": "p3-n8n" },
+        { "ip": ".15 – .19", "name": "— Reserve —", "role": "Weitere Kern-Services", "status": "reserved", "core": false },
+        { "ip": ".20", "name": "Webserver", "role": "Nginx / Caddy (intern)", "status": "planned", "core": false, "step_id": "p3-webserver" },
+        { "ip": ".21", "name": "Mailserver", "role": "Auf VPS ausgelagert (equinox-prod, Hetzner)", "status": "obsolete", "core": false, "note": "Mailcow läuft auf equinox-prod (128.140.5.13). Intern nicht nötig." },
+        { "ip": ".22", "name": "Chat / Ntfy", "role": "Matrix oder Ntfy", "status": "planned", "core": false, "step_id": "p3-chat" },
+        { "ip": ".23 – .29", "name": "— Reserve —", "role": "Weitere Kommunikation", "status": "reserved", "core": false },
+        { "ip": ".30", "name": "Home Assistant", "role": "Smarthome", "status": "planned", "core": false, "idea_id": "idea-025" },
+        { "ip": ".31 – .49", "name": "— Reserve —", "role": "Weitere Dienste", "status": "reserved", "core": false }
       ],
       "vlan_tag": 20,
       "opnsense_interface": "vlan02"
@@ -225,84 +67,18 @@
       "color": "purple",
       "purpose": "Experimentierfeld — kaputt machen erlaubt, isoliert vom Rest",
       "dhcp_range": "10.0.3.200 – 10.0.3.250",
+      "location": "Tower (bulldozer) + ESPRIMO (homelab)",
       "hosts": [
-        {
-          "ip": ".1",
-          "name": "OPNsense",
-          "role": "Gateway",
-          "status": "active",
-          "core": true,
-          "current_ip": "192.168.0.202"
-        },
-        {
-          "ip": ".10",
-          "name": "Ansible Control",
-          "role": "Playbook-Runner",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-ansible"
-        },
-        {
-          "ip": ".11",
-          "name": "TACACS+",
-          "role": "AAA Server",
-          "status": "planned",
-          "core": false,
-          "idea_id": "idea-013"
-        },
-        {
-          "ip": ".12",
-          "name": "RADIUS",
-          "role": "FreeRADIUS",
-          "status": "planned",
-          "core": false,
-          "idea_id": "idea-014"
-        },
-        {
-          "ip": ".13",
-          "name": "Access Server",
-          "role": "TACACS+ Lab-Device",
-          "status": "planned",
-          "core": false,
-          "idea_id": "idea-015"
-        },
-        {
-          "ip": ".14 – .19",
-          "name": "— Reserve —",
-          "role": "Weitere Lab-Infra",
-          "status": "reserved",
-          "core": false
-        },
-        {
-          "ip": ".20",
-          "name": "EVE-NG / GNS3",
-          "role": "Netzwerk-Simulation",
-          "status": "planned",
-          "core": false
-        },
-        {
-          "ip": ".21",
-          "name": "Kali Linux",
-          "role": "Pentest VM",
-          "status": "planned",
-          "core": false,
-          "step_id": "p4-pentest"
-        },
-        {
-          "ip": ".22",
-          "name": "Metasploitable",
-          "role": "Vulnerable Target",
-          "status": "planned",
-          "core": false,
-          "step_id": "p4-pentest"
-        },
-        {
-          "ip": ".23 – .49",
-          "name": "— Reserve —",
-          "role": "Weitere Security-VMs",
-          "status": "reserved",
-          "core": false
-        }
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway", "status": "active", "core": true, "vlan_ip": "10.0.3.1" },
+        { "ip": ".10", "name": "Ansible Control", "role": "Playbook-Runner", "status": "planned", "core": false, "step_id": "p3-ansible" },
+        { "ip": ".11", "name": "TACACS+", "role": "AAA Server", "status": "planned", "core": false, "idea_id": "idea-013" },
+        { "ip": ".12", "name": "RADIUS", "role": "FreeRADIUS", "status": "planned", "core": false, "idea_id": "idea-014" },
+        { "ip": ".13", "name": "Access Server", "role": "TACACS+ Lab-Device", "status": "planned", "core": false, "idea_id": "idea-015" },
+        { "ip": ".14 – .19", "name": "— Reserve —", "role": "Weitere Lab-Infra", "status": "reserved", "core": false },
+        { "ip": ".20", "name": "EVE-NG / GNS3", "role": "Netzwerk-Simulation", "status": "planned", "core": false },
+        { "ip": ".21", "name": "Kali Linux", "role": "Pentest VM", "status": "planned", "core": false, "step_id": "p4-pentest" },
+        { "ip": ".22", "name": "Metasploitable", "role": "Vulnerable Target", "status": "planned", "core": false, "step_id": "p4-pentest" },
+        { "ip": ".23 – .49", "name": "— Reserve —", "role": "Weitere Security-VMs", "status": "reserved", "core": false }
       ],
       "vlan_tag": 30,
       "opnsense_interface": "vlan03"
@@ -313,208 +89,235 @@
       "cidr": "10.0.4.0/24",
       "gateway": "10.0.4.1",
       "color": "amber",
-      "purpose": "Öffentlich erreichbare Dienste — isoliert durch Firewall",
+      "purpose": "Öffentlich erreichbare Dienste — aktuell nicht genutzt (Uni-Netz). Public-facing Services auf VPS.",
       "dhcp_range": "10.0.4.200 – 10.0.4.250",
+      "location": "ESPRIMO (homelab)",
       "hosts": [
-        {
-          "ip": ".1",
-          "name": "OPNsense",
-          "role": "Gateway (ext. Firewall)",
-          "status": "active",
-          "core": true,
-          "current_ip": "192.168.0.202"
-        },
-        {
-          "ip": ".10",
-          "name": "Webserver",
-          "role": "Public-facing",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-webserver"
-        },
-        {
-          "ip": ".11",
-          "name": "DDNS-Endpunkt",
-          "role": "Cloudflare / DuckDNS",
-          "status": "planned",
-          "core": false,
-          "step_id": "p2-ddns"
-        },
-        {
-          "ip": ".12",
-          "name": "Reverse Proxy",
-          "role": "DMZ-Proxy (extern)",
-          "status": "planned",
-          "core": false
-        },
-        {
-          "ip": ".13 – .19",
-          "name": "— Reserve —",
-          "role": "Weitere öffentliche Dienste",
-          "status": "reserved",
-          "core": false
-        }
+        { "ip": ".1", "name": "OPNsense", "role": "Gateway", "status": "active", "core": true, "vlan_ip": "10.0.4.1" },
+        { "ip": ".10", "name": "Webserver", "role": "Public-facing (auf VPS ausgelagert)", "status": "planned", "core": false, "note": "Wenn eigener Internetanschluss verfügbar" },
+        { "ip": ".11", "name": "DDNS-Endpunkt", "role": "Obsolet — feste VPS-IPs", "status": "obsolete", "core": false },
+        { "ip": ".12", "name": "Reverse Proxy", "role": "DMZ-Proxy (extern)", "status": "planned", "core": false },
+        { "ip": ".13 – .19", "name": "— Reserve —", "role": "Weitere öffentliche Dienste", "status": "reserved", "core": false }
       ],
       "vlan_tag": 40,
       "opnsense_interface": "vlan04"
+    },
+    {
+      "id": "vpn",
+      "name": "WireGuard VPN",
+      "cidr": "10.0.5.0/24",
+      "gateway": "10.0.5.1",
+      "color": "green",
+      "purpose": "WireGuard Overlay-Netz — existiert nur im Tunnel, nicht auf physischen Interfaces.",
+      "dhcp_range": "keine (statisch)",
+      "location": "Overlay (VPS Frankfurt ↔ ESPRIMO Mainz)",
+      "hosts": [
+        { "ip": ".1", "name": "plattfuss (VPS)", "role": "WireGuard Server", "status": "active", "core": true, "public_ip": "139.162.155.120", "public_ipv6": "2a01:7e01::2000:97ff:fee9:740a" },
+        { "ip": ".2", "name": "ESPRIMO", "role": "WireGuard Client (PersistentKeepalive 25)", "status": "active", "core": true },
+        { "ip": ".3", "name": "Handy (iPhone)", "role": "Mobile Client", "status": "active", "core": false },
+        { "ip": ".4", "name": "Laptop (Mac)", "role": "Mobile Client", "status": "active", "core": false },
+        { "ip": ".5", "name": "iPad", "role": "Mobile Client", "status": "active", "core": false },
+        { "ip": ".6 – .10", "name": "— Reserve —", "role": "Weitere VPN-Clients", "status": "reserved", "core": false }
+      ],
+      "vlan_tag": null,
+      "opnsense_interface": null,
+      "wireguard_config": {
+        "port": 51820,
+        "protocol": "UDP",
+        "endpoint": "139.162.155.120:51820",
+        "dns_endpoint": "vpn.mynooblab.dev:51820",
+        "dns_endpoint_status": "done",
+        "encryption": "ChaCha20-Poly1305 / Curve25519 / BLAKE2s",
+        "tunnel_direction": "ESPRIMO initiiert (Outbound aus Uni-Netz)",
+        "routing": "Client → plattfuss → Tunnel → ESPRIMO → OPNsense (transparent, kein NAT) → VLANs",
+        "masquerade_status": "ENTFERNT (2026-04-26). Transparentes Routing über OPNsense. VPN-Clients behalten echte 10.0.5.x IP.",
+        "adguard_visibility": "Per-Client DNS-Logging aktiv — AdGuard zeigt individuelle VPN-Client-IPs (10.0.5.3, .4, .5)",
+        "routing_requirements": [
+          "OPNsense: Statische Route 10.0.5.0/24 → 192.168.0.11 (vtnet0)",
+          "OPNsense: FW-Regel LAN Pass in, Source 10.0.5.0/24 → Dest 10.0.1.0/24",
+          "AdGuard: ip route 10.0.5.0/24 via 10.0.1.1 dev eth1 (persistent in /etc/network/interfaces)",
+          "ESPRIMO: IP-Forwarding aktiv (net.ipv4.ip_forward=1)"
+        ],
+        "client_config": {
+          "full_tunnel": "AllowedIPs=0.0.0.0/0, DNS=10.0.1.101",
+          "split_tunnel": "AllowedIPs=10.0.0.0/8, DNS=1.1.1.1"
+        }
+      }
     }
   ],
-  "firewall_rules": [
-    {
-      "from": "MGMT",
-      "to": "alle Subnetze + Internet",
-      "rule": "ERLAUBT",
-      "note": "Admin-Zugang – voller Zugriff",
-      "vlan_tag": 10
+  "router_netz": {
+    "cidr": "192.168.0.0/24",
+    "gateway": "192.168.0.1 (TP-Link Archer C80)",
+    "purpose": "Übergangs-Netz. Wird langfristig durch direkten OPNsense-Anschluss am Modem abgelöst.",
+    "dns": "192.168.0.101 (AdGuard dual-homed)",
+    "hosts": [
+      { "ip": ".1", "name": "TP-Link Archer C80", "role": "Consumer-Router / Internet-Gateway", "status": "active" },
+      { "ip": ".10", "name": "Windows PC", "role": "Desktop, Route: 10.0.0.0/8 via .100", "status": "active" },
+      { "ip": ".11", "name": "ESPRIMO (Proxmox)", "role": "Bare-Metal Hypervisor, WireGuard (wg0: 10.0.5.2)", "status": "active", "migration_target": "10.0.1.11" },
+      { "ip": ".20", "name": "MacBook", "role": "Persönliches Gerät", "status": "active" },
+      { "ip": ".21", "name": "iPhone", "role": "Persönliches Gerät", "status": "active" },
+      { "ip": ".22", "name": "iPad", "role": "Persönliches Gerät", "status": "active" },
+      { "ip": ".23", "name": "Apple Watch", "role": "Persönliches Gerät", "status": "active" },
+      { "ip": ".24", "name": "iPad (zweites)", "role": "Persönliches Gerät", "status": "active" },
+      { "ip": ".100", "name": "OPNsense WAN/LAN", "role": "Firewall (dual-homed mit 10.0.1.1)", "status": "active" },
+      { "ip": ".101", "name": "AdGuard DNS", "role": "DNS Router-Netz (dual-homed mit 10.0.1.101)", "status": "active" },
+      { "ip": ".106", "name": "NetBox IPAM (Tower)", "role": "IPAM/DCIM, Docker, Port 8080", "status": "active", "note": "Managed Switch nötig für VLAN-Migration (idea-042)" },
+      { "ip": ".200", "name": "Tower (bulldozer)", "role": "Proxmox Cluster-Node (nested Hyper-V)", "status": "active" }
+    ]
+  },
+  "vps_infrastructure": {
+    "providers": [
+      {
+        "name": "Linode (Akamai Cloud)",
+        "account": "landvogt",
+        "two_factor": "aktiv (TOTP)",
+        "billing": "$100 Credit für 60 Tage, danach $5/Monat",
+        "purpose": "Homelab Gateway (plattfuss)"
+      },
+      {
+        "name": "Hetzner Cloud",
+        "account": "Yck.schulz@gmail.com",
+        "two_factor": "TODO",
+        "billing": "~€12/Monat (Server + IPv4 + Backups)",
+        "purpose": "Equinox Production (equinox-prod)"
+      }
+    ],
+    "servers": [
+      {
+        "name": "plattfuss",
+        "role": "Homelab Gateway — WireGuard VPN Relay",
+        "provider": "Linode (Akamai Cloud)",
+        "linode_id": 96640756,
+        "region": "DE, Frankfurt (eu-central)",
+        "plan": "Nanode 1GB ($5/month)",
+        "specs": { "cpu": "1 Shared", "ram_gb": 1, "storage_gb": 25, "transfer_tb": 1 },
+        "os": "Debian 13.2",
+        "public_ipv4": "139.162.155.120",
+        "public_ipv6": "2a01:7e01::2000:97ff:fee9:740a",
+        "vpn_ip": "10.0.5.1",
+        "disk_encryption": true,
+        "created": "2026-04-25T17:08:00Z",
+        "ssh_user": "landvogt",
+        "ssh_key": "plattfuss-gateway.ppk",
+        "keepass_cmd": "cmd://\"C:\\Program Files\\PuTTY\\putty.exe\" -ssh landvogt@139.162.155.120",
+        "status": "active",
+        "hardening": ["Key-only SSH", "Root off", "MaxAuth 3", "nftables (drop)", "fail2ban", "unattended-upgrades", "HISTCONTROL"],
+        "wireguard_peers": ["ESPRIMO (10.0.5.2)", "Handy (10.0.5.3)", "Laptop (10.0.5.4)", "iPad (10.0.5.5)"]
+      },
+      {
+        "name": "equinox-prod",
+        "role": "Equinox Website + Mailserver (geplant)",
+        "provider": "Hetzner Cloud",
+        "region": "DE, Nürnberg (nbg1)",
+        "plan": "CAX21 — 4 vCPU (Ampere ARM), 8 GB RAM, 80 GB SSD, 20 TB Traffic",
+        "cost": "~€12/Monat (€9,51 Server + €0,60 IPv4 + ~€1,90 Backups)",
+        "os": "Debian 13",
+        "public_ipv4": "128.140.5.13",
+        "created": "2026-04-26",
+        "ssh_user": "landvogt",
+        "ssh_key": "equinox-prod.ppk",
+        "keepass_cmd": "cmd://\"C:\\Program Files\\PuTTY\\putty.exe\" -ssh landvogt@128.140.5.13 -i \"Y:\\HomeLab\\.secrets\\equinox-prod.ppk\"",
+        "status": "active",
+        "backups": "aktiviert (tägliche automatische Snapshots, +20%)",
+        "domain": "equinox151.de",
+        "hardening": ["Key-only SSH", "Root off", "MaxAuth 3", "nftables (drop, nur 22/80/443)", "fail2ban", "unattended-upgrades", "HISTCONTROL", "Security Headers (Nginx)", "Cloudflare Proxy"],
+        "services_active": ["Nginx (equinox151.de)", "Let's Encrypt TLS (Certbot, auto-renew, ECDSA)"],
+        "services_planned": ["Mailcow (Phase 3)", "Matomo (optional)", "AzuraCast (optional)"],
+        "website": {
+          "repo": "github.com/kaynethy/equinox151 (privat)",
+          "stack": "Vite + React + TypeScript + Tailwind CSS",
+          "deploy": "git pull && npm install && npm run build",
+          "root": "/var/www/equinox151.de/dist"
+        },
+        "note": "Komplett getrennt vom Homelab — eigener Provider, eigene IP, eigener SSH-Key. Kein VPN-Tunnel."
+      }
+    ],
+    "key_separation": [
+      { "file": "homelab-admin.ppk", "scope": "ESPRIMO + interne VMs/CTs" },
+      { "file": "plattfuss-gateway.ppk", "scope": "VPS Gateway (Linode)" },
+      { "file": "equinox-prod.ppk", "scope": "VPS Equinox (Hetzner)" }
+    ]
+  },
+  "domains": {
+    "mynooblab_dev": {
+      "registrar": "Cloudflare Registrar",
+      "dns_provider": "Cloudflare",
+      "api_token": "Zone:DNS:Edit (mynooblab.dev)",
+      "dns_records": [
+        { "type": "A", "name": "vpn.mynooblab.dev", "target": "139.162.155.120", "proxy": false, "status": "done", "note": "DNS-only (graue Wolke) — WireGuard braucht UDP" },
+        { "type": "A", "name": "mynooblab.dev", "target": "139.162.155.120", "proxy": true, "status": "done" },
+        { "type": "A", "name": "www.mynooblab.dev", "target": "139.162.155.120", "proxy": true, "status": "done" },
+        { "type": "A", "name": "wiki.mynooblab.dev", "target": "139.162.155.120", "proxy": true, "status": "done" },
+        { "type": "A", "name": "gitea.mynooblab.dev", "target": "139.162.155.120", "proxy": true, "status": "done", "note": "Evtl. entfernen — Gitea bleibt intern, kein Public Access" }
+      ],
+      "internal_dns_adguard": [
+        { "domain": "opnsense.mynooblab.dev", "target": "10.0.1.1" },
+        { "domain": "pve.mynooblab.dev", "target": "10.0.1.11", "note": "Nach Migration" },
+        { "domain": "adguard.mynooblab.dev", "target": "10.0.1.101" },
+        { "domain": "netbox.mynooblab.dev", "target": "10.0.1.106", "note": "Nach Managed Switch" },
+        { "domain": "wiki.mynooblab.dev", "target": "10.0.2.13" },
+        { "domain": "git.mynooblab.dev", "target": "10.0.2.12" }
+      ]
     },
-    {
-      "from": "SVC",
-      "to": "Internet",
-      "rule": "ERLAUBT",
-      "note": "",
-      "vlan_tag": 20
-    },
-    {
-      "from": "SVC",
-      "to": "MGMT (DNS)",
-      "rule": "ERLAUBT Port 53 TCP/UDP",
-      "note": "Nur DNS-Auflösung via AdGuard",
-      "vlan_tag": 20
-    },
-    {
-      "from": "SVC",
-      "to": "MGMT (NTP)",
-      "rule": "ERLAUBT Port 123 UDP",
-      "note": "Nur Zeitsynchronisation via OpenNTPD",
-      "vlan_tag": 20
-    },
-    {
-      "from": "SVC",
-      "to": "MGMT (Syslog)",
-      "rule": "ERLAUBT Port 514 TCP",
-      "note": "Zentrales Logging via rsyslog",
-      "vlan_tag": 20
-    },
-    {
-      "from": "SVC",
-      "to": "MGMT (rest)",
-      "rule": "GEBLOCKT",
-      "note": "Kein weiterer Zugang zu Management-Infra",
-      "vlan_tag": 20
-    },
-    {
-      "from": "LAB",
-      "to": "Internet",
-      "rule": "ERLAUBT",
-      "note": "",
-      "vlan_tag": 30
-    },
-    {
-      "from": "LAB",
-      "to": "MGMT (Syslog)",
-      "rule": "ERLAUBT Port 514 TCP",
-      "note": "Zentrales Logging via rsyslog (vor Block-Regel)",
-      "vlan_tag": 30
-    },
-    {
-      "from": "LAB",
-      "to": "MGMT",
-      "rule": "GEBLOCKT",
-      "note": "Lab isoliert von Management",
-      "vlan_tag": 30
-    },
-    {
-      "from": "LAB",
-      "to": "SVC",
-      "rule": "GEBLOCKT",
-      "note": "Lab isoliert von Services",
-      "vlan_tag": 30
-    },
-    {
-      "from": "DMZ",
-      "to": "Internet",
-      "rule": "ERLAUBT",
-      "note": "",
-      "vlan_tag": 40
-    },
-    {
-      "from": "DMZ",
-      "to": "MGMT (Syslog)",
-      "rule": "ERLAUBT Port 514 TCP",
-      "note": "Zentrales Logging via rsyslog (vor Block-Regel)",
-      "vlan_tag": 40
-    },
-    {
-      "from": "DMZ",
-      "to": "MGMT",
-      "rule": "GEBLOCKT",
-      "note": "Kompromittierte DMZ-Dienste kein MGMT-Zugang",
-      "vlan_tag": 40
-    },
-    {
-      "from": "DMZ",
-      "to": "SVC",
-      "rule": "GEBLOCKT",
-      "note": "Kompromittierte DMZ-Dienste kein SVC-Zugang",
-      "vlan_tag": 40
-    },
-    {
-      "from": "DMZ",
-      "to": "LAB",
-      "rule": "GEBLOCKT",
-      "note": "DMZ komplett isoliert von internen Netzen",
-      "vlan_tag": 40
-    },
-    {
-      "from": "LAN (alle)",
-      "to": "DMZ",
-      "rule": "ERLAUBT",
-      "note": "Interne Netze dürfen auf DMZ-Dienste zugreifen",
-      "vlan_tag": null
-    },
-    {
-      "from": "alle VLANs (10.0.0.0/8)",
-      "to": "Internet",
-      "rule": "NAT Outbound via LAN-Interface",
-      "note": "Übergangsphase: NAT auf LAN (vtnet0) statt WAN (vtnet1), weil beide NICs auf vmbr0. Wird auf WAN umgestellt wenn OPNsense direkt am Modem.",
-      "vlan_tag": null
+    "equinox151_de": {
+      "registrar": "INWX",
+      "dns_provider": "Cloudflare (james + ziggy)",
+      "transfer_lock": "aktiv",
+      "cloudflare_plan": "Free",
+      "ssl_mode": "Full (Strict)",
+      "tls_cert": "Let's Encrypt (Certbot, ECDSA, auto-renew, expires 2026-07-25)",
+      "security": ["Bot Fight Mode", "Leaked Credentials Mitigation", "Client-side Security", "AI Bots blocked"],
+      "dns_records": [
+        { "type": "A", "name": "equinox151.de", "target": "128.140.5.13", "proxy": true, "status": "done" },
+        { "type": "A", "name": "www.equinox151.de", "target": "128.140.5.13", "proxy": true, "status": "done" },
+        { "type": "MX", "name": "equinox151.de", "target": "TBD", "status": "planned", "note": "Wenn Mailcow steht (Phase 3)" }
+      ]
     }
+  },
+  "firewall_rules": [
+    { "from": "MGMT", "to": "alle Subnetze + Internet", "rule": "ERLAUBT", "note": "Admin voller Zugriff", "vlan_tag": 10 },
+    { "from": "SVC", "to": "Internet", "rule": "ERLAUBT", "vlan_tag": 20 },
+    { "from": "SVC", "to": "MGMT (DNS 53)", "rule": "ERLAUBT", "vlan_tag": 20 },
+    { "from": "SVC", "to": "MGMT (NTP 123)", "rule": "ERLAUBT", "vlan_tag": 20 },
+    { "from": "SVC", "to": "MGMT (Syslog 514)", "rule": "ERLAUBT", "vlan_tag": 20 },
+    { "from": "SVC", "to": "MGMT (rest)", "rule": "GEBLOCKT", "vlan_tag": 20 },
+    { "from": "LAB", "to": "Internet", "rule": "ERLAUBT", "vlan_tag": 30 },
+    { "from": "LAB", "to": "MGMT (Syslog 514)", "rule": "ERLAUBT", "note": "Vor Block", "vlan_tag": 30 },
+    { "from": "LAB", "to": "MGMT", "rule": "GEBLOCKT", "vlan_tag": 30 },
+    { "from": "LAB", "to": "SVC", "rule": "GEBLOCKT", "vlan_tag": 30 },
+    { "from": "DMZ", "to": "Internet", "rule": "ERLAUBT", "vlan_tag": 40 },
+    { "from": "DMZ", "to": "MGMT (Syslog 514)", "rule": "ERLAUBT", "note": "Vor Block", "vlan_tag": 40 },
+    { "from": "DMZ", "to": "MGMT", "rule": "GEBLOCKT", "vlan_tag": 40 },
+    { "from": "DMZ", "to": "SVC", "rule": "GEBLOCKT", "vlan_tag": 40 },
+    { "from": "DMZ", "to": "LAB", "rule": "GEBLOCKT", "vlan_tag": 40 },
+    { "from": "VPN (10.0.5.0/24)", "to": "MGMT (10.0.1.0/24)", "rule": "ERLAUBT", "note": "OPNsense LAN FW-Regel, transparentes Routing (kein NAT/MASQUERADE)" },
+    { "from": "VPN (10.0.5.0/24)", "to": "SVC+LAB+DMZ", "rule": "TODO", "note": "Weitere FW-Regeln nach Bedarf" },
+    { "from": "Internet", "to": "plattfuss", "rule": "Nur SSH+WireGuard", "note": "nftables drop policy" },
+    { "from": "Internet", "to": "equinox-prod", "rule": "Nur SSH+HTTP+HTTPS", "note": "nftables drop policy. Mail-Ports (25/587/993) erst wenn Mailcow steht." },
+    { "from": "VLANs", "to": "Internet", "rule": "NAT via LAN (vtnet0)", "note": "Übergangsphase" }
   ],
   "migration": [
-    {
-      "current": "192.168.0.11",
-      "target": "10.0.1.11",
-      "host": "Proxmox ESPRIMO",
-      "status": "pending"
-    },
-    {
-      "current": "192.168.0.101",
-      "target": "10.0.1.101 (dual-homed, beide aktiv)",
-      "host": "AdGuard DNS",
-      "status": "done"
-    },
-    {
-      "current": "192.168.0.100",
-      "target": "10.0.1.1 (VLAN Gateway)",
-      "host": "OPNsense",
-      "status": "done"
-    },
-    {
-      "current": "192.168.0.10",
-      "target": "192.168.0.10",
-      "host": "Windows Tower",
-      "status": "done"
-    }
+    { "host": "Proxmox (ESPRIMO)", "current": "192.168.0.11", "target": "10.0.1.11", "status": "pending", "priority": "high" },
+    { "host": "OPNsense", "current": "192.168.0.100 + 10.0.1.1", "target": "dual-homed (bleibt)", "status": "partial" },
+    { "host": "AdGuard DNS", "current": "192.168.0.101 + 10.0.1.101", "target": "dual-homed (bleibt)", "status": "partial" },
+    { "host": "NetBox IPAM", "current": "192.168.0.106", "target": "10.0.1.106", "status": "pending", "note": "Braucht Managed Switch (idea-042)" },
+    { "host": "Windows PC", "current": "192.168.0.10", "target": "192.168.0.10", "status": "done" },
+    { "host": "Tower (bulldozer)", "current": "192.168.0.200", "target": "192.168.0.200", "status": "done" }
   ],
   "principles": [
-    "IP-Schema: VM/CT-ID = letzte Stelle der VLAN-IP (VM100=.100, CT101=.101, etc.)",
-    "Proxmox Host = .11 (physisches Blech, kein VLAN-Tag)",
-    "DHCP-Pool .200-.250 in allen Subnetzen (statische Hosts darunter)",
-    "OPNsense ist .1 in jedem Subnetz (konsistentes Gateway)",
-    "AdGuard DNS dual-homed: 192.168.0.101 (Router-Netz) + 10.0.1.101 (VLAN)",
-    "Lab isoliert — darf nichts in MGMT/SVC anfassen",
-    "DMZ isoliert — kompromittierte Dienste kein Zugang zum LAN",
-    "Übergangsphase: Outbound-NAT auf LAN-Interface (vtnet0) weil Default-Route über vtnet0 geht",
-    "Windows-Tower + ESPRIMO haben persistente Route 10.0.0.0/8 via 192.168.0.100 (OPNsense)"
+    "VM/CT-ID = letzte Stelle der VLAN-IP (VM100=.100, CT101=.101). Proxmox Host = .11",
+    "DHCP-Pool .200–.250, darunter nur statische Zuweisungen",
+    "OPNsense = .1 in jedem Subnetz",
+    "Lab + DMZ isoliert — kein Zugriff auf MGMT/SVC",
+    "VPN 10.0.5.0/24 = Overlay, nur im WireGuard-Tunnel, transparentes Routing (kein MASQUERADE)",
+    "VPS = feste IPs, kein DDNS",
+    "Equinox Prod getrennt vom Homelab — eigener Provider (Hetzner), eigener Blast Radius",
+    "Ein SSH-Key pro Zone (homelab-admin, plattfuss-gateway, equinox-prod)",
+    "Dual-homed Services (OPNsense, AdGuard) überbrücken Router-Netz und VLANs",
+    "NAT via LAN (vtnet0) — Übergangsphase",
+    "Cluster: ESPRIMO=Primary 24/7, Tower=On-Demand",
+    "Cross-Host VLANs brauchen Managed Switch (idea-042)",
+    "Homelab hinter Uni-Netz — kein Port-Forwarding, nur über VPS erreichbar",
+    "Cloudflare Proxy für alle öffentlichen Domains — Server-IPs versteckt (außer vpn = DNS-only für UDP)"
   ]
 }

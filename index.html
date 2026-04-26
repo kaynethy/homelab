@@ -84,8 +84,8 @@
   </div>
 
   <div class="section-label">Phasen &amp; Infrastruktur</div>
-  <div id="hw-banner-slot" style="display:none;margin-bottom:16px"></div>
   <div class="phase-cards-grid" id="phase-cards"></div>
+  <div id="hw-banner-slot" style="display:none;margin-top:16px;margin-bottom:0"></div>
 
   <div id="projekte-section" style="display:none;margin-bottom:32px"></div>
 
@@ -195,8 +195,12 @@
 
       var card = document.createElement('a');
       card.href = 'phases/' + phase.id + '.html';
-      card.className = 'phase-card' + (isActive ? ' active-phase' : '') + (isComplete ? ' phase-complete' : '');
-      var particlesHtml = isComplete ? '<div class="phase-complete-particles"><span></span><span></span><span></span><span></span></div>' : '';
+      card.className = 'phase-card' + (isActive ? ' active-phase' : '') + (isComplete ? ' phase-complete phase-' + pNum + '-complete' : '');
+      var particlesHtml = '';
+      if (isComplete) {
+        var pClass = pNum === 2 ? 'phase-complete-sparks' : 'phase-complete-particles';
+        particlesHtml = '<div class="' + pClass + '"><span></span><span></span><span></span><span></span></div>';
+      }
       card.innerHTML =
         particlesHtml +
         '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
@@ -482,17 +486,25 @@
 
     Object.keys(R.hosts).forEach(function(hostKey) {
       var host = R.hosts[hostKey];
-      totalRam  += host.ram_total_gb;
-      totalDisk += host.disk_total_gb;
-      usedRam   += host.ram_system_gb || 1.5;
+      if (host.category === 'vps') return; // VPS-Hosts überspringen — keine Thin-Pool-Logik
+      var hostRam  = host.ram.assigned_to_proxmox_gb || host.ram.physical_gb;
+      var hostDisk = host.disk.thinpool_data_gb;
+      var sysRamGb = (host.ram_summary.proxmox_overhead_mb || 1500) / 1024;
+      totalRam  += hostRam;
+      totalDisk += hostDisk;
+      usedRam   += sysRamGb;
       (host.vms || []).forEach(function(vm) {
         usedRam  += vm.ram_mb / 1024;
         usedDisk += vm.disk_gb;
       });
+      var upgradeInfo = host.ram.upgrade_pending
+        ? ' (\u2192 ' + host.ram.upgrade_target_gb + ' GB geplant)'
+        : '';
       breakdown.push({
-        label: hostKey === 'esprimo' ? 'ESPRIMO' : 'Tower',
-        ram:   host.ram_total_gb,
-        disk:  host.disk_total_gb
+        label:       host.hostname.charAt(0).toUpperCase() + host.hostname.slice(1),
+        ram:         hostRam,
+        disk:        hostDisk,
+        upgradeInfo: upgradeInfo
       });
     });
 
@@ -533,8 +545,8 @@
     if (diskFree){ diskFree.textContent = Math.round(freeDisk) + ' GB frei'; }
 
     var bdStyle = 'font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--muted);white-space:nowrap';
-    if (ramBd)  ramBd.innerHTML  = breakdown.map(function(b) { return '<div style="' + bdStyle + '">' + b.label + ': ' + b.ram  + ' GB</div>'; }).join('');
-    if (diskBd) diskBd.innerHTML = breakdown.map(function(b) { return '<div style="' + bdStyle + '">' + b.label + ': ' + b.disk + ' GB</div>'; }).join('');
+    if (ramBd)  ramBd.innerHTML  = breakdown.map(function(b) { return '<div style="' + bdStyle + '">' + b.label + ': ' + b.ram  + ' GB' + b.upgradeInfo + '</div>'; }).join('');
+    if (diskBd) diskBd.innerHTML = breakdown.map(function(b) { return '<div style="' + bdStyle + '">' + b.label + ': ' + Math.round(b.disk) + ' GB</div>'; }).join('');
   };
 
   window.addEventListener('resources-ready', window._updateBannerDonuts);

@@ -129,14 +129,14 @@
         {
           "id": "hw-esprimo-12-cluster-prep",
           "title": "Proxmox Cluster vorbereiten",
-          "status": "todo",
-          "desc": "Corosync-Ring konfigurieren, SSH-Trust zwischen ESPRIMO und Tower, gemeinsames Netz für Cluster-Traffic (MGMT-VLAN oder dediziertes Cluster-VLAN). pvecm create auf ESPRIMO, pvecm add auf Tower. Cluster NICHT sofort erstellen — erst wenn Tower auch Bare-Metal Proxmox hat oder Nested Proxmox als zweiter Node joinbar ist."
+          "status": "done",
+          "desc": "Proxmox Cluster 'homelab-cluster' erstellt auf ESPRIMO (pvecm create). Tower 'bulldozer' als zweiter Node gejoined (pvecm add --force, weil CT106/NetBox noch existierte). Corosync Secure Auth aktiv (AES-256). Quorum auf 1 gesetzt (pvecm expected 1) damit ESPRIMO alleine funktioniert wenn Tower aus ist. Beide Nodes in der Web-UI sichtbar unter Datacenter (homelab-cluster). Hostname Tower von pve-esprimo-homelab auf 'bulldozer' geändert. NetBox Config musste manuell unter /etc/pve/nodes/bulldozer/lxc/106.conf neu erstellt werden (Cluster-Join überschreibt alte Node-Config). NetBox läuft auf 192.168.0.106 (Router-Netz, nicht VLAN — TP-Link kann keine VLAN-Tags zwischen physischen Hosts durchleiten, braucht managed Switch)."
         },
         {
           "id": "hw-esprimo-13-cutover",
           "title": "Cutover — ESPRIMO ist Primary",
-          "status": "todo",
-          "desc": "Alle Services auf ESPRIMO verifiziert und stabil. Nested Proxmox auf Tower herunterfahren (VM stoppen, VHDX nicht löschen — Fallback). NetBox IPAM bleibt auf Tower bis Cluster steht. KeePassXC SSH-Einträge auf neue Host-Keys aktualisieren. TP-Link DNS zeigt bereits auf ESPRIMO (192.168.0.101). Tower wird On-Demand Cluster-Node."
+          "status": "done",
+          "desc": "ESPRIMO ist offiziell Primary Host. Alle Kern-Services (OPNsense, AdGuard, Kea DHCP, OpenNTPD, rsyslog, Jumphost) laufen auf dem ESPRIMO. Tower Nested Proxmox: alle alten Services gelöscht (CT100-CT105, VM101-VM104), nur NetBox (CT106) bleibt. Hyper-V RAM auf 16 GB reduziert. TP-Link DNS zeigt auf ESPRIMO (192.168.0.101). Proxmox Cluster aktiv: ESPRIMO (homelab) + Tower (bulldozer). Tower ist On-Demand Lab-Host für Kali, Metasploitable, EVE-NG."
         }
       ],
       "log": [
@@ -183,6 +183,26 @@
         {
           "date": "2026-04-25",
           "entry": "Ausstehend: RAM-Upgrade (01), Cluster-Prep (12), Cutover Nested→ESPRIMO (13)."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Tower aufgeräumt: CT100-CT105 und VM101-VM104 gelöscht. Nur NetBox (CT106) bleibt. Hyper-V RAM auf 16 GB reduziert."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Proxmox Cluster 'homelab-cluster' erstellt. Tower 'bulldozer' als Node 2 gejoined. pvecm expected 1 für Single-Node-Quorum."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "Hostname Tower: pve-esprimo-homelab → bulldozer. NetBox Config unter neuem Node-Pfad neu erstellt."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "NetBox auf 192.168.0.106 (Router-Netz) weil TP-Link keine VLAN-Tags zwischen physischen Hosts durchleitet. Managed Switch (idea-042) als Lösung identifiziert."
+        },
+        {
+          "date": "2026-04-25",
+          "entry": "CUTOVER DONE: ESPRIMO ist Primary. Tower ist On-Demand Lab-Host. hw-esprimo komplett (Sub-Steps 02-13 done, 01-RAM ausstehend)."
         }
       ],
       "deferred_reason": "",

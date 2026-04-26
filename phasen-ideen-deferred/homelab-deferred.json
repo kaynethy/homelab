@@ -3,7 +3,7 @@
     "version": "1.0",
     "updated": "2026-04-22",
     "description": "Homelab Deferred – Zurückgestellte Aufgaben die nicht im Fortschrittsbalken zählen",
-    "count": 5
+    "count": 6
   },
   "items": [
     {
@@ -83,6 +83,26 @@
         {
           "date": "2026-04-22",
           "entry": "Erstellt nach WAN-Fix-Session. MGMT hat aktuell Pass → any."
+        }
+      ]
+    },
+    {
+      "id": "p2-ddns",
+      "title": "Dynamisches DNS (DDNS)",
+      "status": "deferred",
+      "deferred_reason": "Aktuell hinter Uni-Netz (JGU Mainz) — kein eigener Router, keine eigene öffentliche Heim-IP. DDNS wird erst relevant wenn wieder ein eigener Heimnetz-Anschluss mit wechselnder IP vorhanden ist. Bis dahin läuft externe Erreichbarkeit ausschließlich über VPS plattfuss (feste IP 139.162.155.120).",
+      "phase_id": "phase2",
+      "tags": [
+        "DDNS",
+        "Cloudflare",
+        "DNS",
+        "Heimnetz"
+      ],
+      "desc": "Externe Erreichbarkeit trotz wechselnder Heim-IP via Cloudflare DDNS oder DuckDNS. Setzt eigenen Router mit direkt zugewiesener öffentlicher IP voraus.",
+      "log": [
+        {
+          "date": "2026-04-25",
+          "entry": "Zurückgestellt — hinter Uni-Netz ohne eigene öffentliche Heim-IP. Externe Erreichbarkeit über VPS plattfuss (feste IP). Wird reaktiviert sobald eigener Heimnetz-Anschluss vorhanden."
         }
       ]
     },
