@@ -35,7 +35,7 @@
           }
         };
         if (phase.steps) applyToSteps(phase.steps);
-        if (phase.sections) phase.sections.forEach(s => applyToSteps(s.steps));
+      if (phase.sections) phase.sections.forEach(s => { if (s.steps) applyToSteps(s.steps); });
       }
     }
     // Apply phase-level changes (notes)
@@ -101,7 +101,7 @@
   async function loadState() {
     try {
       const path = window.location.pathname;
-      const root = path.includes('/steps/hardware/') ? '../../'
+      const root = (path.includes('/steps/hardware/') || path.includes('/steps/equinox/')) ? '../../'
                  : (path.includes('/phases/') || path.includes('/steps/') || path.includes('/demos/')) ? '../'
                  : './';
       const dataDir = root + 'phasen-ideen-deferred/';
@@ -207,7 +207,7 @@
     // Tracks asynchron laden (jeder Track feuert 'tracks-ready' wenn geladen)
     if (window.STATE && window.STATE.files && window.STATE.files.tracks) {
       const tPath = window.location.pathname;
-      const tRoot = tPath.includes('/steps/hardware/') ? '../../'
+      const tRoot = (tPath.includes('/steps/hardware/') || tPath.includes('/steps/equinox/')) ? '../../'
                   : (tPath.includes('/phases/') || tPath.includes('/steps/') || tPath.includes('/demos/')) ? '../'
                   : './';
       const tDataDir = tRoot + 'phasen-ideen-deferred/';

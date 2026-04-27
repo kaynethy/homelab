@@ -1,59 +1,39 @@
-{
+﻿{
   "meta": {
-    "version": "2.3",
-    "updated": "2026-04-25",
-    "description": "Homelab Roadmap – Hauptdatei mit Gesamtfortschritt und Referenzen auf Phase-Dateien",
-    "progress_pct": 40,
-    "progress_done": 16,
+    "version": "1.0",
+    "updated": "2026-04-27",
+    "description": "Homelab Roadmap — Haupt-State-Datei",
+    "progress_pct": 49,
+    "progress_done": 24,
     "progress_wip": 1,
-    "progress_total": 40,
-    "repository": {
-      "url": "https://github.com/kaynethy/homelab",
-      "ssh": "git@github.com:kaynethy/homelab.git",
-      "branch": "main",
-      "local": "Y:/HomeLab/Dokumentation"
+    "progress_total": 49
+  },
+  "phases": [
+    {
+      "id": "phase1",
+      "title": "Fundament",
+      "subtitle": "Hypervisor \u00b7 Erstes Netz \u00b7 Linux-Grundlagen \u00b7 IP-Planung",
+      "status": "active"
     },
-    "wiki": {
-      "state_file": "wiki/homelab-wiki.json",
-      "tool": "DokuWiki",
-      "step_id": "p3-dokuwiki",
-      "preview_page": "wiki-preview.html"
+    {
+      "id": "phase2",
+      "title": "Netz & Erreichbarkeit",
+      "subtitle": "VPN \u00b7 Reverse Proxy \u00b7 DNS \u00b7 VLANs \u00b7 Firewall \u00b7 IPAM",
+      "status": "active"
     },
-    "network": {
-      "home_subnet": "192.168.0.0/24",
-      "host_ip": "192.168.0.10",
-      "gateway": "192.168.0.1",
-      "esprimo_ip": "192.168.0.11",
-      "esprimo_ui": "https://192.168.0.11:8006",
-      "nested_proxmox_ip": "192.168.0.200",
-      "nested_proxmox_ui": "https://192.168.0.200:8006",
-      "jumphost_ip": "10.0.1.105"
+    {
+      "id": "phase3",
+      "title": "Dienste & Intranet",
+      "subtitle": "Webserver \u00b7 Self-hosted Apps \u00b7 Mailserver \u00b7 Automatisierung \u00b7 Eigene Website",
+      "status": "active"
+    },
+    {
+      "id": "phase4",
+      "title": "Monitoring & H\u00e4rtung",
+      "subtitle": "Auth \u00b7 Zertifikate \u00b7 Monitoring \u00b7 Logging \u00b7 Observability",
+      "status": "locked"
     }
-  },
-  "hardware": {
-    "cpu": "AMD Ryzen 7 5800X (8C/16T)",
-    "ram": "64 GB DDR4 (Proxmox: 24 GB zugewiesen)",
-    "gpu": "RTX 3060 OC 12 GB",
-    "disk": "1 TB NVMe (Proxmox VHDX: 300 GB, davon 249 GB LVM-Thin-Pool) + 4 TB NVMe (Y: Drive)",
-    "host_os": "Windows 11 (bleibt, kein Dualboot)",
-    "router": "TP-Link Archer C80",
-    "strategy": "ESPRIMO G558 wird Bare-Metal Primary Host (24/7, 35W). Ryzen-Tower wird On-Demand Cluster-Node für Heavy Workloads."
-  },
-  "resources": {
-    "updated": "2026-04-25",
-    "proxmox_total": { "ram_gb": 16, "disk_gb": 476, "note": "ESPRIMO Bare-Metal. RAM-Upgrade auf 32 GB bestellt." },
-    "tower_total":   { "ram_gb": 16, "disk_gb": 249, "note": "Ryzen Tower. On-Demand Cluster-Node." },
-    "proxmox_system": { "ram_gb": 1.5, "label": "Proxmox Kernel + Services + Buffers" },
-    "hosts": [
-      { "id": "vm100", "name": "OPNsense",   "ram_mb": 3072, "disk_gb": 16, "type": "VM",  "status": "active", "vlan": "mgmt", "ip": "10.0.1.1",   "role": "Firewall / Router",              "host_node": "esprimo" },
-      { "id": "ct101", "name": "AdGuard DNS", "ram_mb": 1024, "disk_gb": 4,  "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.101", "role": "DNS-Filter / DoH",               "host_node": "esprimo" },
-      { "id": "ct102", "name": "Kea DHCP",    "ram_mb": 256,  "disk_gb": 4,  "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.102", "role": "DHCP für alle VLANs",            "host_node": "esprimo" },
-      { "id": "vm103", "name": "NTP-Server",  "ram_mb": 384,  "disk_gb": 4,  "type": "VM",  "status": "active", "vlan": "mgmt", "ip": "10.0.1.103", "role": "OpenNTPD Zeitserver",             "host_node": "esprimo" },
-      { "id": "ct104", "name": "rsyslog",     "ram_mb": 512,  "disk_gb": 16, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.104", "role": "Zentrales Logging",               "host_node": "esprimo" },
-      { "id": "ct105", "name": "Jumphost",    "ram_mb": 512,  "disk_gb": 10, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.105", "role": "SSH-Sprungbrett",                 "host_node": "esprimo" },
-      { "id": "ct106", "name": "NetBox IPAM", "ram_mb": 2048, "disk_gb": 16, "type": "LXC", "status": "active", "vlan": "mgmt", "ip": "10.0.1.8",   "role": "IPAM / Netzwerk-Dokumentation", "host_node": "tower"   }
-    ]
-  },
+  ],
   "files": {
     "phases": [
       "homelab-state-phase1.json",
@@ -64,71 +44,10 @@
     "diary": "homelab-diary.json",
     "deferred": "homelab-deferred.json",
     "ideas": "homelab-ideas.json",
-    "network": "homelab-network.json",
-    "wiki": "homelab-wiki.json",
     "tracks": [
       "homelab-state-hardware.json",
-      "homelab-state-seclab.json"
+      "homelab-state-seclab.json",
+      "homelab-state-equinox.json"
     ]
-  },
-  "phases": [
-    {
-      "id": "phase1",
-      "label": "PHASE 1",
-      "title": "Fundament",
-      "subtitle": "Hypervisor · Erstes Netz · Linux-Grundlagen · IP-Planung",
-      "status": "active",
-      "color": "teal",
-      "file": "homelab-state-phase1.json"
-    },
-    {
-      "id": "phase2",
-      "label": "PHASE 2",
-      "title": "Netz & Erreichbarkeit",
-      "subtitle": "VPN · Reverse Proxy · DNS · VLANs · Firewall · IPAM",
-      "status": "active",
-      "color": "blue",
-      "file": "homelab-state-phase2.json"
-    },
-    {
-      "id": "phase3",
-      "label": "PHASE 3",
-      "title": "Dienste & Intranet",
-      "subtitle": "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
-      "status": "locked",
-      "color": "purple",
-      "file": "homelab-state-phase3.json"
-    },
-    {
-      "id": "phase4",
-      "label": "PHASE 4",
-      "title": "Security & Experimente",
-      "subtitle": "Auth · Zertifikate · Monitoring · Pentesting · Härtung",
-      "status": "locked",
-      "color": "amber",
-      "file": "homelab-state-phase4.json"
-    }
-  ],
-  "tracks": [
-    {
-      "id": "hardware",
-      "label": "HARDWARE",
-      "title": "Physische Infrastruktur",
-      "subtitle": "Geräte · Upgrades · Verkabelung · Erweiterungen",
-      "type": "parallel",
-      "status": "ongoing",
-      "color": "bronze",
-      "file": "homelab-state-hardware.json"
-    },
-    {
-      "id": "seclab",
-      "label": "SEC-LAB",
-      "title": "Security & Hacking Lab",
-      "subtitle": "Pentesting · AAA · IDS · Vulnerable Targets · Netzwerk-Simulation",
-      "type": "parallel",
-      "status": "planned",
-      "color": "crimson",
-      "file": "homelab-state-seclab.json"
-    }
-  ]
+  }
 }

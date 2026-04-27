@@ -1046,16 +1046,9 @@
   "id": "p2-vps-equinox",
   "title": "VPS Equinox Prod",
   "status": "done",
-  "tags": [
-    "VPS",
-    "Hetzner",
-    "Equinox",
-    "Production",
-    "Webserver",
-    "Mail"
-  ],
-  "desc": "Dedizierter VPS für Equinox Website und Mailserver. Feste IPv4, öffentlich erreichbar, gehärtet. Strikte Trennung von Homelab — kompromittierter Webserver hat keinen Zugriff auf Lab-Infrastruktur.",
-  "notes": "Hetzner Cloud CAX21 ARM (Ampere), Standort Nürnberg, DSGVO-konform. Backups aktiviert. SSH Key-only mit separatem Key (equinox-prod.ppk). Domain equinox151.de live mit Let's Encrypt TLS + Cloudflare Full (Strict).",
+  "tags": ["VPS", "Hetzner", "Equinox", "Production", "Webserver", "Mail", "CI/CD"],
+  "desc": "Dedizierter VPS für Equinox Website und Mailserver. Feste IPv4, öffentlich erreichbar, gehärtet. Strikte Trennung von Homelab — kompromittierter Webserver hat keinen Zugriff auf Lab-Infrastruktur. CI/CD Pipeline für automatisches Deployment.",
+  "notes": "Hetzner Cloud CAX21 ARM (Ampere), Standort Nürnberg, DSGVO-konform. Backups aktiviert. SSH Key-only mit separatem Key (equinox-prod.ppk). Domain equinox151.de live mit Let's Encrypt TLS + Cloudflare Full (Strict). GitHub Actions Pipeline deployed automatisch bei Merge in main.",
   "details": {
     "provider": "Hetzner Cloud — Nürnberg (nbg1), deutsches Rechenzentrum, DSGVO-konform",
     "plan": "CAX21 — 4 vCPU (Ampere ARM), 8 GB RAM, 80 GB SSD, 20 TB Traffic",
@@ -1068,7 +1061,8 @@
     "keepassxc": "cmd://\"C:\\Program Files\\PuTTY\\putty.exe\" -ssh landvogt@128.140.5.13 -i \"Y:\\HomeLab\\.secrets\\equinox-prod.ppk\"",
     "services_active": [
       "Nginx (Webserver, equinox151.de)",
-      "Let's Encrypt TLS (Certbot, auto-renew)"
+      "Let's Encrypt TLS (Certbot, auto-renew)",
+      "GitHub Actions CI/CD Pipeline"
     ],
     "services_planned": [
       "Mailcow (Phase 3)",
@@ -1079,9 +1073,29 @@
       "repo": "github.com/kaynethy/equinox151 (privat)",
       "stack": "Vite + React + TypeScript + Tailwind CSS",
       "build": "npm run build → dist/",
-      "deploy_workflow": "git pull && npm install && npm run build",
-      "root": "/var/www/equinox151.de/dist",
-      "github_pat": "Fine-grained, nur equinox151 Repo, Read-only, 90 Tage Ablauf"
+      "root": "/var/www/equinox151.de/dist"
+    },
+    "cicd": {
+      "platform": "GitHub Actions",
+      "workflow": ".github/workflows/deploy.yml",
+      "branches": {
+        "main": "Produktion — Merge triggert automatisches Deployment",
+        "dev": "Entwicklung — Push triggert nur Build-Test"
+      },
+      "pipeline_flow": [
+        "Push auf dev → nichts passiert auf Prod",
+        "PR von dev → main → Build-Job testet ob Code kompiliert",
+        "Merge in main → Deploy-Job: SSH auf equinox-prod, git pull, npm install, npm run build"
+      ],
+      "deploy_method": "SSH via appleboy/ssh-action@v1",
+      "deploy_key": "Ed25519 (github-deploy), Read-only Deploy Key auf GitHub, Private Key als GitHub Secret",
+      "github_secrets": ["DEPLOY_HOST (128.140.5.13)", "DEPLOY_USER (landvogt)", "DEPLOY_KEY (SSH Private Key)"],
+      "security": [
+        "Deploy-Key ist Read-only — kann Repo nicht verändern",
+        "Secrets verschlüsselt in GitHub gespeichert, nie im Code",
+        "Deploy nur bei Merge in main, nicht bei jedem Push",
+        "Separater Deploy-Key (github-deploy) — nicht der persönliche equinox-prod.ppk"
+      ]
     },
     "dns": {
       "registrar": "INWX",
@@ -1105,18 +1119,22 @@
       "unattended-upgrades aktiv",
       "HISTCONTROL=ignoreboth",
       "Separater SSH-Key (equinox-prod.ppk)",
+      "Separater Deploy-Key (github-deploy) für CI/CD",
       "Cloudflare Proxy — echte Server-IP versteckt",
       "Security Headers: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy",
       "Hetzner Backups aktiviert (tägliche automatische Snapshots)"
     ],
-    "security_rationale": "Blast Radius Minimierung: Equinox Prod ist ein eigener Server mit eigener IP bei eigenem Provider (Hetzner). Kompromittierung betrifft nur Equinox, nicht das Homelab (Linode). Kein VPN-Tunnel, kein Cluster, kein geteilter SSH-Key. Separation of Concerns auf Infrastruktur-Ebene."
+    "security_rationale": "Blast Radius Minimierung: Equinox Prod ist ein eigener Server mit eigener IP bei eigenem Provider (Hetzner). Kompromittierung betrifft nur Equinox, nicht das Homelab (Linode). Kein VPN-Tunnel, kein Cluster, kein geteilter SSH-Key. Separation of Concerns auf Infrastruktur-Ebene. CI/CD Deploy-Key ist Read-only und separat vom Admin-Key."
   },
   "log": [
     "2026-04-26: VPS erstellt bei Hetzner Cloud (CAX21 ARM, Nürnberg, €12/Monat inkl. Backups)",
     "2026-04-26: Gehärtet (SSH, nftables, fail2ban, unattended-upgrades)",
     "2026-04-26: Nginx + equinox151 Repo deployed (Vite/React build)",
     "2026-04-26: Let's Encrypt TLS via Certbot, Cloudflare Full (Strict)",
-    "2026-04-26: equinox151.de LIVE — Ende-zu-Ende HTTPS"
+    "2026-04-26: equinox151.de LIVE — Ende-zu-Ende HTTPS",
+    "2026-04-26: GitHub Actions CI/CD Pipeline eingerichtet (Build + Deploy)",
+    "2026-04-26: Git-Workflow: dev Branch für Entwicklung, main für Produktion",
+    "2026-04-26: Deploy-Key (github-deploy, Ed25519, Read-only) für automatisches Deployment"
   ],
   "deferred_reason": ""
 },

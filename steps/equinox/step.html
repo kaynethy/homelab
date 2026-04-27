@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Equinox Step</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    .step-badge { font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 10px;border-radius:4px;font-weight:700 }
+    .step-badge.done { background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3) }
+    .step-badge.wip { background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40 }
+    .step-badge.todo { background:var(--bg3);color:var(--muted);border:1px solid var(--border) }
+    .step-tag { font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);margin-right:5px;margin-bottom:4px;display:inline-block }
+    .detail-row { display:flex;gap:12px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px }
+    .detail-key { font-family:'JetBrains Mono',monospace;color:var(--muted);min-width:140px;flex-shrink:0 }
+    .detail-val { color:var(--text) }
+    .log-entry { display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px }
+    .log-date { font-family:'JetBrains Mono',monospace;color:#fb923c;min-width:90px;flex-shrink:0 }
+    .log-text { color:var(--text);line-height:1.5 }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb" id="breadcrumb">Dashboard › Equinox › ...</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#fb923c20;color:#fb923c;border:1px solid #fb923c40">EQUINOX</span>
+    <span class="step-badge todo" id="step-status">todo</span>
+  </div>
+
+  <h1 id="step-title" style="font-size:22px;font-weight:700;color:var(--text);margin:0 0 10px">Lade...</h1>
+  <div id="step-tags" style="margin-bottom:16px"></div>
+
+  <div id="step-content">
+    <div class="section-label">Beschreibung</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.6">
+      <div id="step-desc">Lade...</div>
+    </div>
+
+    <div id="details-section" style="display:none">
+      <div class="section-label">Details</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px">
+        <div id="step-details"></div>
+      </div>
+    </div>
+
+    <div id="notes-section" style="display:none">
+      <div class="section-label">Notizen</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.6">
+        <div id="step-notes"></div>
+      </div>
+    </div>
+
+    <div id="deferred-section" style="display:none">
+      <div class="section-label">Zurückgestellt</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--muted);border-radius:8px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--muted);line-height:1.6">
+        <div id="step-deferred"></div>
+      </div>
+    </div>
+
+    <div id="log-section" style="display:none">
+      <div class="section-label">Log</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 20px;margin-bottom:20px">
+        <div id="step-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>homelab_roadmap · <span>equinox_step</span></footer>
+</div>
+
+<script src="../../assets/state.js"></script>
+<script src="../../assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var params = new URLSearchParams(window.location.search);
+  var stepId = params.get('id');
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function findStep() {
+    var eq = window.STATE && window.STATE.tracks && window.STATE.tracks.equinox;
+    if (!eq) return null;
+    var steps = eq.steps || [];
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i].id === stepId) return steps[i];
+    }
+    return null;
+  }
+
+  function render() {
+    if (!stepId) {
+      document.getElementById('step-content').innerHTML =
+        '<div style="color:var(--muted)">Kein Step-ID angegeben.</div>';
+      return;
+    }
+
+    var step = findStep();
+    if (!step) {
+      document.getElementById('step-content').innerHTML =
+        '<div style="color:var(--muted)">Step "' + esc(stepId) + '" nicht gefunden. Tracks: '
+        + (window.STATE && window.STATE.tracks ? Object.keys(window.STATE.tracks).join(', ') : 'keine') + '</div>';
+      return;
+    }
+
+    // Breadcrumb
+    var bc = '<a href="../../index.html">Dashboard</a> › '
+           + '<a href="../../phases/equinox.html">Equinox</a> › '
+           + esc(step.title);
+    document.getElementById('breadcrumb').innerHTML = bc;
+
+    // Title
+    document.getElementById('step-title').textContent = step.title || stepId;
+    document.title = 'Homelab – ' + (step.title || stepId);
+
+    // Status badge
+    var statusEl = document.getElementById('step-status');
+    statusEl.textContent = step.status || 'todo';
+    statusEl.className = 'step-badge ' + (step.status || 'todo');
+
+    // Tags
+    var tagsEl = document.getElementById('step-tags');
+    var tags = step.tags || [];
+    tagsEl.innerHTML = tags.map(function(t) {
+      return '<span class="step-tag">' + esc(t) + '</span>';
+    }).join('');
+
+    // Description
+    document.getElementById('step-desc').textContent = step.desc || '(Keine Beschreibung)';
+
+    // Details
+    var detailsEl = document.getElementById('step-details');
+    var detailsSection = document.getElementById('details-section');
+    if (step.details && typeof step.details === 'object' && Object.keys(step.details).length > 0) {
+      var detHtml = '';
+      Object.keys(step.details).forEach(function(key) {
+        var val = step.details[key];
+        if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          Object.keys(val).forEach(function(subkey) {
+            detHtml += '<div class="detail-row"><span class="detail-key">' + esc(subkey)
+              + '</span><span class="detail-val">' + esc(val[subkey]) + '</span></div>';
+          });
+        } else if (Array.isArray(val)) {
+          detHtml += '<div class="detail-row"><span class="detail-key">' + esc(key)
+            + '</span><span class="detail-val">' + esc(val.join(', ')) + '</span></div>';
+        } else {
+          detHtml += '<div class="detail-row"><span class="detail-key">' + esc(key)
+            + '</span><span class="detail-val">' + esc(val) + '</span></div>';
+        }
+      });
+      if (detHtml) {
+        detailsEl.innerHTML = detHtml;
+        detailsSection.style.display = '';
+      } else {
+        detailsSection.style.display = 'none';
+      }
+    } else {
+      detailsSection.style.display = 'none';
+    }
+
+    // Notes
+    var notesEl = document.getElementById('step-notes');
+    var notesSection = document.getElementById('notes-section');
+    if (step.notes) {
+      notesEl.textContent = step.notes;
+      notesSection.style.display = '';
+    } else {
+      notesSection.style.display = 'none';
+    }
+
+    // Deferred reason
+    var deferredEl = document.getElementById('step-deferred');
+    var deferredSection = document.getElementById('deferred-section');
+    if (step.deferred_reason) {
+      deferredEl.textContent = step.deferred_reason;
+      deferredSection.style.display = '';
+    } else {
+      deferredSection.style.display = 'none';
+    }
+
+    // Log — supports both string entries and {date, entry} objects
+    var logEl = document.getElementById('step-log');
+    var logSection = document.getElementById('log-section');
+    var logEntries = step.log || [];
+    if (logEntries.length > 0) {
+      logEl.innerHTML = logEntries.map(function(l) {
+        if (typeof l === 'string') {
+          // Format: "YYYY-MM-DD: text" or just text
+          var colonIdx = l.indexOf(': ');
+          if (colonIdx > 0 && colonIdx <= 12) {
+            var datePart = l.substring(0, colonIdx);
+            var textPart = l.substring(colonIdx + 2);
+            return '<div class="log-entry">'
+              + '<span class="log-date">' + esc(datePart) + '</span>'
+              + '<span class="log-text">' + esc(textPart) + '</span>'
+              + '</div>';
+          }
+          return '<div class="log-entry"><span class="log-text">' + esc(l) + '</span></div>';
+        }
+        return '<div class="log-entry">'
+          + '<span class="log-date">' + esc(l.date || '') + '</span>'
+          + '<span class="log-text">' + esc(l.entry || l.text || '') + '</span>'
+          + '</div>';
+      }).join('');
+      logSection.style.display = '';
+    } else {
+      logSection.style.display = 'none';
+    }
+  }
+
+  window.addEventListener('tracks-ready', render);
+  window.addEventListener('state-ready', function() { setTimeout(render, 50); });
+  if (window.STATE && window.STATE.tracks && window.STATE.tracks.equinox) render();
+})();
+</script>
+</body>
+</html>

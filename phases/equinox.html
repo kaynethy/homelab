@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Equinox Kollektiv</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ─── Step Cards ─── */
+    .eq-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .eq-step-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      display: block;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .eq-step-card:hover { border-color: #fb923c; background: rgba(251,146,60,0.04); }
+    .eq-step-card.wip  { border-left-color: #f59e0b; }
+    .eq-step-card.done { border-left-color: var(--done); opacity: 0.65; }
+    .eq-step-card.done:hover { opacity: 1; }
+    .eq-step-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .eq-step-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .eq-step-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .eq-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .eq-step-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .eq-step-status.wip  { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+    .eq-step-status.todo { background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+    .eq-step-status.done { background: rgba(34,197,94,.15); color: var(--done); border: 1px solid rgba(34,197,94,.3); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb">
+    <a href="../index.html">Dashboard</a>
+    <span class="sep">›</span>
+    <span>Equinox</span>
+  </div>
+
+  <!-- Header -->
+  <div style="margin-bottom:28px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#fb923c20;color:#fb923c;border:1px solid #fb923c40;letter-spacing:0.5px">EQUINOX</span>
+      <span id="eq-status-badge" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">● active</span>
+    </div>
+    <h1 style="font-size:24px;font-weight:700;color:var(--text);margin:0 0 4px">Equinox Kollektiv</h1>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Website · Mailserver · Branding · Produktion</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;border:1px solid var(--border)">
+          <div id="eq-progress-fill" style="height:100%;width:0%;background:#fb923c;border-radius:3px;transition:width 0.5s"></div>
+        </div>
+      </div>
+      <span id="eq-progress-label" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap">–/–</span>
+    </div>
+  </div>
+
+  <!-- Project Info Box -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #fb923c;border-radius:8px;padding:16px 20px;margin-bottom:24px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">PROJEKT-INFO</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px">
+      <div><span style="color:var(--muted)">Server:</span> <span style="color:var(--text)">equinox-prod (Hetzner CAX21 ARM64)</span></div>
+      <div><span style="color:var(--muted)">IP:</span> <span style="color:var(--text)">128.140.5.13</span></div>
+      <div><span style="color:var(--muted)">Domain:</span> <span style="color:var(--text)">equinox151.de (Cloudflare Proxy)</span></div>
+      <div><span style="color:var(--muted)">Stack:</span> <span style="color:var(--text)">Vite + React + TS + Tailwind</span></div>
+      <div><span style="color:var(--muted)">Kosten:</span> <span style="color:var(--text)">~€12/Monat</span></div>
+      <div><span style="color:var(--muted)">SSH:</span> <span style="color:var(--text)">landvogt@128.140.5.13</span></div>
+    </div>
+  </div>
+
+  <!-- Step Sections (dynamic) -->
+  <div id="eq-sections">
+    <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px">Lade Equinox-Daten…</div>
+  </div>
+
+  <footer>homelab_roadmap · <span>equinox_track</span></footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function statusLabel(status) {
+    if (status === 'wip')  return '<span class="eq-step-status wip">wip</span>';
+    if (status === 'done') return '<span class="eq-step-status done">✓ done</span>';
+    return '<span class="eq-step-status todo">todo</span>';
+  }
+
+  function renderStepCard(step) {
+    var url = '../steps/equinox/step.html?id=' + step.id;
+    var tags = (step.tags || []).slice(0, 4).map(function(t) {
+      return '<span class="eq-tag">' + esc(t) + '</span>';
+    }).join('');
+    var desc = step.desc ? step.desc.substring(0, 120) + (step.desc.length > 120 ? '…' : '') : '';
+    return '<a href="' + url + '" class="eq-step-card ' + (step.status || 'todo') + '">'
+      + '<div class="eq-step-title">' + esc(step.title) + '</div>'
+      + (tags ? '<div class="eq-step-tags">' + tags + '</div>' : '')
+      + (desc ? '<div class="eq-step-desc">' + esc(desc) + '</div>' : '')
+      + statusLabel(step.status)
+      + '</a>';
+  }
+
+  function renderEquinoxPage(eq) {
+    var meta = eq.meta || {};
+    var prog = meta.progress || {};
+
+    // Progress bar
+    var pct = prog.total > 0 ? Math.round((prog.done + prog.wip * 0.5) / prog.total * 100) : 0;
+    var fill = document.getElementById('eq-progress-fill');
+    var label = document.getElementById('eq-progress-label');
+    if (fill) fill.style.width = pct + '%';
+    if (label) {
+      var parts = [prog.done + '/' + prog.total];
+      if (prog.wip > 0) parts.push(prog.wip + ' wip');
+      label.textContent = parts.join(' · ');
+    }
+
+    // Steps (flat array, grouped by status)
+    var steps = eq.steps || [];
+    var wipSteps  = steps.filter(function(s) { return s.status === 'wip'; });
+    var todoSteps = steps.filter(function(s) { return s.status === 'todo'; });
+    var doneSteps = steps.filter(function(s) { return s.status === 'done'; });
+
+    var container = document.getElementById('eq-sections');
+    if (!container) return;
+
+    var html = '';
+
+    if (wipSteps.length > 0) {
+      html += '<div class="section-label">🔄 In Arbeit</div>';
+      html += '<div class="eq-steps-grid">';
+      wipSteps.forEach(function(step) { html += renderStepCard(step); });
+      html += '</div>';
+    }
+
+    if (todoSteps.length > 0) {
+      html += '<div class="section-label">📋 Offen</div>';
+      html += '<div class="eq-steps-grid">';
+      todoSteps.forEach(function(step) { html += renderStepCard(step); });
+      html += '</div>';
+    }
+
+    if (doneSteps.length > 0) {
+      html += '<div class="section-label">✅ Erledigt</div>';
+      html += '<div class="eq-steps-grid">';
+      doneSteps.forEach(function(step) { html += renderStepCard(step); });
+      html += '</div>';
+    }
+
+    container.innerHTML = html || '<div style="color:var(--muted);font-size:13px">Keine Steps gefunden.</div>';
+  }
+
+  function tryRender() {
+    var eq = window.STATE && window.STATE.tracks && window.STATE.tracks.equinox;
+    if (eq) renderEquinoxPage(eq);
+  }
+
+  window.addEventListener('tracks-ready', tryRender);
+  window.addEventListener('state-ready', function() {
+    setTimeout(tryRender, 0);
+  });
+})();
+</script>
+</body>
+</html>

@@ -496,7 +496,7 @@
     "default": {
       "1":  {"x": -86,  "y": -170},
       "2":  {"x": -80,  "y": 150},
-      "3":  {"x": 9,    "y": -63},
+      "3":  {"x": 8,    "y": -68},
       "4":  {"x": -384, "y": 97},
       "5":  {"x": -345, "y": 395},
       "6":  {"x": 191,  "y": 407},
@@ -538,8 +538,8 @@
       "43": {"x": -251, "y": -125},
       "44": {"x": -62,  "y": -305},
       "45": {"x": 76,   "y": -178},
-      "46": {"x": 900,  "y": -300},
-      "47": {"x": 1060, "y": -300}
+      "46": {"x": 78,   "y": -343},
+      "47": {"x": 193,  "y": -341}
     },
     "profil1": null,
     "profil2": null
@@ -978,21 +978,20 @@
       _isHost: true
     });
 
-    // Mailcow Sub-Node (geplant)
+    // Mailcow Sub-Node (aktiv auf equinox-prod)
     var eqMailId = nodeId++;
     nodes.push({
       id: eqMailId,
-      label: '📧 Mailcow\n(Phase 3)',
+      label: '📧 Mailcow\nequinox151.de',
       shape: 'box',
       x: 1060, y: -200,
-      color: { background: 'rgba(90,98,120,0.08)', border: '#5a6278', highlight: { background: 'rgba(90,98,120,0.12)', border: '#5a6278' } },
-      font: { color: '#5a6278', size: 10, face: "'JetBrains Mono', monospace", multi: true },
+      color: { background: cCyan.fill, border: cCyan.stroke, highlight: { background: cCyan.fill, border: cCyan.text } },
+      font: { color: cCyan.text, size: 10, face: "'JetBrains Mono', monospace", multi: true },
       borderWidth: 1.5,
-      shapeProperties: { borderDashes: [6, 3] },
       margin: 6,
-      title: 'Mailcow Mailserver (geplant)\nSMTP (25), Submission (587), IMAPS (993)\nequinox151.de MX Records\nKommt in Phase 3',
+      title: 'Mailcow Mailserver (aktiv)\nSMTP (25), Submission (587), IMAPS (993)\nequinox151.de MX Records\nLäuft auf equinox-prod (Hetzner Nürnberg)',
       _subnetId: 'vpn',
-      _hostStatus: 'planned',
+      _hostStatus: 'active',
       _isHost: true
     });
 
@@ -1004,11 +1003,11 @@
       smooth: false,
       _edgeType: 'subnet-link'
     });
-    // equinox-prod → Mailcow (gestrichelt, geplant)
+    // equinox-prod → Mailcow (aktiv)
     edges.push({
       from: equinoxId, to: eqMailId,
-      color: { color: '#5a6278', opacity: 0.3 },
-      width: 1, dashes: [4, 4], arrows: { to: { enabled: false } },
+      color: { color: cCyan.stroke, opacity: 0.5 },
+      width: 1, dashes: false, arrows: { to: { enabled: false } },
       smooth: false,
       _edgeType: 'subnet-link'
     });
@@ -1073,6 +1072,8 @@
       if (upper === 'INTERNET') return ['internet'];
       if (upper === 'ALLE SUBNETZE') return ['svc', 'lab', 'dmz'];
       if (upper === 'ALLE SUBNETZE + INTERNET') return ['svc', 'lab', 'dmz', 'internet'];
+      if (upper === 'SVC+LAB+DMZ') return ['svc', 'lab', 'dmz'];
+      if (upper === 'SVC+LAB+DMZ+INTERNET') return ['svc', 'lab', 'dmz', 'internet'];
       if (upper === 'SVC / MGMT') return ['svc', 'mgmt'];
       if (upper === 'LAN (ALLE)') return ['mgmt', 'svc', 'lab'];
       // Prefix matches — handles "MGMT (DNS)", "MGMT (NTP)", "MGMT (rest)", etc.
@@ -1117,10 +1118,13 @@
       var rules = pair.rules;
       var hasAllowed = rules.some(function(r) { return r.rule.indexOf('ERLAUBT') !== -1; });
       var hasBlocked = rules.some(function(r) { return r.rule.indexOf('GEBLOCKT') !== -1; });
+      var hasTodo   = rules.some(function(r) { return r.rule.indexOf('TODO') !== -1; });
       var isRestricted = hasAllowed && hasBlocked;
 
       var edgeColor, label, dashes;
-      if (isRestricted) {
+      if (!hasAllowed && !hasBlocked && hasTodo) {
+        edgeColor = '#6b7280'; label = 'TODO'; dashes = [3, 6];
+      } else if (isRestricted) {
         edgeColor = '#eab308';
         var portParts = rules
           .filter(function(r) { return r.rule.indexOf('ERLAUBT') !== -1; })
@@ -1158,7 +1162,7 @@
       });
     });
     var fwEdgeCount = edges.filter(function(e) { return e._firewall; }).length;
-    console.log('[network] Firewall-Checkliste: ' + fwEdgeCount + '/15 Edges generiert (gesamt:', edges.length + ')');
+    console.log('[network] Firewall-Checkliste: ' + fwEdgeCount + ' Edges generiert (gesamt:', edges.length + ')');
 
     // ——— Migration edges (hidden initially) ———
     // Draw dashed lines from TP-Link to each host that has a current_ip

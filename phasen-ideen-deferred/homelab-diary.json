@@ -543,6 +543,161 @@
     "vim gelernt: /pattern (Suche), dd (Zeile löschen), o (neue Zeile+Insert), :301 (zu Zeile springen), Einrückung in interfaces-Dateien",
     "Security-Lektionen: Credentials nie in Chat/Mail, GitHub PAT mit Least Privilege, Blast Radius Isolation (separater SSH-Key pro Server), Ende-zu-Ende-TLS, Security Headers in Nginx, transparentes Routing für Forensik"
   ]
+},{
+  "date": "2026-04-26",
+  "session": 17,
+  "title": "CI/CD Pipeline, Git-Workflow, Phase 2 Abschluss",
+  "entries": [
+    "--- GIT-WORKFLOW ---",
+    "Dev Branch erstellt: git checkout -b dev, git push -u origin dev — Entwicklung getrennt von Produktion",
+    "GitHub Branch Protection Rules: Auf Free Private Repos nicht enforced — Disziplin statt technischer Enforcement",
+    "Workflow definiert: Lokal auf dev entwickeln → PR gegen main → Build-Test → Merge → Auto-Deploy",
+    "Feature-Branch-Strategie besprochen: Für Solo-Entwicklung reicht dev→main, bei Team feature/xyz→main",
+    "--- CI/CD PIPELINE ---",
+    "GitHub Actions Workflow erstellt: .github/workflows/deploy.yml",
+    "Zwei Jobs definiert: build (Test bei PR) und deploy (Deployment bei Merge in main)",
+    "Build-Job: actions/checkout → setup-node@v4 (Node 22) → npm ci → npm run build",
+    "Deploy-Job: appleboy/ssh-action@v1 — SSH auf equinox-prod, git pull + npm install + npm run build",
+    "Conditional Deploy: if: github.event_name == 'push' && github.ref == 'refs/heads/main' — Deploy NUR bei Merge, nicht bei PR",
+    "--- DEPLOY-KEY SETUP ---",
+    "Separater Deploy-Key erstellt: ssh-keygen -t ed25519 -C github-deploy -f ~/.ssh/github-deploy",
+    "Public Key als GitHub Deploy Key hinterlegt (Read-only, kein Write Access)",
+    "Private Key als GitHub Secret (DEPLOY_KEY) gespeichert",
+    "SSH-Config auf equinox-prod: ~/.ssh/config mit IdentityFile ~/.ssh/github-deploy für github.com",
+    "Git Remote URL auf SSH umgestellt: git remote set-url origin git@github.com:kaynethy/equinox151.git",
+    "Verifizierung: ssh -i ~/.ssh/github-deploy -T git@github.com → 'Hi kaynethy/equinox151! You've successfully authenticated'",
+    "--- GITHUB SECRETS ---",
+    "Drei Repository Secrets angelegt: DEPLOY_HOST (128.140.5.13), DEPLOY_USER (landvogt), DEPLOY_KEY (Private Key)",
+    "ParsePrivateKey-Fehler beim ersten Versuch — Key war nicht vollständig kopiert. Lesson Learned: BEGIN/END Zeilen müssen mit, keine Extra-Leerzeilen",
+    "--- PIPELINE-TEST ---",
+    "Erster PR (dev→main): Build-Job grün (17s), Deploy-Job korrekt übersprungen (nur PR, kein Merge)",
+    "Nach Merge: Deploy-Job fehlgeschlagen — SSH-Key-Parsing-Fehler",
+    "Deploy-Key Secret korrigiert — Pipeline läuft komplett durch",
+    "Erster erfolgreicher Auto-Deploy: Änderung in dev → PR → Merge → equinox151.de automatisch aktualisiert",
+    "--- YAML / GITHUB ACTIONS ERKLÄRT ---",
+    "YAML als deklarative Pipeline-Sprache: on (Trigger), jobs (Was), steps (Wie)",
+    "GitHub Actions Konzepte: runs-on (Runner), uses (vorgefertigte Actions), secrets (verschlüsselte Credentials)",
+    "${{ secrets.XXX }} Syntax: Secrets werden zur Laufzeit injiziert, stehen nie im Code",
+    "npm ci vs npm install: ci = Clean Install, strenger, reproduzierbar, Standard für CI/CD",
+    "--- SECURITY BY DESIGN ---",
+    "Key-Separation: Deploy-Key (github-deploy) ist separat vom Admin-Key (equinox-prod.ppk) — Least Privilege",
+    "Deploy-Key ist Read-only — selbst wenn kompromittiert kann kein Code ins Repo gepusht werden",
+    "Secrets verschlüsselt in GitHub — nicht im Code, nicht in Logs, nicht in der Shell-History",
+    "Deploy nur bei Merge in main — kein versehentliches Deployment bei Push auf dev",
+    "Token-Vorfall: GitHub PAT zweimal versehentlich in Chat gepostet → sofort revoked. Credentials gehören NIEMALS in Kommunikationskanäle",
+    "--- SESSION-BILANZ ---",
+    "GitHub Actions CI/CD Pipeline: DONE — Build-Test bei PR, Auto-Deploy bei Merge",
+    "Git-Workflow: DONE — dev für Entwicklung, main für Produktion",
+    "Phase 2 'Netz & Erreichbarkeit': ABGESCHLOSSEN",
+    "Nächste Schritte: Phase 3 (Reverse Proxy intern, Mailcow auf equinox-prod, Wiki, Gitea)",
+    "Bash gelernt: mkdir -p für verschachtelte Verzeichnisse, git remote set-url, ssh -T für Auth-Test, wc -l für Zeilenanzahl",
+    "vim gelernt: Workflow-Dateien erstellen und editieren",
+    "Security-Lektionen: Credentials nie in Chat posten (3x passiert in 2 Sessions!), Key-Separation für CI/CD, Read-only Deploy Keys, Secrets-Management"
+  ]
+},{
+  "date": "2026-04-26",
+  "session": "mailcow-1",
+  "title": "Mailcow auf equinox-prod – Installation & Konfiguration",
+  "entries": [
+    "ARM64-Kompatibilität geprüft: Mailcow seit 2024-01 offiziell Multiarch (x86 + ARM64)",
+    "Port-Check: Alle Mail-Ports frei, kein EXIM auf Debian 13",
+    "Docker Engine 29.4.1 (ARM64) via get.docker.com installiert, landvogt in docker-Gruppe",
+    "Security-Diskussion: docker-Gruppe = Root-Äquivalent, Tradeoff Audit-Trail vs. Convenience",
+    "Security-Diskussion: Warum Docker Upstream-Repo statt Debian-Pakete (Versionslag, Kernel-Interaktion)",
+    "DNS bei Cloudflare: A mail (DNS-only), MX @ → mail.equinox151.de Prio 10",
+    "TLS-Zertifikat für mail.equinox151.de via Certbot (certonly --nginx), vor Mailcow-Install",
+    "Mailcow geklont nach /opt/mailcow-dockerized, generate_config.sh: master, Europe/Berlin",
+    "mailcow.conf: HTTP_PORT=8080, HTTP_BIND=127.0.0.1, HTTP_REDIRECT=n (Reverse Proxy Setup)",
+    "Nginx Reverse Proxy: /etc/nginx/sites-available/mail.equinox151.de → 127.0.0.1:8080",
+    "nftables erweitert: Mail-Ports (25,465,587,993,4190) in Input, Docker-Bridges in Forward",
+    "Gotcha: nft -f löscht Dockers iptables-Chains → systemctl restart docker danach PFLICHT",
+    "Gotcha: Unbound unhealthy weil Forward-Chain Docker-Traffic blockte → br-mailcow accept",
+    "Gotcha: HTTP_REDIRECT=y → Redirect-Loop mit Reverse Proxy → auf n gesetzt",
+    "18 Container laufen, alle healthy inkl. Unbound (ARM64)",
+    "Domain equinox151.de angelegt: Rate Limit 26/1s, DKIM 4096-bit",
+    "Postfächer info@ und booking@ angelegt: 2FA erzwungen, TLS erzwungen, HaveIBeenPwned geprüft",
+    "DNS: SPF (v=spf1 mx a -all), DMARC (p=quarantine, strict alignment), DKIM TXT Record gesetzt",
+    "PTR/Reverse DNS bei Hetzner: IPv4 + IPv6 → mail.equinox151.de",
+    "Mail-Empfangstest: Gmail → info@equinox151.de erfolgreich, SPF/DKIM/DMARC/ARC alle pass",
+    "TLSv1.3 AES-256-GCM mit X25519 Key-Exchange durchgängig",
+    "SOGo Webmail funktioniert über /SOGo/, Login-Format: user@equinox151.de",
+    "Offen: Port 25 ausgehend (Hetzner Limit Request), DMARC auf reject verschärfen, Mailcow ACME prüfen"
+  ]
+},{
+  "diary_entry": {
+    "date": "2026-04-27",
+    "session": "mailcow-2",
+    "title": "Mailcow – Apple Mail eingerichtet, WireGuard Split-Tunnel, Port 587 Debugging",
+    "entries": [
+      "Problem von gestern geloest: iPhone-SSL-Fehler war Tippfehler im Hostnamen",
+      "Port 993 von Mobilfunk (Congstar/Telekom) erreichbar — bewiesen per iNetTools + tcpdump",
+      "Gestern war WLAN (Uni-Netz) noch aktiv bei Tests, daher keine Pakete — kein Provider-Block",
+      "AAAA-Record fuer mail.equinox151.de gesetzt: 2a01:4f8:1c18:3532::1 (DNS-only)",
+      "FEHLER: Zuerst versehentlich Handy-IPv6 statt Server-IPv6 eingetragen — sofort korrigiert (Security-Risiko!)",
+      "Apple Mail auf iPhone: yannick@, info@, booking@, management@ alle 4 Accounts eingerichtet und funktionieren",
+      "Jedes Postfach hat eigenes App-Passwort in KeePassXC (pro Client separat)",
+      "Funktionspostfaecher als eigene Accounts statt Weiterleitung — professioneller Ansatz",
+      "Apple Mail zeigt alle Posteingaenge zusammen unter 'Alle Postfaecher', Absender automatisch korrekt beim Antworten",
+      "Interne Mails (info@ -> booking@) funktionieren ohne Port 25 (bleibt in Mailcow lokal)",
+      "WireGuard Split-Tunnel fuer Windows-PC eingerichtet: 10.0.5.6 auf plattfuss",
+      "Split-Tunnel Config: AllowedIPs = 128.140.5.13/32 (nur Mail-Traffic durch Tunnel)",
+      "MASQUERADE-Regel auf plattfuss: iptables -t nat -A POSTROUTING -s 10.0.5.0/24 -o eth0 -j MASQUERADE",
+      "Port 993 ueber WireGuard-Tunnel funktioniert — Thunderbird IMAP-Empfang bestaetigt",
+      "Thunderbird yannick@equinox151.de erfolgreich eingerichtet (IMAP empfangen)",
+      "Port 587 ueber Tunnel blockiert — Linode blockiert wahrscheinlich ausgehend Port 587",
+      "SMTP-Senden von Thunderbird funktioniert noch nicht (Port 587 von Linode geblockt)",
+      "MASQUERADE-Regel auf plattfuss ist NICHT persistent — muss in nftables.conf geschrieben werden",
+      "Naechste Session: Linode Port 587 klaeren, MASQUERADE persistent machen, restliche Thunderbird-Accounts"
+    ]
+  },
+  "open_items": {
+    "kritisch": [
+      "Port 587 von Linode geblockt — Linode Support kontaktieren oder alternativen Routing-Weg finden",
+      "MASQUERADE-Regel auf plattfuss persistent machen (aktuell nur Runtime, weg nach Reboot)",
+      "Port 25 ausgehend bei Hetzner — Limit Request Status pruefen",
+      "Admin-Passwort (moohoo) aendern falls noch nicht geschehen!"
+    ],
+    "thunderbird": [
+      "yannick@ IMAP empfangen: funktioniert",
+      "yannick@ SMTP senden: blockiert (Port 587 via Linode)",
+      "info@, booking@, management@ Thunderbird-Accounts: noch nicht eingerichtet",
+      "App-Passwoerter fuer Thunderbird-Desktop fuer info/booking/management: noch nicht generiert"
+    ],
+    "spaeter": [
+      "DMARC Policy quarantine -> reject nach Testphase",
+      "Nginx Lockdown finalisieren (SOGo-Block entscheiden)",
+      "mmt@ Accounts + Clients einrichten",
+      "Pentest der Web-UI",
+      "MTA-STS (optional)"
+    ]
+  },
+  "wireguard_status": {
+    "plattfuss_peers": {
+      "10.0.5.2": "ESPRIMO (Homelab)",
+      "10.0.5.3": "iPhone",
+      "10.0.5.4": "Laptop (Mac)",
+      "10.0.5.5": "iPad",
+      "10.0.5.6": "Windows PC (bulldozer) — NEU, Split-Tunnel fuer equinox-prod Mail"
+    },
+    "split_tunnel_config": {
+      "interface_address": "10.0.5.6/32",
+      "peer_endpoint": "139.162.155.120:51820",
+      "allowed_ips": "128.140.5.13/32 (nur equinox-prod Traffic)",
+      "persistent_keepalive": 25,
+      "dns": "1.1.1.1"
+    },
+    "masquerade": {
+      "rule": "iptables -t nat -A POSTROUTING -s 10.0.5.0/24 -o eth0 -j MASQUERADE",
+      "status": "runtime only — NICHT persistent!",
+      "todo": "In /etc/nftables.conf auf plattfuss schreiben"
+    },
+    "port_test_results": {
+      "993_via_tunnel": "FUNKTIONIERT (TcpTestSucceeded: True)",
+      "587_via_tunnel": "BLOCKIERT (Linode blockiert ausgehend Port 587)",
+      "993_direct_plattfuss": "FUNKTIONIERT (nc -zv bestätigt)",
+      "587_direct_plattfuss": "BLOCKIERT (nc -zv timeout)"
+    }
+  }
 }
   ]
 }

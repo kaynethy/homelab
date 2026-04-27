@@ -786,6 +786,114 @@
   "priority": "medium",
   "depends_on": ["ESPRIMO Migration auf 10.0.1.x", "OPNsense kennt WireGuard-Subnetz"],
   "created": "2026-04-25"
+},{
+  "id": "idea-044",
+  "title": "Remote Homelab-Standort bei Familie (WAN-Clustering)",
+  "desc": "Server (Raspberry Pi oder Mini-PC) im Haushalt der Familie aufstellen, wo ein normaler Heimanschluss mit Port-Forwarding verfügbar ist. Eigene öffentliche IP, eigener Standort. Site-to-Site VPN (WireGuard) zum ESPRIMO-Homelab. Ermöglicht: Public-facing Services ohne VPS-Kosten, echtes Multi-Site-Clustering, Geo-Redundanz. Lernziele: WAN-Routing, Split-Brain-Probleme, Latenz-Management, Disaster Recovery über Standorte hinweg.",
+  "phase_id": "phase4",
+  "step_id": null,
+  "prio": "low",
+  "status": "idea",
+  "tags": [
+    "WAN",
+    "Clustering",
+    "Raspberry Pi",
+    "Multi-Site",
+    "VPN",
+    "Hardware",
+    "Geo-Redundanz"
+  ],
+  "comments": [
+    {
+      "id": "c-044-1",
+      "date": "2026-04-26",
+      "text": "Entstand aus der Frustration mit dem Uni-Netz (kein Port-Forwarding, keine Kontrolle über Router). Familie hat normalen Heimanschluss mit eigenem Router. Abhängigkeiten: Strom + Internet im Haushalt, physischer Zugang nur bei Besuch. Für Lernzwecke ideal — echtes WAN-Routing statt nur VPS-zu-VPS. Könnte auch als Offsite-Backup-Standort dienen.",
+      "edited": false
+    }
+  ],
+  "track_id": "hardware"
+},
+{
+  "id": "idea-045",
+  "title": "Persönliche Website + Spaß-Projekte (Public-facing, ohne VPS)",
+  "desc": "Eigene persönliche Website und experimentelle öffentlich erreichbare Projekte hosten — nicht über VPS, sondern über den Remote-Standort bei Familie (idea-044) oder eigenen Anschluss nach Umzug. Reverse Proxy mit Let's Encrypt, Cloudflare Proxy davor. Blast Radius getrennt von Equinox (kommerziell) und Homelab (intern).",
+  "phase_id": "phase4",
+  "step_id": null,
+  "prio": "low",
+  "status": "idea",
+  "tags": [
+    "Webserver",
+    "Personal",
+    "Public",
+    "Reverse Proxy",
+    "TLS"
+  ],
+  "comments": [
+    {
+      "id": "c-045-1",
+      "date": "2026-04-26",
+      "text": "Motivation: Sachen öffentlich hosten ohne monatliche VPS-Kosten. Voraussetzung: Anschluss mit Port-Forwarding (idea-044 oder eigene Wohnung). Drei Blast Radii: Equinox (Hetzner, kommerziell), Homelab (intern, VPN-only), Personal (public, Spaß-Projekte).",
+      "edited": false
+    }
+  ]
+},{
+  "id": "idea-046",
+  "title": "10-Zoll Mini-Rack für Homelab-Hardware",
+  "desc": "Kompaktes 10-Zoll Netzwerk-Rack für saubere Unterbringung aller Homelab-Geräte: ESPRIMO, Zyxel Switch, TP-Link Router, Raspberry Pi, eventuell NAS. Wandmontage oder Desktop. Patchpanel für saubere Kabelführung, Steckdosenleiste für zentrale Stromversorgung. Sieht professionell aus und reduziert Kabelchaos.",
+  "phase_id": null,
+  "step_id": null,
+  "track_id": "hardware",
+  "prio": "low",
+  "status": "idea",
+  "tags": [
+    "Hardware",
+    "Rack",
+    "10-Zoll",
+    "Kabelmanagement",
+    "Desktop",
+    "Wandmontage"
+  ],
+  "details": {
+    "rack": {
+      "empfehlung": "Digitus DN-10-09U (9HE, Glastür, Wandmontage, grau)",
+      "preis": "~€69",
+      "geizhals": "https://geizhals.de/digitus-professional-dn-10-9he-10-wandschrank-grau-dn-10-09u-a1827097.html",
+      "alternative_set": {
+        "modell": "Digitus DN-10-SET-2 (9HE Rack + Shelf + Steckdosenleiste + Patchpanel + Switch)",
+        "preis": "~€154",
+        "geizhals": "https://geizhals.de/digitus-professional-dn-10-9he-10-wandschrank-netzwer-set-dn-10-set-2-a2381300.html",
+        "note": "Switch im Set wird nicht benötigt (Zyxel vorhanden), aber Zubehör einzeln teurer"
+      },
+      "alternative_open": {
+        "modell": "GeeekPi DeskPi RackMate T1 (8HE, offen, Desktop, schwarz)",
+        "note": "Modernes offenes Design, beliebt in Homelab-Community"
+      }
+    },
+    "zubehoer": [
+      { "teil": "10\" Shelf/Ablage (2x)", "zweck": "Switch + Router draufstellen (keine Rack-Ears)", "preis": "~€20-30" },
+      { "teil": "10\" Patchpanel (8-Port)", "zweck": "Saubere Kabelführung zwischen Geräten", "preis": "~€15-20" },
+      { "teil": "10\" Steckdosenleiste", "zweck": "Zentrale Stromversorgung im Rack", "preis": "~€15-20" },
+      { "teil": "Patchkabel kurz (10x 0,25m Cat6)", "zweck": "Saubere Verbindungen innerhalb des Racks", "preis": "~€15" }
+    ],
+    "belegungsplan": {
+      "HE_1": "Patchpanel",
+      "HE_2": "Zyxel XMG1915-10EP (auf Shelf)",
+      "HE_3": "TP-Link Archer C80 (auf Shelf)",
+      "HE_4_5": "ESPRIMO G558 (auf Shelf)",
+      "HE_6": "Steckdosenleiste",
+      "HE_7_9": "Reserve (Raspberry Pi, NAS, Kabelmanagement)"
+    },
+    "gesamtkosten": "~€100-160 (ohne Switch)",
+    "hinweis": "Desktop-Switches wie der Zyxel haben keine 10\"-Rack-Ears — Shelf/Ablage nötig. Wandmontage-Löcher am Switch sind für direkte Wandschrauben, nicht für Rack-Schienen."
+  },
+  "comments": [
+    {
+      "id": "c-046-1",
+      "date": "2026-04-26",
+      "text": "Erst kaufen wenn der Switch da ist und das Kabelchaos tatsächlich nervt. Aktuell reicht ein Regal. Rack ist nice-to-have, kein Blocker für irgendwas.",
+      "edited": false
+    }
+  ]
 }
   ]
 }

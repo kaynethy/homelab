@@ -267,10 +267,14 @@
     'hw-esprimo': '🔧', 'hw-mini-server': '🖥', 'hw-nas': '💾',
     'hw-pbs': '📦', 'hw-pi-dns': '🥧', 'hw-rack': '🗄',
     'sec-pentest-net': '🎯', 'sec-ids': '🛡', 'sec-tacacs': '🔐',
-    'sec-radius': '📡', 'sec-access-server': '🖥', 'sec-eve-ng': '🌐', 'sec-snmpv3': '📊'
+    'sec-radius': '📡', 'sec-access-server': '🖥', 'sec-eve-ng': '🌐', 'sec-snmpv3': '📊',
+    'eq-vps': '🖥', 'eq-hardening': '🔒', 'eq-domain': '🌐', 'eq-website': '🌍',
+    'eq-contact-form': '📨', 'eq-mailcow': '📧', 'eq-ci-cd': '🔄',
+    'eq-analytics': '📊', 'eq-branding': '🎨', 'eq-legal': '⚖'
   };
-  var TRACK_COLOR = { hardware: '#b87333', seclab: '#dc2626' };
-  var TRACK_PAGE  = { hardware: 'phases/hardware.html', seclab: 'phases/seclab.html' };
+  var TRACK_COLOR = { hardware: '#b87333', seclab: '#dc2626', equinox: '#fb923c' };
+  var TRACK_PAGE  = { hardware: 'phases/hardware.html', seclab: 'phases/seclab.html', equinox: 'phases/equinox.html' };
+  var TRACK_STATUS_LABEL = { planned: '○ planned', active: '● active', done: '✓ done' };
 
   var HW_SUBSTEPS_FALLBACK = [
     { id: 's01', title: 'RAM einbauen & BIOS verifizieren',     status: 'todo' },
@@ -395,6 +399,53 @@
     if (sub) sub.textContent = totalDone + '/' + totalAll + ' Steps done';
   }
 
+  var TRACK_ORDER = ['seclab', 'equinox'];
+  var TRACK_LABEL = { seclab: 'SEC-LAB', equinox: 'EQUINOX' };
+  var TRACK_TITLE = { seclab: 'Security &amp; Hacking Lab', equinox: 'Equinox Kollektiv' };
+  var TRACK_SUBTITLE = {
+    seclab: 'Pentesting · AAA · IDS · Vulnerable Targets · Netzwerk-Simulation',
+    equinox: 'Website · Mailserver · Branding · Produktion'
+  };
+  var TRACK_LINK_LABEL = { seclab: 'SEC-LAB-Seite →', equinox: 'Equinox-Seite →' };
+
+  function renderTrackCard(trackId, data) {
+    var color = TRACK_COLOR[trackId] || '#888';
+    var page  = TRACK_PAGE[trackId] || '#';
+    var meta  = data.meta || {};
+    var prog  = meta.progress || {};
+    var done  = prog.done || 0, wip = prog.wip || 0, total = prog.total || 0;
+    var allSteps = (data.sections || []).reduce(function(acc, s) { return acc.concat(s.steps || []); }, data.steps || []);
+    var chipsHtml = allSteps.map(function(st) {
+      var emoji = TRACK_EMOJI[st.id] || '•';
+      var name = (st.title || '').split(' – ')[0].split(' (')[0];
+      if (name.length > 22) name = name.substring(0, 21) + '\u2026';
+      var doneStyle = st.status === 'done' ? 'text-decoration:line-through;opacity:0.5;' : '';
+      return '<span style="font-size:11px;color:var(--muted);' + doneStyle + '">' + emoji + '\u00a0' + escHtml(name) + '</span>';
+    }).join('<span style="color:var(--border2)"> · </span>');
+    var progStr = done + '/' + total + ' done' + (wip > 0 ? ' · ' + wip + ' wip' : '');
+    var statusKey = (meta.status || 'planned');
+    var statusLabel = TRACK_STATUS_LABEL[statusKey] || (statusKey);
+    var statusDot = statusKey === 'active' ? '\u25cf' : '\u25cb';
+    var label = TRACK_LABEL[trackId] || (trackId.toUpperCase());
+    var title = TRACK_TITLE[trackId] || (meta.title || trackId);
+    var subtitle = TRACK_SUBTITLE[trackId] || (meta.subtitle || '');
+    var linkLabel = TRACK_LINK_LABEL[trackId] || (label + '-Seite \u2192');
+    var hex2 = color.replace('#', '');
+    return '<a href="' + page + '" class="phase-card" style="border-left:3px solid ' + color + ';display:block;text-decoration:none;margin-bottom:12px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:' + color + '20;color:' + color + ';border:1px solid ' + color + '40;letter-spacing:0.5px">' + label + '</span>'
+      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">' + statusDot + ' ' + statusKey + '</span>'
+      + '</div>'
+      + '<div class="phase-card-title">' + title + '</div>'
+      + '<div class="phase-card-subtitle">' + subtitle + '</div>'
+      + '<div style="font-size:11px;line-height:2;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin:8px 0">' + chipsHtml + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
+      +   '<div class="phase-card-step-count">' + progStr + '</div>'
+      +   '<span style="font-size:11px;color:' + color + ';font-family:\'JetBrains Mono\',monospace">' + linkLabel + '</span>'
+      + '</div>'
+      + '</a>';
+  }
+
   function renderTrackCards() {
     var tracks = window.STATE && window.STATE.tracks;
     if (!tracks || !Object.keys(tracks).length) return;
@@ -405,39 +456,30 @@
       updateProgressWithHardware(hw);
     }
 
-    var sec = tracks.seclab;
     var section = document.getElementById('projekte-section');
-    if (!sec || !section || section.dataset.seclabRendered) return;
-    section.dataset.seclabRendered = '1';
+    if (!section) return;
 
-    var meta = sec.meta;
-    var color = '#dc2626';
-    var prog = meta.progress || {};
-    var done = prog.done || 0, wip = prog.wip || 0, total = prog.total || 0;
-    var allSteps = (sec.sections || []).reduce(function(acc, s) { return acc.concat(s.steps || []); }, []);
-    var chipsHtml = allSteps.map(function(st) {
-      var emoji = TRACK_EMOJI[st.id] || '•';
-      var name = (st.title || '').split(' – ')[0].split(' (')[0];
-      if (name.length > 22) name = name.substring(0, 21) + '…';
-      return '<span style="font-size:11px;color:var(--muted)">' + emoji + ' ' + name + '</span>';
-    }).join('<span style="color:var(--border2)"> · </span>');
-    var progStr = done + '/' + total + ' done' + (wip > 0 ? ' · ' + wip + ' wip' : '');
+    // Render all non-hardware tracks in order
+    var cardsHtml = '';
+    var anyRendered = false;
+    TRACK_ORDER.forEach(function(tid) {
+      var data = tracks[tid];
+      if (!data) return;
+      var renderedKey = 'rendered_' + tid;
+      if (section.dataset[renderedKey]) return;
+      section.dataset[renderedKey] = '1';
+      cardsHtml += renderTrackCard(tid, data);
+      anyRendered = true;
+    });
 
-    section.innerHTML = '<div class="section-label">Projekte</div>'
-      + '<a href="phases/seclab.html" class="phase-card" style="border-left:3px solid ' + color + ';display:block;text-decoration:none">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:#dc262620;color:#dc2626;border:1px solid #dc262640;letter-spacing:0.5px">SEC-LAB</span>'
-      +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--muted)">○ planned</span>'
-      + '</div>'
-      + '<div class="phase-card-title">Security &amp; Hacking Lab</div>'
-      + '<div class="phase-card-subtitle">Pentesting · AAA · IDS · Vulnerable Targets · Netzwerk-Simulation</div>'
-      + '<div style="font-size:11px;line-height:2;color:var(--muted);font-family:\'JetBrains Mono\',monospace;margin:8px 0">' + chipsHtml + '</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'
-      +   '<div class="phase-card-step-count">' + progStr + '</div>'
-      +   '<span style="font-size:11px;color:#dc2626;font-family:\'JetBrains Mono\',monospace">SEC-LAB-Seite →</span>'
-      + '</div>'
-      + '</a>';
-    section.style.display = '';
+    if (!anyRendered) return;
+
+    if (!section.dataset.headerRendered) {
+      section.dataset.headerRendered = '1';
+      section.innerHTML = '<div class="section-label">Projekte</div>';
+      section.style.display = '';
+    }
+    section.innerHTML += cardsHtml;
   }
 
   window.addEventListener('tracks-ready', renderTrackCards);

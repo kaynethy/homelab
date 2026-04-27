@@ -4,7 +4,7 @@
 
   function getDepth() {
     const path = window.location.pathname;
-    if (path.includes('/steps/hardware/')) return 2;
+    if (path.includes('/steps/hardware/') || path.includes('/steps/equinox/')) return 2;
     return (path.includes('/phases/') || path.includes('/steps/') || path.includes('/demos/')) ? 1 : 0;
   }
 
@@ -39,7 +39,7 @@
 
     const links = pages.map(p => {
       const isAcademySection = p.file === 'academy.html' && (current === 'academy.html' || window.location.pathname.includes('/demos/'));
-      const isDashboardSection = p.file === 'index.html' && (current === 'hardware.html' || current === 'seclab.html');
+      const isDashboardSection = p.file === 'index.html' && (current === 'hardware.html' || current === 'seclab.html' || current === 'equinox.html');
       const isActive = current === p.file || isAcademySection || isDashboardSection;
       return `<a href="${p.href}" class="nav-link${isActive ? ' active' : ''}">${p.label}</a>`;
     }).join('');

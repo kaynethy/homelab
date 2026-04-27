@@ -1,204 +1,279 @@
-{
-  "meta": {
-    "version": "1.0",
-    "updated": "2026-04-22",
-    "phase_id": "phase3",
-    "label": "PHASE 3",
-    "title": "Dienste & Intranet",
-    "subtitle": "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
-    "status": "locked",
-    "color": "purple",
-    "progress": {
-      "done": 0,
-      "wip": 0,
-      "todo": 10,
-      "total": 10,
-      "pct": 0
-    }
-  },
-  "steps": [],
-  "sections": [
-    {
-      "label": "Web & Intranet",
-      "steps": [
-        {
-          "id": "p3-dokuwiki",
-          "title": "DokuWiki",
-          "status": "todo",
-          "tags": [
-            "Wiki",
-            "DokuWiki",
-            "Docs",
-            "Self-hosted"
-          ],
-          "desc": "Eigenes Wiki für alle Dienste, Befehle und Konfigurationen. Dateibasiert, kein MySQL nötig.",
-          "notes": "",
-          "details": {
-            "why_dokuwiki": "Dateibasiert (keine Datenbank nötig), leichtgewichtig, gut skalierbar mit Namespaces.",
-            "namespace_plan": [
-              "proxmox/ – Installation, Konfiguration, Tipps",
-              "netzwerk/ – WireGuard, VLANs, DNS, Subnetting",
-              "dienste/ – Nginx, Mailcow, Vaultwarden etc.",
-              "security/ – Auth-Methoden, Zertifikate, Firewall"
-            ],
-            "vm_resources": "1 Core, 512 MB RAM, 10 GB Disk – sehr leichtgewichtig"
-          },
-          "log": [],
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-webserver",
-          "title": "Webserver / Static Sites",
-          "status": "todo",
-          "tags": [
-            "Nginx",
-            "Caddy",
-            "Web"
-          ],
-          "desc": "Nginx oder Caddy. Eigene Website direkt von zuhause hosten, öffentlich erreichbar.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-wiki",
-          "title": "Internes Wiki / Docs",
-          "status": "todo",
-          "tags": [
-            "Wiki",
-            "Wikijs",
-            "Outline"
-          ],
-          "desc": "Wikijs oder Outline. Dokumentation aller Homelab-Konfigurationen, Passwörter, Netzpläne.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-vaultwarden",
-          "title": "Passwortmanager",
-          "status": "todo",
-          "tags": [
-            "Vaultwarden",
-            "Bitwarden",
-            "Security"
-          ],
-          "desc": "Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager für alle Accounts.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-git",
-          "title": "Git Server",
-          "status": "todo",
-          "tags": [
-            "Gitea",
-            "Forgejo",
-            "Git",
-            "DevOps"
-          ],
-          "desc": "Gitea oder Forgejo. Eigener privater Git-Host für Konfig-Repos, Skripte, Projekte.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-reverseproxy",
-          "title": "Reverse Proxy",
-          "status": "wip",
-          "tags": [
-            "Nginx",
-            "Traefik",
-            "TLS"
-          ],
-          "desc": "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        }
-      ]
-    },
-    {
-      "label": "Kommunikation & Mail",
-      "steps": [
-        {
-          "id": "p3-mail",
-          "title": "Mailserver",
-          "status": "wip",
-          "tags": [
-            "Mail",
-            "Mailcow",
-            "SMTP",
-            "DKIM"
-          ],
-          "desc": "Mailcow oder Maddy. Eigene Domain, SMTP/IMAP, SPF/DKIM/DMARC konfigurieren.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-chat",
-          "title": "Chat / Notifications",
-          "status": "todo",
-          "tags": [
-            "Matrix",
-            "Ntfy",
-            "Chat"
-          ],
-          "desc": "Matrix/Element oder Ntfy für interne Benachrichtigungen aus Automatisierungen.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        }
-      ]
-    },
-    {
-      "label": "Automatisierung",
-      "steps": [
-        {
-          "id": "p3-n8n",
-          "title": "n8n Workflows",
-          "status": "todo",
-          "tags": [
-            "n8n",
-            "Automation",
-            "Webhooks"
-          ],
-          "desc": "No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-ansible",
-          "title": "Ansible Playbooks",
-          "status": "todo",
-          "tags": [
-            "Ansible",
-            "IaC",
-            "DevOps"
-          ],
-          "desc": "Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        },
-        {
-          "id": "p3-containers",
-          "title": "Container Orchestration",
-          "status": "todo",
-          "tags": [
-            "Docker",
-            "K3s",
-            "Kubernetes"
-          ],
-          "desc": "Docker Compose für einfache Stacks. Optional später: K3s (leichtes Kubernetes) für Cluster-Erfahrung.",
-          "log": [],
-          "notes": "",
-          "deferred_reason": ""
-        }
-      ]
-    }
-  ]
+﻿{
+    "meta":  {
+                 "version":  "1.0",
+                 "updated":  "2026-04-27",
+                 "phase_id":  "phase3",
+                 "label":  "PHASE 3",
+                 "title":  "Dienste & Intranet",
+                 "subtitle":  "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
+                 "status":  "active",
+                 "color":  "purple",
+                 "progress":  {
+                                  "done":  0,
+                                  "wip":  2,
+                                  "todo":  8,
+                                  "total":  10,
+                                  "pct":  0
+                              }
+             },
+    "steps":  [],
+    "sections":  [
+                     {
+                         "label":  "Web & Intranet",
+                         "steps":  [
+                                       {
+                                           "id":  "p3-dokuwiki",
+                                           "title":  "DokuWiki",
+                                           "status":  "todo",
+                                           "tags":  ["Wiki", "DokuWiki", "Docs", "Self-hosted"],
+                                           "desc":  "Eigenes Wiki für alle Dienste, Befehle und Konfigurationen. Dateibasiert, kein MySQL nötig.",
+                                           "notes":  "",
+                                           "details":  {
+                                                           "why_dokuwiki":  "Dateibasiert (keine Datenbank nötig), leichtgewichtig, gut skalierbar mit Namespaces.",
+                                                           "namespace_plan":  [
+                                                                                  "proxmox/ – Installation, Konfiguration, Tipps",
+                                                                                  "netzwerk/ – WireGuard, VLANs, DNS, Subnetting",
+                                                                                  "dienste/ – Nginx, Mailcow, Vaultwarden etc.",
+                                                                                  "security/ – Auth-Methoden, Zertifikate, Firewall"
+                                                                              ],
+                                                           "vm_resources":  "1 Core, 512 MB RAM, 10 GB Disk – sehr leichtgewichtig"
+                                                       },
+                                           "log":  [],
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-webserver",
+                                           "title":  "Webserver / Static Sites",
+                                           "status":  "todo",
+                                           "tags":  ["Nginx", "Caddy", "Web"],
+                                           "desc":  "Nginx oder Caddy. Eigene Website direkt von zuhause hosten, öffentlich erreichbar.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-wiki",
+                                           "title":  "Internes Wiki / Docs",
+                                           "status":  "todo",
+                                           "tags":  ["Wiki", "Wikijs", "Outline"],
+                                           "desc":  "Wikijs oder Outline. Dokumentation aller Homelab-Konfigurationen, Passwörter, Netzpläne.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-vaultwarden",
+                                           "title":  "Passwortmanager",
+                                           "status":  "todo",
+                                           "tags":  ["Vaultwarden", "Bitwarden", "Security"],
+                                           "desc":  "Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager für alle Accounts.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-git",
+                                           "title":  "Git Server",
+                                           "status":  "todo",
+                                           "tags":  ["Gitea", "Forgejo", "Git", "DevOps"],
+                                           "desc":  "Gitea oder Forgejo. Eigener privater Git-Host für Konfig-Repos, Skripte, Projekte.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-reverseproxy",
+                                           "title":  "Reverse Proxy",
+                                           "status":  "todo",
+                                           "tags":  ["Nginx", "Traefik", "TLS"],
+                                           "desc":  "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-mail",
+                                           "title":  "Mailserver",
+                                           "status":  "wip",
+                                           "tags":  ["Mail", "Mailcow", "SMTP", "IMAP", "DKIM", "SPF", "DMARC", "Docker", "Nginx", "TLS", "Security"],
+                                           "desc":  "Mailcow Docker-Stack auf equinox-prod (Hetzner CAX21, ARM64). Eigene Domain equinox151.de, SMTP/IMAP, SPF/DKIM/DMARC, Nginx Reverse Proxy, 2FA auf allen Postfaechern. Headless-Betrieb (kein Webmail), Mail-Clients per IMAP/SMTP.",
+                                           "details":  {
+                                                           "server":  "equinox-prod (128.140.5.13 / 2a01:4f8:1c18:3532::1, Hetzner CAX21 ARM64)",
+                                                           "stack":  "Mailcow Dockerized 2026-03b, 18 Container",
+                                                           "location":  "/opt/mailcow-dockerized",
+                                                           "domain":  "equinox151.de",
+                                                           "web_ui":  "https://mail.equinox151.de/admin (IP-restricted: 134.93.0.0/16 + 139.162.155.120)",
+                                                           "tls":  "Certbot (Web-UI) + Mailcow ACME (Mail-Ports)",
+                                                           "dns_records":  {
+                                                                               "A":  "mail -> 128.140.5.13 (DNS-only)",
+                                                                               "AAAA":  "mail -> 2a01:4f8:1c18:3532::1 (DNS-only)",
+                                                                               "MX":  "@ -> mail.equinox151.de Prio 10",
+                                                                               "SPF":  "v=spf1 mx a -all",
+                                                                               "DMARC":  "v=DMARC1; p=quarantine; rua=mailto:info@equinox151.de; adkim=s; aspf=s",
+                                                                               "DKIM":  "dkim._domainkey -> 4096-bit RSA"
+                                                                           },
+                                                           "ptr":  {
+                                                                       "ipv4":  "128.140.5.13 -> mail.equinox151.de",
+                                                                       "ipv6":  "2a01:4f8:1c18:3532::1 -> mail.equinox151.de"
+                                                                   },
+                                                           "security":  {
+                                                                            "2fa":  "erzwungen auf allen Postfaechern",
+                                                                            "app_passwords":  "pro Client eigenes App-Passwort, gespeichert in KeePassXC",
+                                                                            "tls_policy":  "TLS eingehend + ausgehend erzwungen",
+                                                                            "rate_limit":  "26 Nachrichten/Sekunde (Domain-Level)",
+                                                                            "dkim_bits":  4096,
+                                                                            "spf_policy":  "-all (hard fail)",
+                                                                            "dmarc_policy":  "quarantine (-> reject nach Testphase)",
+                                                                            "nginx_restriction":  "Admin-Panel nur Uni-Netz + VPN-IP",
+                                                                            "http_bind":  "127.0.0.1 (Least Exposure)"
+                                                                        },
+                                                           "test_results":  {
+                                                                                "receive":  "Gmail -> info@equinox151.de: pass",
+                                                                                "imap_mobile":  "iPhone 5G (Congstar) -> equinox-prod:993: pass",
+                                                                                "imap_plattfuss":  "plattfuss -> equinox-prod:993: pass",
+                                                                                "spf":  "pass",
+                                                                                "dkim":  "pass",
+                                                                                "dmarc":  "pass",
+                                                                                "arc":  "pass",
+                                                                                "tls":  "TLSv1.3 AES-256-GCM X25519"
+                                                                            }
+                                                       },
+                                           "accounts":  {
+                                                            "client_setup":  {
+                                                                                "imap":  {"host":  "mail.equinox151.de", "port":  993, "security":  "SSL/TLS", "auth":  "App-Passwort"},
+                                                                                "smtp":  {"host":  "mail.equinox151.de", "port":  587, "security":  "STARTTLS", "auth":  "App-Passwort"},
+                                                                                "username_format":  "user@equinox151.de (volle E-Mail-Adresse)"
+                                                                            },
+                                                            "mailboxes":  [
+                                                                              {
+                                                                                  "address":  "yannick@equinox151.de",
+                                                                                  "type":  "persoenlich",
+                                                                                  "owner":  "Yannick Schulz",
+                                                                                  "2fa":  true,
+                                                                                  "app_passwords":  ["Thunderbird-Desktop", "Apple-Mail-iPhone"],
+                                                                                  "clients":  {
+                                                                                      "iphone":  "eingerichtet (Apple Mail, 5G/Mobilfunk)",
+                                                                                      "windows_pc":  "ausstehend (WireGuard Split-Tunnel noetig)"
+                                                                                  }
+                                                                              },
+                                                                              {
+                                                                                  "address":  "info@equinox151.de",
+                                                                                  "type":  "funktional",
+                                                                                  "display_name":  "Equinox Info",
+                                                                                  "2fa":  true,
+                                                                                  "app_passwords":  ["Apple-Mail-iPhone-Info"],
+                                                                                  "clients":  {
+                                                                                      "iphone":  "eingerichtet (Apple Mail)",
+                                                                                      "windows_pc":  "ausstehend"
+                                                                                  },
+                                                                                  "access":  ["yannick", "mmt (TODO)"]
+                                                                              },
+                                                                              {
+                                                                                  "address":  "booking@equinox151.de",
+                                                                                  "type":  "funktional",
+                                                                                  "display_name":  "Equinox Booking",
+                                                                                  "2fa":  true,
+                                                                                  "app_passwords":  ["Apple-Mail-iPhone-Booking"],
+                                                                                  "clients":  {
+                                                                                      "iphone":  "eingerichtet (Apple Mail)",
+                                                                                      "windows_pc":  "ausstehend"
+                                                                                  },
+                                                                                  "access":  ["yannick", "mmt (TODO)"]
+                                                                              },
+                                                                              {
+                                                                                  "address":  "management@equinox151.de",
+                                                                                  "type":  "funktional",
+                                                                                  "display_name":  "Equinox Management",
+                                                                                  "2fa":  true,
+                                                                                  "app_passwords":  ["Apple-Mail-iPhone-Management"],
+                                                                                  "clients":  {
+                                                                                      "iphone":  "eingerichtet (Apple Mail)",
+                                                                                      "windows_pc":  "ausstehend"
+                                                                                  },
+                                                                                  "access":  ["yannick", "mmt (TODO)"]
+                                                                              },
+                                                                              {
+                                                                                  "address":  "mmt@equinox151.de",
+                                                                                  "type":  "persoenlich",
+                                                                                  "owner":  "MMT",
+                                                                                  "2fa":  true,
+                                                                                  "app_passwords":  [],
+                                                                                  "clients":  {},
+                                                                                  "access":  []
+                                                                              }
+                                                                          ]
+                                                        },
+                                           "log":  [
+                                                       {"date":  "2026-04-26", "entry":  "Docker 29.4.1 ARM64 installiert"},
+                                                       {"date":  "2026-04-26", "entry":  "DNS (A mail, MX) bei Cloudflare gesetzt"},
+                                                       {"date":  "2026-04-26", "entry":  "Mailcow installiert, 18 Container running"},
+                                                       {"date":  "2026-04-26", "entry":  "Nginx Reverse Proxy konfiguriert"},
+                                                       {"date":  "2026-04-26", "entry":  "nftables erweitert (Mail-Ports + Docker Forward)"},
+                                                       {"date":  "2026-04-26", "entry":  "Domain + Postfaecher angelegt, DKIM 4096-bit"},
+                                                       {"date":  "2026-04-26", "entry":  "SPF/DKIM/DMARC DNS-Records gesetzt"},
+                                                       {"date":  "2026-04-26", "entry":  "PTR bei Hetzner (IPv4+IPv6)"},
+                                                       {"date":  "2026-04-26", "entry":  "Empfangstest bestanden (Gmail, alle Checks pass)"},
+                                                       {"date":  "2026-04-26", "entry":  "Nginx Lockdown: Admin-Panel IP-restricted"},
+                                                       {"date":  "2026-04-26", "entry":  "App-Passwoerter fuer Thunderbird + Apple Mail generiert"},
+                                                       {"date":  "2026-04-27", "entry":  "AAAA-Record gesetzt (2a01:4f8:1c18:3532::1)"},
+                                                       {"date":  "2026-04-27", "entry":  "Apple Mail iPhone: yannick@, info@, booking@, management@ eingerichtet"},
+                                                       {"date":  "2026-04-27", "entry":  "Empfang auf iPhone getestet und funktioniert (alle 4 Accounts)"},
+                                                       {"date":  "2026-04-27", "entry":  "Uni-Netz blockiert Port 993/587 — WireGuard Split-Tunnel fuer PC geplant"}
+                                                   ],
+                                           "notes":  "Port 25 ausgehend bei Hetzner blockiert. Uni-Netz blockiert Port 993/587 — PC braucht WireGuard Split-Tunnel. Apple Mail Hostname exakt pruefen (Tippfehler = SSL-Fehler). DMARC auf reject nach Testphase.",
+                                           "deferred_reason":  "Senden blockiert bis Hetzner Port 25 freigibt. PC-Client wartet auf WireGuard Split-Tunnel."
+                                       }
+                                   ]
+                     },
+                     {
+                         "label":  "Kommunikation & Mail",
+                         "steps":  [
+                                       {
+                                           "id":  "p3-chat",
+                                           "title":  "Chat / Notifications",
+                                           "status":  "todo",
+                                           "tags":  ["Matrix", "Ntfy", "Chat"],
+                                           "desc":  "Matrix/Element oder Ntfy für interne Benachrichtigungen aus Automatisierungen.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       }
+                                   ]
+                     },
+                     {
+                         "label":  "Automatisierung",
+                         "steps":  [
+                                       {
+                                           "id":  "p3-n8n",
+                                           "title":  "n8n Workflows",
+                                           "status":  "todo",
+                                           "tags":  ["n8n", "Automation", "Webhooks"],
+                                           "desc":  "No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-ansible",
+                                           "title":  "Ansible Playbooks",
+                                           "status":  "todo",
+                                           "tags":  ["Ansible", "IaC", "DevOps"],
+                                           "desc":  "Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       },
+                                       {
+                                           "id":  "p3-containers",
+                                           "title":  "Container Orchestration",
+                                           "status":  "todo",
+                                           "tags":  ["Docker", "K3s", "Kubernetes"],
+                                           "desc":  "Docker Compose für einfache Stacks. Optional später: K3s (leichtes Kubernetes) für Cluster-Erfahrung.",
+                                           "log":  [],
+                                           "notes":  "",
+                                           "deferred_reason":  ""
+                                       }
+                                   ]
+                     }
+                 ]
 }

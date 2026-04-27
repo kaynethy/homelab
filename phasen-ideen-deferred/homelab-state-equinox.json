@@ -1,0 +1,244 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2026-04-27",
+    "track_id": "equinox",
+    "label": "EQUINOX",
+    "title": "Equinox Kollektiv",
+    "subtitle": "Website · Mailserver · Branding · Produktion",
+    "type": "parallel",
+    "status": "active",
+    "color": "coral",
+    "progress": {
+      "done": 5,
+      "wip": 1,
+      "todo": 4,
+      "total": 10,
+      "pct": 55
+    },
+    "info": {
+      "server": "equinox-prod (Hetzner CAX21 ARM64)",
+      "ip": "128.140.5.13",
+      "domain": "equinox151.de",
+      "stack": "Vite + React + TypeScript + Tailwind CSS",
+      "repo": "github.com/kaynethy/equinox151",
+      "cost": "~€12/Monat (Server + IPv4 + Backups)",
+      "ssh": "landvogt@128.140.5.13",
+      "ssh_key": "equinox-prod.ppk"
+    }
+  },
+  "steps": [
+    {
+      "id": "eq-vps",
+      "title": "VPS provisionieren",
+      "status": "done",
+      "tags": ["VPS", "Hetzner", "Debian", "Cloud"],
+      "desc": "Hetzner CAX21 VPS (4 vCPU ARM64, 8 GB RAM, 80 GB SSD, 20 TB Traffic). Debian 13, SSH-Key, landvogt-User. Kein Root-Login, Key-only Auth.",
+      "notes": "equinox-prod live seit 2026-04-26. CAX21 ARM64 — deutlich schneller als x86 für den Preis. Backups aktiviert (+20%, tägliche Snapshots).",
+      "details": {
+        "provider": "Hetzner Cloud",
+        "plan": "CAX21 — 4 vCPU Ampere ARM64, 8 GB RAM, 80 GB SSD, 20 TB Traffic",
+        "region": "DE, Nürnberg (nbg1)",
+        "os": "Debian 13",
+        "cost": "~€12/Monat (€9,51 + €0,60 IPv4 + ~€1,90 Backups)",
+        "public_ip": "128.140.5.13",
+        "backups": "Aktiviert — tägliche automatische Snapshots"
+      },
+      "log": [
+        "2026-04-26: Hetzner-Account: Yck.schulz@gmail.com",
+        "2026-04-26: CAX21 ARM64 in Nürnberg erstellt",
+        "2026-04-26: Debian 13 installiert, SSH-Key hinterlegt",
+        "2026-04-26: User landvogt angelegt, sudo, Root-Login deaktiviert",
+        "2026-04-26: Backups aktiviert"
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-hardening",
+      "title": "Server-Härtung",
+      "status": "done",
+      "tags": ["Security", "nftables", "fail2ban", "SSH", "Hardening"],
+      "desc": "Vollständige Server-Härtung: nftables Firewall (drop default, nur 22/80/443), fail2ban, unattended-upgrades, SSH-Hardening (MaxAuth 3, key-only), HISTCONTROL.",
+      "notes": "Nginx Security Headers gesetzt. Cloudflare Proxy für alle öffentlichen Domains.",
+      "details": {
+        "firewall": "nftables drop policy — nur SSH (22), HTTP (80), HTTPS (443) eingehend",
+        "ssh": "Key-only, Root off, MaxAuth 3, Port 22",
+        "fail2ban": "Aktiv für SSH (maxretry 3)",
+        "updates": "unattended-upgrades (Security-only)",
+        "history": "HISTCONTROL=ignorespace:erasedups"
+      },
+      "log": [
+        "2026-04-26: nftables Firewall konfiguriert (drop default)",
+        "2026-04-26: fail2ban installiert und konfiguriert",
+        "2026-04-26: unattended-upgrades aktiviert",
+        "2026-04-26: SSH MaxAuth auf 3 gesetzt",
+        "2026-04-26: Nginx Security Headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy)"
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-domain",
+      "title": "Domain & DNS",
+      "status": "done",
+      "tags": ["DNS", "Cloudflare", "Domain", "TLS"],
+      "desc": "Domain equinox151.de bei INWX registriert. DNS zu Cloudflare migriert. SSL-Modus Full (Strict). Let's Encrypt Zertifikat via Certbot (ECDSA, auto-renew).",
+      "notes": "Transfer-Lock aktiv. Cloudflare Free Plan. Bot Fight Mode + AI Bots blocked.",
+      "details": {
+        "registrar": "INWX",
+        "dns": "Cloudflare (james + ziggy)",
+        "ssl_mode": "Full (Strict)",
+        "tls_cert": "Let's Encrypt (Certbot, ECDSA, auto-renew, expires 2026-07-25)",
+        "cloudflare_features": "Bot Fight Mode, Leaked Credentials Mitigation, Client-side Security, AI Bots blocked",
+        "dns_records": "A equinox151.de → 128.140.5.13 (Proxy), A www → 128.140.5.13 (Proxy)"
+      },
+      "log": [
+        "2026-04-26: DNS zu Cloudflare migriert",
+        "2026-04-26: SSL-Modus auf Full (Strict) gesetzt",
+        "2026-04-26: Certbot installiert, ECDSA-Cert für equinox151.de ausgestellt",
+        "2026-04-26: Auto-Renew per Cron konfiguriert",
+        "2026-04-26: Cloudflare Proxy aktiviert (A-Records orangene Wolke)"
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-website",
+      "title": "Website live",
+      "status": "done",
+      "tags": ["Nginx", "Vite", "React", "TypeScript", "Tailwind", "Web"],
+      "desc": "equinox151.de live. Vite + React + TypeScript + Tailwind CSS. Build-Pipeline: git pull && npm install && npm run build. Nginx serviert /var/www/equinox151.de/dist.",
+      "notes": "Repo: github.com/kaynethy/equinox151 (privat). Cloudflare Proxy aktiviert — Server-IP versteckt.",
+      "details": {
+        "stack": "Vite + React + TypeScript + Tailwind CSS",
+        "repo": "github.com/kaynethy/equinox151 (privat)",
+        "deploy": "git pull && npm install && npm run build",
+        "root": "/var/www/equinox151.de/dist",
+        "webserver": "Nginx",
+        "url": "https://equinox151.de"
+      },
+      "log": [
+        "2026-04-26: Nginx installiert und konfiguriert",
+        "2026-04-26: Node.js + npm installiert",
+        "2026-04-26: Repo geklont, Build erfolgreich",
+        "2026-04-26: equinox151.de live erreichbar",
+        "2026-04-26: HTTPS funktioniert, Cloudflare Proxy aktiv"
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-contact-form",
+      "title": "Kontaktformular",
+      "status": "wip",
+      "tags": ["React", "API", "Email", "SMTP", "Backend"],
+      "desc": "Kontaktformular auf equinox151.de. Frontend in React, Backend-API (Node.js/Express oder Serverless) sendet E-Mails via SMTP. Rate-Limiting, CSRF-Schutz, Spam-Filter.",
+      "notes": "Abhängig von Mailcow (eq-mailcow) für SMTP-Versand. Alternativ: Resend oder Postmark als externen Mail-Provider nutzen bis Mailcow steht.",
+      "details": {
+        "frontend": "React-Formular mit Client-Side-Validation",
+        "backend": "Node.js API oder Serverless Function",
+        "smtp": "Mailcow (mail.equinox151.de) oder externer Provider (Resend)",
+        "security": "Rate-Limiting, CSRF, Honeypot-Feld, reCAPTCHA optional"
+      },
+      "log": [
+        "2026-04-27: Formular-Komponente begonnen"
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-mailcow",
+      "title": "Mailcow Mailserver",
+      "status": "done",
+      "tags": ["Mailcow", "SMTP", "IMAP", "Docker", "Mail", "DKIM", "SPF", "DMARC"],
+      "desc": "Mailcow Docker-Stack auf equinox-prod (Hetzner CAX21, ARM64). Eigene Domain equinox151.de, SMTP/IMAP, SPF/DKIM/DMARC, Nginx Reverse Proxy, 2FA auf allen Postfächern.",
+      "notes": "Port 25 ausgehend bei Hetzner blockiert — Limit Request gestellt. Senden geht erst nach Freischaltung. DMARC auf reject verschärfen nach Testphase.",
+      "details": {
+        "server": "equinox-prod (128.140.5.13, Hetzner CAX21 ARM64)",
+        "stack": "Mailcow Dockerized 2026-03b, 18 Container",
+        "location": "/opt/mailcow-dockerized",
+        "domain": "equinox151.de",
+        "mailboxes": "info@equinox151.de, booking@equinox151.de",
+        "web_ui": "https://mail.equinox151.de (Nginx Reverse Proxy → 127.0.0.1:8080)",
+        "webmail": "https://mail.equinox151.de/SOGo/",
+        "tls": "Certbot (Web-UI) + Mailcow ACME (Mail-Ports)",
+        "spf": "v=spf1 mx a -all",
+        "dmarc": "v=DMARC1; p=quarantine; rua=mailto:info@equinox151.de",
+        "dkim": "dkim._domainkey → 4096-bit RSA",
+        "ptr": "128.140.5.13 → mail.equinox151.de (IPv4 + IPv6)",
+        "2fa": "Erzwungen auf allen Postfächern",
+        "rate_limit": "26 Nachrichten/Sekunde (Domain-Level)"
+      },
+      "log": [
+        "2026-04-26: Docker 29.4.1 ARM64 installiert",
+        "2026-04-26: DNS (A mail, MX) bei Cloudflare gesetzt",
+        "2026-04-26: Mailcow installiert, 18 Container running",
+        "2026-04-26: Nginx Reverse Proxy konfiguriert",
+        "2026-04-26: nftables erweitert (Mail-Ports + Docker Forward)",
+        "2026-04-26: Domain + Postfächer angelegt, DKIM 4096-bit",
+        "2026-04-26: SPF/DKIM/DMARC DNS-Records gesetzt",
+        "2026-04-26: PTR bei Hetzner (IPv4+IPv6)",
+        "2026-04-26: Empfangstest bestanden (Gmail → info@equinox151.de: pass, SPF/DKIM/DMARC/ARC: pass)"
+      ],
+      "deferred_reason": "Port 25 ausgehend bei Hetzner blockiert — Limit Request gestellt"
+    },
+    {
+      "id": "eq-ci-cd",
+      "title": "CI/CD Pipeline",
+      "status": "todo",
+      "tags": ["CI/CD", "GitHub Actions", "Deploy", "Automation", "DevOps"],
+      "desc": "Automatisches Deployment bei Git-Push. GitHub Actions → SSH → git pull && npm run build. Zero-Downtime Deploy, Build-Status Badge im README.",
+      "notes": "",
+      "details": {
+        "trigger": "Push auf main-Branch",
+        "runner": "GitHub Actions (ubuntu-latest)",
+        "deploy": "SSH action → equinox-prod → git pull && npm ci && npm run build",
+        "secret": "SSH-Key als GitHub Secret hinterlegen"
+      },
+      "log": [],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-analytics",
+      "title": "Analytics (datenschutzkonform)",
+      "status": "todo",
+      "tags": ["Analytics", "Umami", "Matomo", "Privacy", "DSGVO"],
+      "desc": "Datenschutzkonforme Analytics ohne Cookies. Umami oder Plausible self-hosted auf equinox-prod. Kein Google Analytics. DSGVO-konform, keine Cookie-Banner nötig.",
+      "notes": "",
+      "details": {
+        "options": "Umami (self-hosted, Docker), Plausible (self-hosted oder Cloud), Matomo",
+        "privacy": "Kein Tracking über Seitengrenzen, keine IP-Speicherung",
+        "dsgvo": "Kein Cookie-Banner nötig (keine personenbezogenen Daten)"
+      },
+      "log": [],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-branding",
+      "title": "Branding & Design-System",
+      "status": "todo",
+      "tags": ["Design", "Branding", "CSS", "Tailwind", "UI"],
+      "desc": "Konsistentes Design-System für equinox151.de. Farbpalette, Typografie, Logo, Icons. Komponenten-Library in React/Tailwind. Dark Mode.",
+      "notes": "",
+      "details": {
+        "colors": "Coral (#fb923c) als Primärfarbe, Dark Background, Mono-Font für Code",
+        "fonts": "Inter oder Geist (Text), JetBrains Mono (Code)",
+        "logo": "SVG-Logo, responsive",
+        "dark_mode": "System-Preference + manuelles Toggle"
+      },
+      "log": [],
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-legal",
+      "title": "Rechtliches (Impressum, DSGVO)",
+      "status": "todo",
+      "tags": ["Legal", "Impressum", "DSGVO", "Privacy", "Compliance"],
+      "desc": "Impressum (§5 TMG), Datenschutzerklärung (DSGVO), Cookie-Policy (falls nötig). Pflichtangaben für öffentliche Website in Deutschland.",
+      "notes": "",
+      "details": {
+        "impressum": "§5 TMG: Name, Adresse, E-Mail, ggf. Steuernummer",
+        "datenschutz": "Art. 13 DSGVO: Verantwortlicher, Zweck, Rechtsgrundlage, Betroffenenrechte",
+        "hosting": "Hetzner Cloud (Auftragsverarbeitung dokumentieren)"
+      },
+      "log": [],
+      "deferred_reason": ""
+    }
+  ]
+}
