@@ -425,6 +425,23 @@
   <div class="section-label" style="margin-top:32px">Router-Netz (Übergang)</div>
   <div id="router-netz-section" style="margin-bottom:24px"></div>
 
+  <!-- Uni-Netz Constraint -->
+  <div class="section-label" style="margin-top:32px">Uni-Netz Constraint</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:8px;padding:16px 20px;margin-bottom:24px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:16px">🏛</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#ef4444">JGU Mainz — NAT-Barriere</span>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8">
+      <div>🚫 IP 134.93.69.146 gehört der Universität</div>
+      <div>🚫 Kein Port-Forwarding möglich</div>
+      <div>🚫 Double-NAT: Uni → TP-Link → Homelab</div>
+      <div>🚫 Port 587/993 blockiert (Uni-WLAN)</div>
+      <div style="margin-top:8px;color:var(--text)">Workaround: WireGuard-Tunnel von innen nach plattfuss (VPS)</div>
+      <div style="color:var(--muted);margin-top:4px;font-style:italic">Nach Auszug: OPNsense direkt am Modem, VPS-Gateway optional.</div>
+    </div>
+  </div>
+
   <!-- Firewall Rules -->
   <div class="section-label" style="margin-top:32px">Firewall-Regeln</div>
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px">
@@ -496,20 +513,19 @@
     "default": {
       "1":  {"x": -86,  "y": -170},
       "2":  {"x": -80,  "y": 150},
-      "3":  {"x": 8,    "y": -68},
+      "3":  {"x": 263,  "y": -292},
       "4":  {"x": -384, "y": 97},
       "5":  {"x": -345, "y": 395},
       "6":  {"x": 191,  "y": 407},
       "7":  {"x": 214,  "y": 149},
       "8":  {"x": 264,  "y": -118},
-      "9":  {"x": -270, "y": -21},
       "10": {"x": -352, "y": -49},
       "11": {"x": -467, "y": -52},
       "12": {"x": -556, "y": -27},
       "13": {"x": -571, "y": 40},
       "14": {"x": -559, "y": 101},
       "15": {"x": -531, "y": 157},
-      "16": {"x": -359, "y": 286},
+      "16": {"x": -437, "y": 184},
       "17": {"x": -246, "y": 590},
       "18": {"x": -356, "y": 610},
       "19": {"x": -441, "y": 594},
@@ -517,9 +533,8 @@
       "21": {"x": -559, "y": 503},
       "22": {"x": -588, "y": 452},
       "23": {"x": -588, "y": 392},
-      "24": {"x": -555, "y": 336},
-      "25": {"x": -474, "y": 290},
-      "26": {"x": 60,   "y": 347},
+      "25": {"x": -538, "y": 334},
+      "26": {"x": -432, "y": 288},
       "27": {"x": 337,  "y": 344},
       "28": {"x": 385,  "y": 410},
       "29": {"x": 371,  "y": 478},
@@ -527,19 +542,21 @@
       "31": {"x": 170,  "y": 517},
       "32": {"x": 52,   "y": 482},
       "33": {"x": 24,   "y": 412},
-      "34": {"x": 215,  "y": 50},
-      "35": {"x": 345,  "y": 95},
-      "37": {"x": 380,  "y": 179},
-      "38": {"x": 280,  "y": -255},
+      "34": {"x": 210,  "y": 307},
+      "35": {"x": 346,  "y": 78},
+      "36": {"x": 351,  "y": 149},
+      "38": {"x": 345,  "y": 235},
       "39": {"x": 422,  "y": -217},
       "40": {"x": 488,  "y": -139},
       "41": {"x": 492,  "y": -89},
       "42": {"x": 492,  "y": -41},
-      "43": {"x": -251, "y": -125},
-      "44": {"x": -62,  "y": -305},
-      "45": {"x": 76,   "y": -178},
-      "46": {"x": 78,   "y": -343},
-      "47": {"x": 193,  "y": -341}
+      "43": {"x": 481,  "y": -178},
+      "46": {"x": -392, "y": -283},
+      "47": {"x": -123, "y": -342},
+      "48": {"x": 43,   "y": -340},
+      "49": {"x": -4,   "y": -428},
+      "50": {"x": 115,  "y": -425},
+      "51": {"x": -86,  "y": -80}
     },
     "profil1": null,
     "profil2": null
@@ -779,15 +796,7 @@
       arrows: { to: { enabled: true, scaleFactor: 0.6 }, from: { enabled: true, scaleFactor: 0.6 } },
       _edgeType: 'infra'
     });
-    edges.push({
-      from: internetId, to: tplinkId,
-      color: { color: '#3a4055', highlight: '#5a6278' },
-      dashes: [6, 3], width: 1,
-      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
-      label: 'aktuell',
-      font: { color: '#5a6278', size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
-      _edgeType: 'infra'
-    });
+    // Internet → TP-Link direct edge entfernt — läuft jetzt über Uni-Netz NAT-Barriere
 
     // ——— Ebene 2: Subnetz-Nodes + Edges OPNsense→Subnet ———
     var SUBNET_X = { mgmt: -450, svc: -150, lab: 150, dmz: 450 };
@@ -1179,6 +1188,61 @@
         hidden: true,
         _migration: true
       });
+    });
+
+    // ——— Uni-Netz NAT-Barriere (zwischen Internet und TP-Link) ———
+    var uniNetzId = nodeId++;
+    nodes.push({
+      id: uniNetzId,
+      label: '🏛 JGU Mainz\nUni-Netz (NAT)\n134.93.69.146',
+      shape: 'box',
+      color: {
+        background: 'rgba(239,68,68,0.06)',
+        border: '#ef4444',
+        highlight: { background: 'rgba(239,68,68,0.10)', border: '#ef4444' }
+      },
+      font: { color: '#ef4444', size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 2,
+      shapeProperties: { borderDashes: [8, 4] },
+      margin: { top: 12, bottom: 12, left: 16, right: 16 },
+      title: 'JGU Mainz Uni-Netz\n'
+        + '━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+        + 'NAT-BARRIERE\n'
+        + '━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+        + 'IP: 134.93.69.146 (gehört der Uni)\n'
+        + 'Double-NAT: Uni → TP-Link → Homelab\n'
+        + '\n'
+        + '🚫 Kein Port-Forwarding\n'
+        + '🚫 Kein Zugriff auf Uni-Router\n'
+        + '🚫 Port 587/993 blockiert (WLAN)\n'
+        + '🚫 DDNS sinnlos\n'
+        + '\n'
+        + 'Workaround: WireGuard Tunnel\n'
+        + 'von INNEN nach plattfuss (VPS)\n'
+        + 'PersistentKeepalive=25'
+    });
+    // Internet → Uni-Netz (blockiert, rot gestrichelt)
+    edges.push({
+      from: internetId, to: uniNetzId,
+      color: { color: '#ef4444', opacity: 0.5 },
+      width: 2,
+      dashes: [8, 4],
+      arrows: { to: { enabled: true, scaleFactor: 0.6 } },
+      label: '🚫 NAT',
+      font: { color: '#ef4444', size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      title: 'Double-NAT Barriere\nKein Inbound möglich\nIP 134.93.69.146 gehört der Uni',
+      _edgeType: 'infra'
+    });
+    // Uni-Netz → TP-Link (eingesperrt)
+    edges.push({
+      from: uniNetzId, to: tplinkId,
+      color: { color: '#ef4444', opacity: 0.4 },
+      width: 1.5,
+      dashes: [6, 3],
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      label: 'Double-NAT',
+      font: { color: '#ef4444', size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      _edgeType: 'infra'
     });
 
     var allEdges = edges.concat(migrationEdges);

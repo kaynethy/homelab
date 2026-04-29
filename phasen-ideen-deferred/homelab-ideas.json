@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "1.6",
+    "version": "1.7",
     "updated": "2026-04-24"
   },
   "ideas": [
@@ -894,6 +894,57 @@
       "edited": false
     }
   ]
-}
+},{
+      "id": "idea-047",
+      "title": "LDAP / Nutzerverzeichnis (Authentik / Keycloak)",
+      "desc": "Zentrales Nutzerverzeichnis für Equinox Kollektiv — ähnlich M365 AD/Entra ID. Authentik oder Keycloak als Identity Provider. SSO für Mailcow, Website-Admin, Gitea, SOGo. User-Lifecycle: Onboarding, Offboarding, Gruppen, Rollen. LDAP-Backend für Mail + Web-Services. Lernerfahrung: Enterprise IAM-Konzepte im Kleinformat.",
+      "phase_id": null,
+      "step_id": null,
+      "track_id": "equinox",
+      "prio": "medium",
+      "status": "idea",
+      "tags": [
+        "LDAP",
+        "IAM",
+        "Authentik",
+        "Keycloak",
+        "SSO",
+        "Identity"
+      ],
+      "comments": [
+        {
+          "id": "c-047-1",
+          "date": "2026-04-28",
+          "text": "Authentik bevorzugt (moderner, Docker-native, gute Mailcow-Integration). Keycloak als Enterprise-Alternative. Beide unterstützen LDAP + OIDC + SAML. Erst sinnvoll wenn 3+ User aktiv sind.",
+          "edited": false
+        }
+      ]
+    },
+    {
+      "id": "idea-048",
+      "title": "Website Security Audit & Pentesting",
+      "desc": "Systematischer Security-Audit der equinox151.de Website. XSS, SQL Injection (falls Backend), CSRF, Directory Traversal, CORS Misconfiguration, Header-Analyse. Tools: OWASP ZAP, Nikto, curl-basierte Tests. Ergebnisse dokumentieren, Fixes implementieren, Re-Test. Direkte Anwendung der PrivEsc/Security-Demos auf echte Infrastruktur.",
+      "phase_id": null,
+      "step_id": null,
+      "track_id": "equinox",
+      "prio": "high",
+      "status": "idea",
+      "tags": [
+        "Security",
+        "Pentest",
+        "OWASP",
+        "XSS",
+        "Hardening",
+        "Audit"
+      ],
+      "comments": [
+        {
+          "id": "c-048-1",
+          "date": "2026-04-28",
+          "text": "Kontaktformular = Hauptangriffsfläche (Input Validation, Rate Limiting, CSRF). Nginx Headers bereits gesetzt aber nicht vollständig geprüft. OWASP Top 10 als Checkliste durchgehen. Verbindung zum SecLab-Track: Tools und Methodik übertragbar.",
+          "edited": false
+        }
+      ]
+    }
   ]
 }

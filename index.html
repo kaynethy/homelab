@@ -431,6 +431,15 @@
     var subtitle = TRACK_SUBTITLE[trackId] || (meta.subtitle || '');
     var linkLabel = TRACK_LINK_LABEL[trackId] || (label + '-Seite \u2192');
     var hex2 = color.replace('#', '');
+    // Security warning: equinox-specific — show when web-security is todo and contact-form is wip
+    var secWarnHtml = '';
+    if (trackId === 'equinox') {
+      var wsStep = allSteps.find(function(s) { return s.id === 'eq-web-security'; });
+      var cfStep = allSteps.find(function(s) { return s.id === 'eq-contact-form'; });
+      if (wsStep && wsStep.status === 'todo' && cfStep && cfStep.status === 'wip') {
+        secWarnHtml = '<div style="font-size:10px;color:#ef4444;margin-top:6px;font-family:\'JetBrains Mono\',monospace">⚠ Security Hardening ausstehend — vor Kontaktformular Go-Live</div>';
+      }
+    }
     return '<a href="' + page + '" class="phase-card" style="border-left:3px solid ' + color + ';display:block;text-decoration:none;margin-bottom:12px">'
       + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
       +   '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:' + color + '20;color:' + color + ';border:1px solid ' + color + '40;letter-spacing:0.5px">' + label + '</span>'
@@ -443,6 +452,7 @@
       +   '<div class="phase-card-step-count">' + progStr + '</div>'
       +   '<span style="font-size:11px;color:' + color + ';font-family:\'JetBrains Mono\',monospace">' + linkLabel + '</span>'
       + '</div>'
+      + secWarnHtml
       + '</a>';
   }
 

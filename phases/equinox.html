@@ -103,9 +103,28 @@
     </div>
   </div>
 
+  <!-- Maintenance Banner -->
+  <div style="background:#fb923c18;border:1px solid #fb923c50;border-left:3px solid #fb923c;border-radius:8px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:14px">
+    <span style="font-size:20px;line-height:1">🔧</span>
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#fb923c;letter-spacing:0.5px;margin-bottom:3px">MAINTENANCE AKTIV</div>
+      <div style="font-size:13px;color:var(--text);font-weight:600">Website vorübergehend offline — Wartungsarbeiten</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">equinox151.de · <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--muted)">/var/www/equinox151.de/dist/index.html</code> ersetzt</div>
+    </div>
+  </div>
+
   <!-- Step Sections (dynamic) -->
   <div id="eq-sections">
     <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px">Lade Equinox-Daten…</div>
+  </div>
+
+  <!-- Ideas Section -->
+  <div id="eq-ideas-section" style="display:none;margin-top:8px">
+    <div class="section-label">💡 Ideen zu diesem Projekt</div>
+    <div id="eq-ideas-list" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden"></div>
+    <div style="text-align:right;margin-top:8px">
+      <a href="../ideas.html?filter=equinox" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fb923c;text-decoration:none">Alle Ideen anzeigen →</a>
+    </div>
   </div>
 
   <footer>homelab_roadmap · <span>equinox_track</span></footer>
@@ -196,9 +215,45 @@
     if (eq) renderEquinoxPage(eq);
   }
 
+  var PRIO_ORDER = { high: 0, medium: 1, low: 2 };
+  var PRIO_STYLE = {
+    high:   'background:#ef444420;color:#ef4444;border:1px solid #ef444440',
+    medium: 'background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40',
+    low:    'background:var(--bg3);color:var(--muted);border:1px solid var(--border)'
+  };
+
+  function renderIdeasSection(ideas) {
+    var section = document.getElementById('eq-ideas-section');
+    var list    = document.getElementById('eq-ideas-list');
+    if (!section || !list) return;
+    list.innerHTML = ideas.map(function(idea) {
+      var prioStyle = PRIO_STYLE[idea.prio] || PRIO_STYLE.low;
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border)">' 
+        + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;padding:2px 7px;border-radius:4px;white-space:nowrap;' + prioStyle + '">' + esc(idea.prio) + '</span>'
+        + '<span style="font-size:13px;color:var(--text);flex:1">' + esc(idea.title) + '</span>'
+        + '</div>';
+    }).join('').replace(/<\/div><div[^>]*style="[^"]*border-bottom[^"]*"[^>]*>(?=.*<\/div>$)/, function(m) {
+      // remove border-bottom from last item — simpler: just set last child via CSS
+      return m;
+    });
+    // Remove border-bottom on last item
+    var items = list.querySelectorAll('div');
+    if (items.length > 0) items[items.length - 1].style.borderBottom = 'none';
+    section.style.display = '';
+  }
+
+  function tryRenderIdeas() {
+    if (!window.STATE) return;
+    var ideas = window.STATE.ideas || [];
+    var eqIdeas = ideas.filter(function(idea) { return idea.track_id === 'equinox'; });
+    eqIdeas.sort(function(a, b) { return (PRIO_ORDER[a.prio] || 9) - (PRIO_ORDER[b.prio] || 9); });
+    if (eqIdeas.length > 0) renderIdeasSection(eqIdeas);
+  }
+
   window.addEventListener('tracks-ready', tryRender);
   window.addEventListener('state-ready', function() {
     setTimeout(tryRender, 0);
+    setTimeout(tryRenderIdeas, 0);
   });
 })();
 </script>

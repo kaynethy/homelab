@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.1",
-    "updated": "2026-04-26",
+    "updated": "2026-04-28",
     "description": "Ressourcen-Übersicht aller Hosts — Proxmox (homelab + bulldozer) + VPS (plattfuss + equinox-prod)"
   },
   "hosts": {
@@ -37,14 +37,86 @@
       },
       "os": "Proxmox VE 9.1.1 (Bare-Metal)",
       "vms": [
-        { "id": "vm100", "name": "OPNsense", "type": "VM", "status": "running", "ram_mb": 3072, "disk_gb": 16, "disk_used_pct": 14.98, "vlan": "mgmt", "ip_vlan": "10.0.1.1", "ip_router": "192.168.0.100", "role": "Firewall / Router / Gateway" },
-        { "id": "ct101", "name": "AdGuard DNS", "type": "LXC", "status": "running", "ram_mb": 1024, "disk_gb": 4, "disk_used_pct": 25.63, "vlan": "mgmt", "ip_vlan": "10.0.1.101", "ip_router": "192.168.0.101", "role": "DNS-Filter / DoH Cloudflare" },
-        { "id": "ct102", "name": "Kea DHCP", "type": "LXC", "status": "running", "ram_mb": 256, "disk_gb": 4, "disk_used_pct": 24.53, "vlan": "mgmt", "ip_vlan": "10.0.1.102", "role": "DHCP für alle VLANs" },
-        { "id": "vm103", "name": "NTP-Server", "type": "VM", "status": "running", "ram_mb": 384, "disk_gb": 4, "disk_used_pct": 49.19, "vlan": "mgmt", "ip_vlan": "10.0.1.103", "role": "OpenNTPD Zeitserver" },
-        { "id": "ct104", "name": "rsyslog", "type": "LXC", "status": "running", "ram_mb": 512, "disk_gb": 16, "disk_used_pct": 48.23, "vlan": "mgmt", "ip_vlan": "10.0.1.104", "role": "Zentrales Logging (TCP 514)" },
-        { "id": "ct105", "name": "Jumphost", "type": "LXC", "status": "running", "ram_mb": 512, "disk_gb": 10, "disk_used_pct": 11.15, "vlan": "mgmt", "ip_vlan": "10.0.1.105", "role": "SSH-Sprungbrett (User: landvogt)" }
+        {
+          "id": "vm100",
+          "name": "OPNsense",
+          "type": "VM",
+          "status": "running",
+          "ram_mb": 3072,
+          "disk_gb": 16,
+          "disk_used_pct": 14.98,
+          "vlan": "mgmt",
+          "ip_vlan": "10.0.1.1",
+          "ip_router": "192.168.0.100",
+          "role": "Firewall / Router / Gateway"
+        },
+        {
+          "id": "ct101",
+          "name": "AdGuard DNS",
+          "type": "LXC",
+          "status": "running",
+          "ram_mb": 1024,
+          "disk_gb": 4,
+          "disk_used_pct": 25.63,
+          "vlan": "mgmt",
+          "ip_vlan": "10.0.1.101",
+          "ip_router": "192.168.0.101",
+          "role": "DNS-Filter / DoH Cloudflare"
+        },
+        {
+          "id": "ct102",
+          "name": "Kea DHCP",
+          "type": "LXC",
+          "status": "running",
+          "ram_mb": 256,
+          "disk_gb": 4,
+          "disk_used_pct": 24.53,
+          "vlan": "mgmt",
+          "ip_vlan": "10.0.1.102",
+          "role": "DHCP für alle VLANs"
+        },
+        {
+          "id": "vm103",
+          "name": "NTP-Server",
+          "type": "VM",
+          "status": "running",
+          "ram_mb": 384,
+          "disk_gb": 4,
+          "disk_used_pct": 49.19,
+          "vlan": "mgmt",
+          "ip_vlan": "10.0.1.103",
+          "role": "OpenNTPD Zeitserver"
+        },
+        {
+          "id": "ct104",
+          "name": "rsyslog",
+          "type": "LXC",
+          "status": "running",
+          "ram_mb": 512,
+          "disk_gb": 16,
+          "disk_used_pct": 48.23,
+          "vlan": "mgmt",
+          "ip_vlan": "10.0.1.104",
+          "role": "Zentrales Logging (TCP 514)"
+        },
+        {
+          "id": "ct105",
+          "name": "Jumphost",
+          "type": "LXC",
+          "status": "running",
+          "ram_mb": 512,
+          "disk_gb": 10,
+          "disk_used_pct": 11.15,
+          "vlan": "mgmt",
+          "ip_vlan": "10.0.1.105",
+          "role": "SSH-Sprungbrett (User: landvogt)"
+        }
       ],
-      "ram_summary": { "allocated_to_vms_mb": 5760, "proxmox_overhead_mb": 1500, "effectively_free_mb": 8740 }
+      "ram_summary": {
+        "allocated_to_vms_mb": 5760,
+        "proxmox_overhead_mb": 1500,
+        "effectively_free_mb": 8740
+      }
     },
     "bulldozer": {
       "category": "proxmox",
@@ -70,9 +142,24 @@
       },
       "os": "Windows 11 + Hyper-V → Proxmox VE (nested VM)",
       "vms": [
-        { "id": "ct106", "name": "NetBox IPAM", "type": "LXC", "status": "running", "ram_mb": 2048, "disk_gb": 10, "disk_used_pct": 31.79, "vlan": "none", "ip_router": "192.168.0.106", "role": "IPAM / DCIM (Docker Compose)" }
+        {
+          "id": "ct106",
+          "name": "NetBox IPAM",
+          "type": "LXC",
+          "status": "running",
+          "ram_mb": 2048,
+          "disk_gb": 10,
+          "disk_used_pct": 31.79,
+          "vlan": "none",
+          "ip_router": "192.168.0.106",
+          "role": "IPAM / DCIM (Docker Compose)"
+        }
       ],
-      "ram_summary": { "allocated_to_vms_mb": 2048, "proxmox_overhead_mb": 1800, "effectively_free_mb": 12152 }
+      "ram_summary": {
+        "allocated_to_vms_mb": 2048,
+        "proxmox_overhead_mb": 1800,
+        "effectively_free_mb": 12152
+      }
     },
     "plattfuss": {
       "name": "plattfuss (VPS Gateway)",
@@ -86,14 +173,33 @@
       "vpn_ip": "10.0.5.1",
       "cpu": "1 Shared vCPU",
       "cost": "$5/mo",
-      "ram": { "total_gb": 1 },
-      "disk": { "total_gb": 25 },
+      "ram": {
+        "total_gb": 1
+      },
+      "disk": {
+        "total_gb": 25
+      },
       "os": "Debian 13.2",
       "services": [
-        { "name": "WireGuard", "port": "51820/udp", "status": "active", "peers": 4 },
-        { "name": "SSH", "port": "22/tcp", "status": "active" }
+        {
+          "name": "WireGuard",
+          "port": "51820/udp",
+          "status": "active",
+          "peers": 4
+        },
+        {
+          "name": "SSH",
+          "port": "22/tcp",
+          "status": "active"
+        }
       ],
-      "hardening": ["Key-only SSH", "Root off", "nftables (drop)", "fail2ban", "unattended-upgrades"]
+      "hardening": [
+        "Key-only SSH",
+        "Root off",
+        "nftables (drop)",
+        "fail2ban",
+        "unattended-upgrades"
+      ]
     },
     "equinox-prod": {
       "name": "equinox-prod (Hetzner)",
@@ -106,21 +212,57 @@
       "ip": "128.140.5.13",
       "cpu": "4 vCPU (Ampere ARM)",
       "cost": "€12/mo",
-      "ram": { "total_gb": 8 },
-      "disk": { "total_gb": 80, "backups": true },
+      "ram": {
+        "total_gb": 8
+      },
+      "disk": {
+        "total_gb": 80,
+        "backups": true
+      },
       "os": "Debian 13",
       "domain": "equinox151.de",
       "services": [
-        { "name": "Nginx", "port": "80/443", "status": "active", "detail": "equinox151.de" },
-        { "name": "Let's Encrypt", "status": "active", "detail": "ECDSA, auto-renew" },
-        { "name": "Mailcow", "port": "25/587/993", "status": "planned", "detail": "Phase 3" }
+        {
+          "name": "Nginx",
+          "port": "80/443",
+          "status": "active",
+          "detail": "equinox151.de + mail.equinox151.de (Reverse Proxy)"
+        },
+        {
+          "name": "Let's Encrypt",
+          "status": "active",
+          "detail": "ECDSA, auto-renew"
+        },
+        {
+          "name": "Mailcow",
+          "port": "25/587/993",
+          "status": "active",
+          "detail": "Mailcow Dockerized 2026-03b, 18 Container"
+        },
+        {
+          "name": "WireGuard",
+          "port": "51821/udp",
+          "status": "active",
+          "detail": "Mail-Tunnel (10.0.6.0/24)"
+        }
       ],
-      "hardening": ["Key-only SSH", "Root off", "nftables (drop)", "fail2ban", "unattended-upgrades", "Cloudflare Proxy"]
+      "hardening": [
+        "Key-only SSH",
+        "Root off",
+        "nftables (drop)",
+        "fail2ban",
+        "unattended-upgrades",
+        "Cloudflare Proxy"
+      ],
+      "vpn_ip": "10.0.6.1"
     }
   },
   "cluster": {
     "name": "homelab-cluster",
-    "nodes": ["esprimo", "bulldozer"],
+    "nodes": [
+      "esprimo",
+      "bulldozer"
+    ],
     "quorum_note": "ESPRIMO funktioniert alleine mit pvecm expected 1",
     "ram_total_allocated_gb": 32,
     "ram_total_cluster_free_gb": 20.5,

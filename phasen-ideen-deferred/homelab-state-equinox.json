@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "updated": "2026-04-27",
+    "updated": "2026-04-28",
     "track_id": "equinox",
     "label": "EQUINOX",
     "title": "Equinox Kollektiv",
@@ -10,11 +10,11 @@
     "status": "active",
     "color": "coral",
     "progress": {
-      "done": 5,
+      "done": 7,
       "wip": 1,
       "todo": 4,
-      "total": 10,
-      "pct": 55
+      "total": 12,
+      "pct": 58
     },
     "info": {
       "server": "equinox-prod (Hetzner CAX21 ARM64)",
@@ -32,7 +32,12 @@
       "id": "eq-vps",
       "title": "VPS provisionieren",
       "status": "done",
-      "tags": ["VPS", "Hetzner", "Debian", "Cloud"],
+      "tags": [
+        "VPS",
+        "Hetzner",
+        "Debian",
+        "Cloud"
+      ],
       "desc": "Hetzner CAX21 VPS (4 vCPU ARM64, 8 GB RAM, 80 GB SSD, 20 TB Traffic). Debian 13, SSH-Key, landvogt-User. Kein Root-Login, Key-only Auth.",
       "notes": "equinox-prod live seit 2026-04-26. CAX21 ARM64 — deutlich schneller als x86 für den Preis. Backups aktiviert (+20%, tägliche Snapshots).",
       "details": {
@@ -57,7 +62,13 @@
       "id": "eq-hardening",
       "title": "Server-Härtung",
       "status": "done",
-      "tags": ["Security", "nftables", "fail2ban", "SSH", "Hardening"],
+      "tags": [
+        "Security",
+        "nftables",
+        "fail2ban",
+        "SSH",
+        "Hardening"
+      ],
       "desc": "Vollständige Server-Härtung: nftables Firewall (drop default, nur 22/80/443), fail2ban, unattended-upgrades, SSH-Hardening (MaxAuth 3, key-only), HISTCONTROL.",
       "notes": "Nginx Security Headers gesetzt. Cloudflare Proxy für alle öffentlichen Domains.",
       "details": {
@@ -80,7 +91,12 @@
       "id": "eq-domain",
       "title": "Domain & DNS",
       "status": "done",
-      "tags": ["DNS", "Cloudflare", "Domain", "TLS"],
+      "tags": [
+        "DNS",
+        "Cloudflare",
+        "Domain",
+        "TLS"
+      ],
       "desc": "Domain equinox151.de bei INWX registriert. DNS zu Cloudflare migriert. SSL-Modus Full (Strict). Let's Encrypt Zertifikat via Certbot (ECDSA, auto-renew).",
       "notes": "Transfer-Lock aktiv. Cloudflare Free Plan. Bot Fight Mode + AI Bots blocked.",
       "details": {
@@ -104,7 +120,14 @@
       "id": "eq-website",
       "title": "Website live",
       "status": "done",
-      "tags": ["Nginx", "Vite", "React", "TypeScript", "Tailwind", "Web"],
+      "tags": [
+        "Nginx",
+        "Vite",
+        "React",
+        "TypeScript",
+        "Tailwind",
+        "Web"
+      ],
       "desc": "equinox151.de live. Vite + React + TypeScript + Tailwind CSS. Build-Pipeline: git pull && npm install && npm run build. Nginx serviert /var/www/equinox151.de/dist.",
       "notes": "Repo: github.com/kaynethy/equinox151 (privat). Cloudflare Proxy aktiviert — Server-IP versteckt.",
       "details": {
@@ -128,7 +151,13 @@
       "id": "eq-contact-form",
       "title": "Kontaktformular",
       "status": "wip",
-      "tags": ["React", "API", "Email", "SMTP", "Backend"],
+      "tags": [
+        "React",
+        "API",
+        "Email",
+        "SMTP",
+        "Backend"
+      ],
       "desc": "Kontaktformular auf equinox151.de. Frontend in React, Backend-API (Node.js/Express oder Serverless) sendet E-Mails via SMTP. Rate-Limiting, CSRF-Schutz, Spam-Filter.",
       "notes": "Abhängig von Mailcow (eq-mailcow) für SMTP-Versand. Alternativ: Resend oder Postmark als externen Mail-Provider nutzen bis Mailcow steht.",
       "details": {
@@ -143,18 +172,69 @@
       "deferred_reason": ""
     },
     {
+      "id": "eq-web-security",
+      "title": "Website Security Hardening",
+      "status": "todo",
+      "tags": ["Security", "OWASP", "XSS", "CSRF", "Hardening", "Headers"],
+      "desc": "Systematische Härtung der equinox151.de Website gegen Web-Angriffe. OWASP Top 10 als Checkliste. Input Validation, Output Encoding, CSP, Rate Limiting, CORS. Kontaktformular als Hauptangriffsfläche priorisieren. Danach: Pentest mit OWASP ZAP.",
+      "notes": "KRITISCH — muss vor Kontaktformular Go-Live abgeschlossen sein. Kontaktformular öffnet Server-seitigen Endpoint → XSS, Injection, CSRF, Spam-Flooding möglich. Security BEVOR Features live gehen.",
+      "details": {
+        "priority": "KRITISCH — vor eq-contact-form Go-Live",
+        "owasp_top_10_checklist": [
+          "A01 Broken Access Control → API-Endpunkt nur POST, Rate-Limit",
+          "A02 Cryptographic Failures → HTTPS everywhere, keine Secrets im Frontend",
+          "A03 Injection → Input Sanitization, parameterized queries",
+          "A04 Insecure Design → Threat Model für Kontaktformular",
+          "A05 Security Misconfiguration → Nginx Headers, Directory Listing off",
+          "A06 Vulnerable Components → npm audit, Dependency Updates",
+          "A07 Auth Failures → App-Passwörter, 2FA",
+          "A08 Software Integrity → npm ci, Lockfile",
+          "A09 Logging & Monitoring → Fail2ban, Access Logs",
+          "A10 SSRF → Keine externen URLs von User-Input"
+        ],
+        "nginx_headers_missing": [
+          "Content-Security-Policy (CSP)",
+          "Permissions-Policy",
+          "Cross-Origin-Embedder-Policy",
+          "Cross-Origin-Opener-Policy"
+        ],
+        "contact_form_hardening": [
+          "Server-seitige Input Validation",
+          "Output Encoding (HTML Entities)",
+          "CSRF Token",
+          "Honeypot-Feld",
+          "Rate Limiting (3/IP/h)",
+          "SMTP Injection Prevention",
+          "KEINE Dateiuploads"
+        ],
+        "pentest_tools": ["OWASP ZAP", "nikto", "curl/httpie", "npm audit", "Mozilla Observatory"]
+      },
+      "security": "Security by Design: Hardening BEVOR Features live gehen. Kontaktformular = erster User-Input auf der Website. Unsicheres Formular → RCE via Injection → Root auf equinox-prod.",
+      "log": [],
+      "deferred_reason": ""
+    },
+    {
       "id": "eq-mailcow",
       "title": "Mailcow Mailserver",
       "status": "done",
-      "tags": ["Mailcow", "SMTP", "IMAP", "Docker", "Mail", "DKIM", "SPF", "DMARC"],
+      "tags": [
+        "Mailcow",
+        "SMTP",
+        "IMAP",
+        "Docker",
+        "Mail",
+        "DKIM",
+        "SPF",
+        "DMARC"
+      ],
       "desc": "Mailcow Docker-Stack auf equinox-prod (Hetzner CAX21, ARM64). Eigene Domain equinox151.de, SMTP/IMAP, SPF/DKIM/DMARC, Nginx Reverse Proxy, 2FA auf allen Postfächern.",
-      "notes": "Port 25 ausgehend bei Hetzner blockiert — Limit Request gestellt. Senden geht erst nach Freischaltung. DMARC auf reject verschärfen nach Testphase.",
+      "notes": "Port 25 freigeschaltet (Hetzner). Senden + Empfangen funktioniert. DKIM/SPF/DMARC alle pass bei Gmail. Shared-Mailbox-Pattern implementiert: Funktionspostfächer (info@, booking@, management@) als Aliases → team@-Verteiler → User-Postfächer. Send-As über Sender-ACL + Thunderbird-Identitäten.",
       "details": {
         "server": "equinox-prod (128.140.5.13, Hetzner CAX21 ARM64)",
         "stack": "Mailcow Dockerized 2026-03b, 18 Container",
         "location": "/opt/mailcow-dockerized",
         "domain": "equinox151.de",
-        "mailboxes": "info@equinox151.de, booking@equinox151.de",
+        "mailboxes": "yannick@, mmt@, philipp@ (User-Postfächer)",
         "web_ui": "https://mail.equinox151.de (Nginx Reverse Proxy → 127.0.0.1:8080)",
         "webmail": "https://mail.equinox151.de/SOGo/",
         "tls": "Certbot (Web-UI) + Mailcow ACME (Mail-Ports)",
@@ -163,7 +243,12 @@
         "dkim": "dkim._domainkey → 4096-bit RSA",
         "ptr": "128.140.5.13 → mail.equinox151.de (IPv4 + IPv6)",
         "2fa": "Erzwungen auf allen Postfächern",
-        "rate_limit": "26 Nachrichten/Sekunde (Domain-Level)"
+        "rate_limit": "26 Nachrichten/Sekunde (Domain-Level)",
+        "aliases": "info@ → team@, booking@ → team@, management@ → team@ (Verteiler → yannick@, mmt@, philipp@)",
+        "send_as": "Sender-ACL: yannick@ darf als info@, booking@, management@ senden",
+        "wireguard": "WireGuard wg0 auf equinox-prod (10.0.6.0/24, Port 51821) für SMTP-Zugang aus Uni-Netz",
+        "port25": "Hetzner Port 25 ausgehend freigeschaltet (2026-04-28)",
+        "spam_note": "Gmail stuft neue Domain als Spam ein — Reputation-Aufbau nötig. Technisch alles pass."
       },
       "log": [
         "2026-04-26: Docker 29.4.1 ARM64 installiert",
@@ -174,15 +259,111 @@
         "2026-04-26: Domain + Postfächer angelegt, DKIM 4096-bit",
         "2026-04-26: SPF/DKIM/DMARC DNS-Records gesetzt",
         "2026-04-26: PTR bei Hetzner (IPv4+IPv6)",
-        "2026-04-26: Empfangstest bestanden (Gmail → info@equinox151.de: pass, SPF/DKIM/DMARC/ARC: pass)"
+        "2026-04-26: Empfangstest bestanden (Gmail → info@equinox151.de: pass, SPF/DKIM/DMARC/ARC: pass)",
+        "2026-04-28: Hetzner Port 25 ausgehend freigeschaltet",
+        "2026-04-28: WireGuard wg0 auf equinox-prod eingerichtet (10.0.6.0/24, Port 51821)",
+        "2026-04-28: WireGuard-Tunnel PC → equinox-prod funktioniert, Port 587 über Tunnel erreichbar",
+        "2026-04-28: rspamd + Postfix: 10.0.6.0/24 als trusted network eingetragen",
+        "2026-04-28: Nginx Admin-Panel: 10.0.6.0/24 zur IP-Allowlist hinzugefügt",
+        "2026-04-28: Thunderbird sendet erfolgreich über WireGuard-Tunnel",
+        "2026-04-28: Funktionspostfächer (info@, booking@, management@) gelöscht",
+        "2026-04-28: Aliases angelegt: info/booking/management → team@ → yannick@, mmt@, philipp@",
+        "2026-04-28: Sender-ACL: yannick@ darf als info@, booking@, management@ senden",
+        "2026-04-28: Thunderbird-Identitäten konfiguriert — ein Account, vier Absender",
+        "2026-04-28: Gmail Spam-Problem identifiziert: Reputation (nicht technisch) — alle Auth-Checks pass"
       ],
-      "deferred_reason": "Port 25 ausgehend bei Hetzner blockiert — Limit Request gestellt"
+      "deferred_reason": ""
+    },
+    {
+      "id": "eq-user-onboarding",
+      "title": "User-Onboarding (Anleitung)",
+      "status": "done",
+      "tags": [
+        "Mail",
+        "Onboarding",
+        "Anleitung",
+        "Thunderbird",
+        "Apple Mail"
+      ],
+      "desc": "Anleitung zum Hinzufügen neuer User zum Equinox-Mailsystem. Shared-Mailbox-Pattern: Ein Postfach pro User, Funktionsadressen als Aliases über team@-Verteiler.",
+      "notes": "Dieses Step ist eine Referenz-Anleitung, kein einmaliger Task.",
+      "details": {
+        "architecture": {
+          "pattern": "Shared Mailbox via Aliases + Verteiler",
+          "user_mailboxes": "Jeder User bekommt ein eigenes Postfach (vorname@equinox151.de)",
+          "function_addresses": "info@, booking@, management@ sind Aliases → team@equinox151.de",
+          "distribution": "team@equinox151.de leitet an alle User-Postfächer weiter",
+          "send_as": "Jeder User kann via Sender-ACL als Funktionsadresse senden"
+        },
+        "new_user_steps": [
+          "1. Mailcow Admin → Mailboxen → Mailbox hinzufügen: vorname@equinox151.de",
+          "2. 2FA erzwingen (User muss beim ersten Login TOTP einrichten)",
+          "3. Mailcow Admin → Mailboxen → vorname@ bearbeiten → 'Darf Nachrichten versenden als' → info@, booking@, management@ anhaken",
+          "4. Mailcow Admin → Aliases → team@equinox151.de bearbeiten → vorname@equinox151.de als Ziel hinzufügen",
+          "5. User: App-Passwort generieren (Mailcow User-Panel → App-Passwörter)",
+          "6. User: Mail-Client einrichten (nur EIN Account: vorname@equinox151.de)",
+          "7. User: Identitäten/Aliases für info@, booking@, management@ im Client hinzufügen"
+        ],
+        "client_settings": {
+          "imap_server": "mail.equinox151.de",
+          "imap_port": 993,
+          "imap_security": "SSL/TLS",
+          "smtp_server": "mail.equinox151.de",
+          "smtp_port": 587,
+          "smtp_security": "STARTTLS",
+          "username": "vorname@equinox151.de (volle Adresse!)",
+          "password": "App-Passwort (nicht Login-Passwort!)",
+          "note_uni": "Aus dem Uni-Netz: WireGuard-Tunnel zu equinox-prod nötig (Port 587 blockiert)"
+        },
+        "thunderbird_identities": [
+          "Extras → Kontoeinstellungen → vorname@ → Weitere Identitäten verwalten → Hinzufügen",
+          "Name: 'Equinox Info', E-Mail: info@equinox151.de, SMTP: gleicher Server",
+          "Wiederholen für booking@ und management@",
+          "Beim Verfassen: 'Von'-Dropdown zeigt alle Identitäten"
+        ],
+        "apple_mail_aliases": [
+          "Einstellungen → Mail → Accounts → Equinox → Account → E-Mail",
+          "'Weitere E-Mail...' → info@equinox151.de hinzufügen",
+          "Wiederholen für booking@ und management@"
+        ],
+        "wireguard_for_uni": {
+          "note": "Uni-Netz blockiert Port 587/993 ausgehend. WireGuard-Tunnel direkt zu equinox-prod nötig.",
+          "subnet": "10.0.6.0/24",
+          "server_port": 51821,
+          "endpoint": "128.140.5.13:51821",
+          "client_config": "AllowedIPs = 10.0.6.0/24 (Split-Tunnel, nur Tunnel-Traffic)",
+          "hosts_entry": "10.0.6.1 mail.equinox151.de (damit TLS-Zertifikat matcht)",
+          "new_peer_steps": [
+            "1. Auf equinox-prod: sudo bash -c 'cd /etc/wireguard && wg genkey | tee newuser.key | wg pubkey > newuser.pub'",
+            "2. Public Key in /etc/wireguard/wg0.conf als neuen [Peer] eintragen (AllowedIPs = 10.0.6.X/32)",
+            "3. sudo systemctl restart wg-quick@wg0",
+            "4. Client-Config: Interface mit Private Key, Address 10.0.6.X/24, Peer mit Server Public Key + Endpoint"
+          ]
+        },
+        "security_notes": [
+          "App-Passwörter: Pro Client ein eigenes generieren, in KeePassXC speichern",
+          "2FA: TOTP erzwungen auf allen Postfächern — kein Login ohne zweiten Faktor",
+          "TLS: Eingehend + ausgehend erzwungen, TLSv1.3",
+          "Sender-ACL: Least Privilege — nur die Aliases freigeben die der User braucht",
+          "WireGuard: Keypair pro User, Split-Tunnel (nur Mail-Traffic)"
+        ]
+      },
+      "log": [
+        "2026-04-28: Onboarding-Anleitung erstellt basierend auf Shared-Mailbox-Umbau"
+      ],
+      "deferred_reason": ""
     },
     {
       "id": "eq-ci-cd",
       "title": "CI/CD Pipeline",
-      "status": "todo",
-      "tags": ["CI/CD", "GitHub Actions", "Deploy", "Automation", "DevOps"],
+      "status": "done",
+      "tags": [
+        "CI/CD",
+        "GitHub Actions",
+        "Deploy",
+        "Automation",
+        "DevOps"
+      ],
       "desc": "Automatisches Deployment bei Git-Push. GitHub Actions → SSH → git pull && npm run build. Zero-Downtime Deploy, Build-Status Badge im README.",
       "notes": "",
       "details": {
@@ -198,7 +379,13 @@
       "id": "eq-analytics",
       "title": "Analytics (datenschutzkonform)",
       "status": "todo",
-      "tags": ["Analytics", "Umami", "Matomo", "Privacy", "DSGVO"],
+      "tags": [
+        "Analytics",
+        "Umami",
+        "Matomo",
+        "Privacy",
+        "DSGVO"
+      ],
       "desc": "Datenschutzkonforme Analytics ohne Cookies. Umami oder Plausible self-hosted auf equinox-prod. Kein Google Analytics. DSGVO-konform, keine Cookie-Banner nötig.",
       "notes": "",
       "details": {
@@ -213,7 +400,13 @@
       "id": "eq-branding",
       "title": "Branding & Design-System",
       "status": "todo",
-      "tags": ["Design", "Branding", "CSS", "Tailwind", "UI"],
+      "tags": [
+        "Design",
+        "Branding",
+        "CSS",
+        "Tailwind",
+        "UI"
+      ],
       "desc": "Konsistentes Design-System für equinox151.de. Farbpalette, Typografie, Logo, Icons. Komponenten-Library in React/Tailwind. Dark Mode.",
       "notes": "",
       "details": {
@@ -229,7 +422,13 @@
       "id": "eq-legal",
       "title": "Rechtliches (Impressum, DSGVO)",
       "status": "todo",
-      "tags": ["Legal", "Impressum", "DSGVO", "Privacy", "Compliance"],
+      "tags": [
+        "Legal",
+        "Impressum",
+        "DSGVO",
+        "Privacy",
+        "Compliance"
+      ],
       "desc": "Impressum (§5 TMG), Datenschutzerklärung (DSGVO), Cookie-Policy (falls nötig). Pflichtangaben für öffentliche Website in Deutschland.",
       "notes": "",
       "details": {
