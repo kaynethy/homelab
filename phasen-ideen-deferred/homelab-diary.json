@@ -717,6 +717,30 @@
     "install.php nach Setup geloescht — Angreifer koennte sonst Admin-Account ueberschreiben.",
     "Startseite mit Namespaces erstellt: Infrastruktur, Netzwerk, Dienste, Security, Runbooks, Bash & vim."
   ]
-  }  
+  },
+  {
+  "date": "2026-04-29",
+  "session": 23,
+  "title": "DokuWiki + Forgejo — Zwei Services hinter Caddy, IP-Umstrukturierung SVC-VLAN",
+  "entries": [
+    "DokuWiki LXC CT108 erstellt: SVC-VLAN Tag 20, unprivileged, 512 MB RAM, 8 GB Disk. Apache2 + PHP als Application Server.",
+    "Apache Security: /data und /conf Verzeichnisse per Directory-Block denied — Defense in Depth gegen Rohdaten-Exposition.",
+    "Caddy Caddyfile: wiki.mynooblab.dev Block vor Wildcard-Block — spezifisch vor generisch, Caddy matcht top-down.",
+    "VPN-zu-SVC Firewall-Regel fehlte: OPNsense LAN-Interface, 10.0.5.0/24 → 10.0.2.0/24 pass hinzugefuegt.",
+    "DokuWiki Setup via Installer. ACL Policy: Closed Wiki, keine Selbstregistrierung, Superuser landvogt. install.php geloescht.",
+    "Startseite mit 6 Namespaces: Infrastruktur, Netzwerk, Dienste, Security, Runbooks, Bash & vim.",
+    "IP-Umstrukturierung SVC-VLAN: Logische Reihenfolge statt chronologisch. Forgejo .11, DokuWiki .12, Lab-Seite .13 (geplant).",
+    "DokuWiki IP von 10.0.2.11 auf 10.0.2.12 geaendert (pct set --net0). Caddy Caddyfile + KeePassXC angepasst.",
+    "Self-hosted Git Evaluation: Forgejo > Gitea > GitLab. Forgejo: Non-Profit (Codeberg e.V.), bessere Runner-Security, ~420 MB RAM, GitHub Actions kompatibel.",
+    "Forgejo LXC CT109 erstellt: SVC-VLAN Tag 20, PRIVILEGIERT (Docker braucht es), 512 MB RAM, 8 GB Disk, 2 Cores.",
+    "Docker auf Forgejo installiert (offizielles Docker Repo). keyctl=1 Feature fuer Docker Overlay-Storage.",
+    "Forgejo v11 als Docker Compose Stack deployt: SQLite, Port 3000 intern, SSH auf Port 222, Registrierung deaktiviert.",
+    "Caddy: git.mynooblab.dev Block hinzugefuegt, reverse_proxy auf 10.0.2.11:3000. HTTPS mit Wildcard-Zert.",
+    "Forgejo Installer via https://git.mynooblab.dev — gruenes Schloss, Superuser landvogt.",
+    "Pageant-Gotcha: Keys waren nicht geladen nach Windows-Neustart. Fix: .ppk in shell:startup Autostart-Ordner.",
+    "Hardening-Playbook zum dritten Mal manuell ausgefuehrt — Ansible base-hardening.yml als erstes Playbook identifiziert.",
+    "Pentesting-Architektur geklaert: Testkopien im LAB-VLAN (10.0.3.x), nie von LAB nach SVC testen. Blast Radius Minimierung."
+  ]
+ }  
   ]
 }

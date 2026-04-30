@@ -1,9 +1,9 @@
 {
   "meta": {
-    "version": "1.4",
-    "updated": "2026-04-28",
+    "version": "1.5",
+    "updated": "2026-04-29",
     "description": "Homelab Netzwerk-Plan – IP-Adressen, Subnetze, Firewall-Regeln, VPS-Infrastruktur, WireGuard-Tunnel",
-    "status": "ESPRIMO Bare-Metal aktiv (192.168.0.11, Migration auf 10.0.1.11 pending). Proxmox Cluster mit Tower (bulldozer). VPS plattfuss live. VPS equinox-prod live. WireGuard-Tunnel aktiv mit 4 Clients. MASQUERADE entfernt — transparentes VPN-Routing über OPNsense. WireGuard Mail-Tunnel auf equinox-prod (10.0.6.0/24).",
+    "status": "ESPRIMO Bare-Metal aktiv (192.168.0.11, Migration auf 10.0.1.11 pending). Proxmox Cluster mit Tower (bulldozer). VPS plattfuss live. VPS equinox-prod live. WireGuard-Tunnel aktiv mit 4 Clients. MASQUERADE entfernt — transparentes VPN-Routing über OPNsense. WireGuard Mail-Tunnel auf equinox-prod (10.0.6.0/24). Caddy Reverse Proxy aktiv (*.mynooblab.dev TLS). Forgejo + DokuWiki live.",
     "current_subnet": "192.168.0.0/24",
     "target_subnets": "10.0.1-5.0/24",
     "migration_note": "ESPRIMO Proxmox-Host noch auf 192.168.0.11. Alle VMs/CTs bereits auf 10.0.1.x (VLAN 10). OPNsense dual-homed (192.168.0.100 + 10.0.1.1). AdGuard dual-homed (192.168.0.101 + 10.0.1.101)."
@@ -53,7 +53,7 @@
           "core": true,
           "vlan_ip": "10.0.1.101",
           "router_ip": "192.168.0.101",
-          "note": "Dual-homed: eth0=Router-Netz, eth1=VLAN 10. Statische Route: 10.0.5.0/24 via 10.0.1.1 (persistent in /etc/network/interfaces)"
+          "note": "Dual-homed: eth0=Router-Netz, eth1=VLAN 10. Statische Routen: 10.0.2.0/24, 10.0.3.0/24, 10.0.4.0/24, 10.0.5.0/24 via 10.0.1.1 (persistent in /etc/network/interfaces)"
         },
         {
           "ip": ".102",
@@ -136,15 +136,47 @@
         },
         {
           "ip": ".10",
-          "name": "Reverse Proxy",
-          "role": "Nginx / Traefik (TLS-Terminierung)",
-          "status": "planned",
-          "core": false,
+          "name": "Caddy Reverse Proxy",
+          "vmid": "CT 107",
+          "type": "LXC",
+          "role": "TLS-Terminierung, Wildcard *.mynooblab.dev (Let's Encrypt DNS-01)",
+          "status": "active",
+          "core": true,
           "step_id": "p3-reverseproxy",
-          "note": "Verschoben von Phase 2 nach Phase 3"
+          "vlan_ip": "10.0.2.10"
         },
         {
           "ip": ".11",
+          "name": "Forgejo",
+          "vmid": "CT 109",
+          "type": "LXC (privileged)",
+          "role": "Git Server (Docker, intern, nur ueber VPN)",
+          "status": "active",
+          "core": false,
+          "step_id": "p3-git",
+          "vlan_ip": "10.0.2.11"
+        },
+        {
+          "ip": ".12",
+          "name": "DokuWiki",
+          "vmid": "CT 108",
+          "type": "LXC",
+          "role": "Internes Wiki (Apache + PHP, nur ueber VPN)",
+          "status": "active",
+          "core": false,
+          "step_id": "p3-dokuwiki",
+          "vlan_ip": "10.0.2.12"
+        },
+        {
+          "ip": ".13",
+          "name": "Lab-Seite (Homelab Academy)",
+          "role": "Eigene Projektplanungs-Website (Nginx, statisch → DB geplant)",
+          "status": "planned",
+          "core": false,
+          "note": "Migration von lokaler VS Code Live Preview auf internen Webserver"
+        },
+        {
+          "ip": ".14",
           "name": "Vaultwarden",
           "role": "Passwort-Manager",
           "status": "planned",
@@ -152,23 +184,7 @@
           "step_id": "p3-vaultwarden"
         },
         {
-          "ip": ".12",
-          "name": "Gitea",
-          "role": "Git Server (intern, nur über VPN)",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-git"
-        },
-        {
-          "ip": ".13",
-          "name": "DokuWiki",
-          "role": "Internes Wiki (nur über VPN)",
-          "status": "planned",
-          "core": false,
-          "step_id": "p3-dokuwiki"
-        },
-        {
-          "ip": ".14",
+          "ip": ".15",
           "name": "n8n",
           "role": "Workflow-Automation",
           "status": "planned",
@@ -176,7 +192,7 @@
           "step_id": "p3-n8n"
         },
         {
-          "ip": ".15 – .19",
+          "ip": ".16 – .19",
           "name": "— Reserve —",
           "role": "Weitere Kern-Services",
           "status": "reserved",
@@ -184,11 +200,11 @@
         },
         {
           "ip": ".20",
-          "name": "Webserver",
-          "role": "Nginx / Caddy (intern)",
+          "name": "Equinox Testkopie",
+          "role": "Security-Testing im SVC-VLAN (OWASP Audit vor Prod-Deploy)",
           "status": "planned",
           "core": false,
-          "step_id": "p3-webserver"
+          "note": "Kopie von equinox151.de fuer interne Security-Tests"
         },
         {
           "ip": ".21",
@@ -196,7 +212,7 @@
           "role": "Auf VPS ausgelagert (equinox-prod, Hetzner)",
           "status": "obsolete",
           "core": false,
-          "note": "Mailcow läuft auf equinox-prod (128.140.5.13). Intern nicht nötig."
+          "note": "Mailcow laeuft auf equinox-prod (128.140.5.13). Intern nicht noetig."
         },
         {
           "ip": ".22",
@@ -767,11 +783,16 @@
           "name": "gitea.mynooblab.dev",
           "target": "139.162.155.120",
           "proxy": true,
-          "status": "done",
-          "note": "Evtl. entfernen — Gitea bleibt intern, kein Public Access"
+          "status": "obsolete",
+          "note": "Nicht mehr noetig — Forgejo intern ueber VPN + AdGuard Split-DNS erreichbar. Kann geloescht werden."
         }
       ],
       "internal_dns_adguard": [
+        {
+          "domain": "*.mynooblab.dev",
+          "target": "10.0.2.10",
+          "note": "Wildcard Rewrite — Caddy routet anhand Hostname an Backend-Services"
+        },
         {
           "domain": "opnsense.mynooblab.dev",
           "target": "10.0.1.1"
@@ -789,14 +810,6 @@
           "domain": "netbox.mynooblab.dev",
           "target": "10.0.1.106",
           "note": "Nach Managed Switch"
-        },
-        {
-          "domain": "wiki.mynooblab.dev",
-          "target": "10.0.2.13"
-        },
-        {
-          "domain": "git.mynooblab.dev",
-          "target": "10.0.2.12"
         }
       ]
     },
@@ -973,9 +986,9 @@
     },
     {
       "from": "VPN (10.0.5.0/24)",
-      "to": "SVC+LAB+DMZ",
-      "rule": "TODO",
-      "note": "Weitere FW-Regeln nach Bedarf"
+      "to": "SVC (10.0.2.0/24)",
+      "rule": "ERLAUBT",
+      "note": "OPNsense LAN FW-Regel. VPN-Clients koennen interne Services (Wiki, Git) ueber HTTPS erreichen."
     },
     {
       "from": "Internet",

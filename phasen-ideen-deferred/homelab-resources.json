@@ -1,8 +1,8 @@
 {
   "meta": {
-    "version": "1.1",
-    "updated": "2026-04-28",
-    "description": "Ressourcen-Übersicht aller Hosts — Proxmox (homelab + bulldozer) + VPS (plattfuss + equinox-prod)"
+    "version": "1.2",
+    "updated": "2026-04-30",
+    "description": "Ressourcen-Übersicht aller Hosts — Proxmox (homelab + bulldozer) + VPS (plattfuss + equinox-prod) — inkl. Hardware-Inventar"
   },
   "hosts": {
     "esprimo": {
@@ -126,7 +126,7 @@
       "status": "active",
       "ip_proxmox": "192.168.0.200",
       "cpu": "AMD Ryzen 7 5800X (8C/16T, 105W TDP)",
-      "gpu": "NVIDIA RTX 3060 OC 12 GB",
+      "gpu": "NVIDIA RTX 4070 12 GB",
       "ram": {
         "physical_host_gb": 64,
         "assigned_to_proxmox_gb": 16,
@@ -268,5 +268,503 @@
     "ram_total_cluster_free_gb": 20.5,
     "disk_total_thinpool_gb": 601,
     "disk_total_thinpool_free_gb": 583
+  },
+  "hardware_inventory": {
+    "active": [
+      {
+        "id": "hw-esprimo",
+        "name": "Fujitsu ESPRIMO G558",
+        "category": "server",
+        "role": "Primary Proxmox Host (24/7)",
+        "status": "active",
+        "acquired": "vorhanden",
+        "cost": "geschenkt",
+        "specs": {
+          "cpu": "Intel Core i5-8500T (6C/6T, 1.6-3.5 GHz, 35W TDP)",
+          "ram": "16 GB DDR4-2400 SO-DIMM (1× 16 GB; Slot 2 frei → Upgrade bestellt)",
+          "storage": "512 GB NVMe SSD (M.2 2280)",
+          "form_factor": "Ultra-Small Form Factor (USFF), 1 Liter",
+          "power": "~35W idle, ~65W Last",
+          "ports": "1× GbE LAN, 6× USB, 1× DP, 1× VGA"
+        },
+        "notes": "Lautlos unter Last, perfekt für 24/7. RAM-Upgrade auf 32 GB bestellt (Samsung M471A2K43CB1-CRC, 1× 16 GB in freien Slot 2).",
+        "links": [
+          { "label": "Geizhals", "url": "https://geizhals.de/fujitsu-esprimo-g558-a1922937.html" }
+        ]
+      },
+      {
+        "id": "hw-tower",
+        "name": "Custom Ryzen Tower",
+        "category": "server",
+        "role": "Cluster-Node (On-Demand, nested Proxmox)",
+        "status": "active",
+        "acquired": "vorhanden",
+        "cost": "0 € (vorhanden; 4070 geschenkt)",
+        "specs": {
+          "cpu": "AMD Ryzen 7 5800X (8C/16T, 3.8-4.7 GHz, 105W TDP)",
+          "ram": "64 GB DDR4 (davon 16 GB an Proxmox-VM zugewiesen)",
+          "gpu": "NVIDIA RTX 4070 12 GB",
+          "storage": "~1.4 TB (VHDX 299 GB für Proxmox)",
+          "os": "Windows 11 + Hyper-V → Proxmox VE (nested)"
+        },
+        "notes": "Primär Desktop/Gaming, sekundär Proxmox Cluster-Node. Hyper-V-VM kann auf 32+ GB vergrößert werden.",
+        "links": []
+      },
+      {
+        "id": "hw-lenovo",
+        "name": "Lenovo ThinkCentre Neo 50q Gen 4",
+        "category": "server",
+        "role": "Zukünftiger Cluster-Node / Reserve (BIOS-gelockt)",
+        "status": "active",
+        "acquired": "geschenkt",
+        "cost": "geschenkt",
+        "specs": {
+          "cpu": "Intel Core i5-13420H (8C/12T, bis 4.6 GHz)",
+          "ram": "16 GB DDR5",
+          "storage": "512 GB NVMe SSD",
+          "form_factor": "Tiny (Mini-PC)",
+          "connectivity": "1× GbE LAN, WiFi 6, Bluetooth 5.1",
+          "blocker": "BIOS-Lock — wartet auf EEPROM-Flash"
+        },
+        "notes": "Geschenkt. BIOS-Passwort-Lock aktiv. Einsatz nach Flash mit XGecu T48. Kandidat für 3. Proxmox-Node oder dedizierter Pentest-Host. DDR5-RAM aus Bestand passend.",
+        "links": [
+          { "label": "Lenovo Spec", "url": "https://www.lenovo.com/de/de/p/desktops/thinkcentre/neo/thinkcentre-neo-50q-gen-4-tiny/len102c0012" }
+        ]
+      },
+      {
+        "id": "hw-zyxel",
+        "name": "Zyxel XMG1915-10EP",
+        "category": "netzwerk",
+        "role": "Core Managed Switch (VLAN, PoE++)",
+        "status": "active",
+        "acquired": "gekauft",
+        "cost": "231 €",
+        "specs": {
+          "ports": "8× 2.5G PoE++ (802.3bt) + 2× 10G SFP+",
+          "vlan": "802.1Q VLAN-Trunking",
+          "poe_budget": "130W gesamt",
+          "management": "Web-GUI, SNMP, LLDP",
+          "power": "~20W ohne PoE"
+        },
+        "notes": "Core-Switch für alle VLANs. Verbindet ESPRIMO, Tower, Lenovo via 2.5G. 10G SFP+ für spätere Uplinks. Ersetzt den geplanten Budget-Managed-Switch.",
+        "links": [
+          { "label": "Geizhals", "url": "https://geizhals.de/zyxel-xmg1915-10ep-a2876340.html" }
+        ]
+      },
+      {
+        "id": "hw-router",
+        "name": "TP-Link Archer C80",
+        "category": "netzwerk",
+        "role": "Consumer-Router / Internet-Gateway (Übergang)",
+        "status": "active",
+        "acquired": "vorhanden",
+        "cost": "0 € (bereits vorhanden)",
+        "specs": {
+          "wifi": "WiFi 5 (802.11ac), Dual-Band",
+          "ports": "4× GbE LAN, 1× GbE WAN",
+          "vlan": "NEIN — kann keine VLAN-Tags durchleiten"
+        },
+        "notes": "Wird langfristig durch OPNsense direkt am Modem ersetzt. Keine VLAN-Unterstützung.",
+        "links": [
+          { "label": "Geizhals", "url": "https://geizhals.de/tp-link-archer-c80-a2111068.html" }
+        ]
+      },
+      {
+        "id": "hw-wr841n",
+        "name": "TP-Link TL-WR841N",
+        "category": "netzwerk",
+        "role": "Secondary AP / Lab-Netz",
+        "status": "active",
+        "acquired": "vorhanden",
+        "cost": "0 € (bereits vorhanden)",
+        "specs": {
+          "wifi": "WiFi 4 (802.11n), 2.4 GHz",
+          "ports": "4× Fast Ethernet LAN, 1× WAN",
+          "vlan": "NEIN"
+        },
+        "notes": "Alter Budget-Router. Nutzbar als AP für isoliertes Lab-Netz oder Pentest-WLAN.",
+        "links": []
+      },
+      {
+        "id": "hw-macbook",
+        "name": "MacBook M3",
+        "category": "client",
+        "role": "Primäres Arbeitsgerät / Admin-Laptop",
+        "status": "active",
+        "acquired": "vorhanden",
+        "cost": "vorhanden",
+        "specs": {
+          "cpu": "Apple M3 (8-Core CPU, 10-Core GPU)",
+          "connectivity": "WiFi 6E, Bluetooth 5.3, Thunderbolt 3"
+        },
+        "notes": "Primäres Endgerät. Remote-Admin via SSH + Wireguard. Pentest: externe Kali-VM (UTM) oder direkt via Homebrew.",
+        "links": []
+      }
+    ],
+    "stock": [
+      {
+        "id": "hw-pi-zero",
+        "name": "Raspberry Pi Zero 2 W",
+        "category": "server",
+        "role": "Reserve / Secondary DNS / Remote-Sensor",
+        "status": "im Bestand",
+        "acquired": "gekauft",
+        "cost": "18 €",
+        "specs": {
+          "cpu": "ARM Cortex-A53 (4C, 1 GHz)",
+          "ram": "512 MB",
+          "connectivity": "WiFi 5, Bluetooth 4.2",
+          "power": "~1-2W"
+        },
+        "notes": "Noch nicht deployed. Kandidat für Secondary AdGuard DNS (unabhängig von ESPRIMO) oder Remote-Standort-Monitor.",
+        "links": [
+          { "label": "Geizhals", "url": "https://geizhals.de/raspberry-pi-zero-2-w-a2664sp.html" }
+        ]
+      },
+      {
+        "id": "hw-rtx3060",
+        "name": "NVIDIA RTX 3060 12GB Twin OC",
+        "category": "gpu",
+        "role": "Reserve-GPU (ausgebaut nach 4070-Upgrade)",
+        "status": "im Bestand",
+        "acquired": "vorhanden",
+        "cost": "vorhanden",
+        "specs": {
+          "vram": "12 GB GDDR6",
+          "interface": "PCIe 4.0 x16",
+          "tdp": "~170W",
+          "cooler": "Dual-Fan Twin OC"
+        },
+        "notes": "Freigeworden nach RTX 4070 Einbau. Optionen: CUDA/GPU-VM im Tower, Backup-Gaming-GPU, oder Verkauf.",
+        "links": []
+      },
+      {
+        "id": "hw-ddr5-128gb",
+        "name": "4× 32 GB DDR5-5200 SO-DIMM (128 GB total)",
+        "category": "upgrade",
+        "role": "RAM-Kit (wartet auf kompatibles System)",
+        "status": "im Bestand",
+        "acquired": "geschenkt",
+        "cost": "geschenkt (~900-1.200 € Marktwert)",
+        "specs": {
+          "modules": "4× 32 GB SO-DIMM",
+          "type": "DDR5-5200 (PC5-41600)",
+          "total": "128 GB"
+        },
+        "notes": "Hochwertige geschenkte RAM-Module. Lenovo Neo 50q Gen 4 verwendet DDR5 — nach BIOS-Flash direkt nutzbar (2× 32 GB = 64 GB).",
+        "links": []
+      }
+    ],
+    "planned": [
+      {
+        "id": "hw-ram-upgrade",
+        "name": "Samsung M471A2K43CB1-CRC 16 GB DDR4-2400 SO-DIMM",
+        "category": "upgrade",
+        "target": "ESPRIMO G558",
+        "status": "bestellt",
+        "cost": "89 €",
+        "specs": {
+          "model": "Samsung M471A2K43CB1-CRC",
+          "type": "DDR4-2400 SO-DIMM (PC4-19200)",
+          "modules": "1× 16 GB (in freien Slot 2)",
+          "total_after": "32 GB Dual Channel",
+          "source": "eBay",
+          "expected": "~1 Woche"
+        },
+        "notes": "ESPRIMO Slot 1 belegt (16 GB), Slot 2 frei. Upgrade: +16 GB = 32 GB Dual Channel.",
+        "links": [
+          { "label": "eBay", "url": "https://www.ebay.de/sch/i.html?_nkw=M471A2K43CB1-CRC" }
+        ],
+        "alternatives": [
+          {
+            "name": "Crucial CT16G4SFD824A",
+            "price": "~55 € / Modul",
+            "url": "https://geizhals.de/crucial-ct16g4sfd824a-a1584791.html",
+            "note": "Bewährt, Crucial Lifetime Warranty"
+          }
+        ]
+      },
+      {
+        "id": "hw-alfa-achm",
+        "name": "Alfa AWUS036ACHM",
+        "category": "pentest",
+        "target": "WLAN-Pentesting (Kali Linux)",
+        "status": "bestellt",
+        "cost": "~50 €",
+        "expected": "30.04.2026",
+        "specs": {
+          "chipset": "MediaTek MT7612UN",
+          "bands": "Dual-Band 2.4 + 5 GHz",
+          "modes": "Monitor + Packet Injection",
+          "interface": "USB 3.0",
+          "antennas": "2× externe RP-SMA"
+        },
+        "notes": "Kali-Linux-kompatibel out-of-the-box. WPA2/WPA3-Cracking, Deauth, WLAN-Recon.",
+        "links": [
+          { "label": "Amazon", "url": "https://www.amazon.de/s?k=Alfa+AWUS036ACHM" }
+        ],
+        "alternatives": []
+      },
+      {
+        "id": "hw-xgecu-t48",
+        "name": "XGecu T48 mit Adaptern",
+        "category": "pentest",
+        "target": "BIOS-Flash / EEPROM-Programmierung",
+        "status": "bestellt",
+        "cost": "84 €",
+        "expected": "02.05.2026",
+        "specs": {
+          "type": "48-Pin Universal Programmer",
+          "protocols": "SPI, I2C, JTAG, EEPROM, NOR/NAND Flash, MCU",
+          "adapters": "SOP8, TSOP48, BGA-Adapter inkl.",
+          "interface": "USB"
+        },
+        "notes": "Primär für Lenovo BIOS-Lock-Flash. Chip-Level Hardware Hacking. Kompatibel mit gängigen BIOS-Chips.",
+        "links": [
+          { "label": "AliExpress", "url": "https://www.aliexpress.com/wholesale?SearchText=XGecu+T48" }
+        ],
+        "alternatives": []
+      },
+      {
+        "id": "hw-proxmark3",
+        "name": "Proxmark3 RDV4.01",
+        "category": "pentest",
+        "target": "RFID/NFC-Pentesting",
+        "status": "geplant",
+        "priority": "mittel",
+        "cost": "300-350 €",
+        "specs": {
+          "protocols": "LF 125 kHz + HF 13.56 MHz NFC",
+          "features": "Clone, Emulate, Sniff, Standalone-Modus",
+          "interface": "USB + optionales Bluetooth (BlueShark)"
+        },
+        "notes": "Goldstandard für RFID/NFC-Angriffe auf Zugangskarten, Hotel-Keys, EM4100, MIFARE.",
+        "links": [
+          { "label": "Hacker Warehouse", "url": "https://hackerwarehouse.com/product/proxmark3-rdv4/" }
+        ],
+        "alternatives": [
+          {
+            "name": "Proxmark3 Easy (Clone)",
+            "price": "~50 €",
+            "url": "https://www.aliexpress.com/wholesale?SearchText=proxmark3+easy",
+            "note": "Deutlich günstiger, weniger stabil/features"
+          }
+        ]
+      },
+      {
+        "id": "hw-proxmark3-blueshark",
+        "name": "Proxmark3 BlueShark Modul",
+        "category": "pentest",
+        "target": "Proxmark3 RDV4.01",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "80-100 €",
+        "specs": {
+          "feature": "Bluetooth-Modul für Proxmark3 RDV4",
+          "range": "~10 m Bluetooth",
+          "battery": "Eingebauter LiPo-Akku"
+        },
+        "notes": "Macht Proxmark3 kabellos + standalone. Nützlich für Covert RFID Ops ohne sichtbares USB-Kabel.",
+        "links": [],
+        "alternatives": []
+      },
+      {
+        "id": "hw-nas",
+        "name": "Synology DS223j + 2× 4 TB IronWolf",
+        "category": "storage",
+        "target": "NAS / Backup-Server",
+        "status": "geplant",
+        "priority": "mittel",
+        "cost": "445 €",
+        "specs": {
+          "model": "Synology DiskStation DS223j",
+          "bays": "2× 3.5\" SATA",
+          "drives": "2× Seagate IronWolf 4 TB (ST4000VN006)",
+          "raid": "RAID 1 → 4 TB nutzbar",
+          "interface": "1× GbE LAN, 2× USB 3.2"
+        },
+        "notes": "Für VM-Backups (ESPRIMO + Tower), Medien-Storage, zukünftig als iSCSI-Target für Proxmox.",
+        "links": [
+          { "label": "Geizhals DS223j", "url": "https://geizhals.de/synology-diskstation-ds223j-a2880459.html" },
+          { "label": "IronWolf 4TB", "url": "https://geizhals.de/seagate-ironwolf-4tb-st4000vn006-a2648793.html" }
+        ],
+        "alternatives": [
+          {
+            "name": "QNAP TS-233",
+            "price": "~150 € (ohne HDDs)",
+            "url": "https://geizhals.de/qnap-ts-233-a2894040.html",
+            "note": "Günstiger, schwächere CPU"
+          }
+        ]
+      },
+      {
+        "id": "hw-hackrf",
+        "name": "HackRF One",
+        "category": "pentest",
+        "target": "SDR / RF-Pentesting",
+        "status": "geplant",
+        "priority": "später",
+        "cost": "250 €",
+        "specs": {
+          "range": "1 MHz – 6 GHz",
+          "mode": "Half-Duplex TX/RX",
+          "bandwidth": "20 MHz",
+          "interface": "USB 2.0"
+        },
+        "notes": "Für RF-Replay-Angriffe, Frequenz-Scanning, Automotive Keyless-Entry. Kann auch senden (anders als RTL-SDR).",
+        "links": [
+          { "label": "Great Scott Gadgets", "url": "https://greatscottgadgets.com/hackrf/" }
+        ],
+        "alternatives": [
+          {
+            "name": "RTL-SDR (nur RX)",
+            "price": "~25 €",
+            "url": "https://www.rtl-sdr.com/buy-rtl-sdr-dvb-t-dongles/",
+            "note": "Nur Empfangen — guter und günstiger Einstieg"
+          }
+        ]
+      },
+      {
+        "id": "hw-chipwhisperer",
+        "name": "ChipWhisperer",
+        "category": "pentest",
+        "target": "Side-Channel / Embedded Security",
+        "status": "geplant",
+        "priority": "später",
+        "cost": "250+ €",
+        "specs": {
+          "attacks": "Power Analysis (SCA), Voltage Glitching",
+          "targets": "Microcontroller, Smartcards, Embedded Systems",
+          "interface": "USB"
+        },
+        "notes": "Fortgeschrittenes Hardware-Security-Lab. Fault Injection und Power Side-Channel Analysen auf MCUs.",
+        "links": [
+          { "label": "NewAE Technology", "url": "https://newae.com/chipwhisperer/" }
+        ],
+        "alternatives": []
+      },
+      {
+        "id": "hw-rack",
+        "name": "10-Zoll Mini-Rack Digitus 9HE",
+        "category": "infrastruktur",
+        "target": "Rack-Montage ESPRIMO + Zyxel + Pi",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "100-160 €",
+        "specs": {
+          "size": "10 Zoll, 9 HE",
+          "depth": "~300 mm",
+          "mounting": "Tisch oder Wandmontage"
+        },
+        "notes": "Bringt Ordnung ins Homelab: Zyxel XMG1915, ESPRIMO, Patch-Panel und Kabel in kompaktem 10\"-Rack.",
+        "links": [
+          { "label": "Geizhals", "url": "https://geizhals.de/?cat=mntwall&xf=1063_10%22" }
+        ],
+        "alternatives": []
+      },
+      {
+        "id": "hw-ram-upgrade-2",
+        "name": "Zweiter 16 GB DDR4-2400 SO-DIMM",
+        "category": "upgrade",
+        "target": "ESPRIMO G558",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "89 €",
+        "specs": {
+          "type": "DDR4-2400 SO-DIMM",
+          "modules": "1× 16 GB",
+          "note": "Identisches Modul zum ersten Upgrade für garantierten Dual-Channel"
+        },
+        "notes": "Backup / Ersatz-Modul für hw-ram-upgrade. Sichert Dual-Channel-Kompatibilität falls Module unterschiedlich.",
+        "links": [],
+        "alternatives": []
+      },
+      {
+        "id": "hw-remote-pi",
+        "name": "Remote-Standort Pi / Mini-PC",
+        "category": "server",
+        "target": "Externer Monitoring- / VPN-Node",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "50-100 €",
+        "specs": {
+          "options": "Raspberry Pi 4 / Orange Pi Zero 3 / ähnlich",
+          "purpose": "Remote Uptime Monitor, 2. WireGuard Exit-Node"
+        },
+        "notes": "Für Monitoring von außen (homelab pingen wenn extern). Alternativ als zweiter WireGuard-Standort.",
+        "links": [],
+        "alternatives": []
+      },
+      {
+        "id": "hw-bus-pirate",
+        "name": "Bus Pirate 5",
+        "category": "pentest",
+        "target": "UART / SPI / I2C Hardware-Debugging",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "35 €",
+        "specs": {
+          "protocols": "UART, SPI, I2C, 1-Wire, JTAG",
+          "interface": "USB-C",
+          "display": "1.14\" TFT Display"
+        },
+        "notes": "Für Hardware-Debugging, Router-UART-Konsolen, Embedded Device Hacking. Kompakte Allzweck-Sonde.",
+        "links": [
+          { "label": "Bus Pirate", "url": "https://buspirate.com/" }
+        ],
+        "alternatives": []
+      },
+      {
+        "id": "hw-rtl-sdr",
+        "name": "RTL-SDR",
+        "category": "pentest",
+        "target": "SDR-Einstieg / Frequenz-Monitoring",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "25 €",
+        "specs": {
+          "range": "~500 kHz – 1.75 GHz",
+          "mode": "Nur RX (Empfangen)",
+          "interface": "USB 2.0"
+        },
+        "notes": "Günstiger SDR-Einstieg. ADS-B Flugzeug-Tracking, FM/DAB dekodieren, ISM-Band Scanning.",
+        "links": [
+          { "label": "RTL-SDR.com", "url": "https://www.rtl-sdr.com/buy-rtl-sdr-dvb-t-dongles/" }
+        ],
+        "alternatives": []
+      },
+      {
+        "id": "hw-logic-analyzer",
+        "name": "Saleae Logic Analyzer Klon",
+        "category": "pentest",
+        "target": "Protokoll-Sniffing auf PCB-Ebene",
+        "status": "geplant",
+        "priority": "niedrig",
+        "cost": "15 €",
+        "specs": {
+          "channels": "8 Kanäle",
+          "sample_rate": "bis 24 MHz",
+          "software": "Sigrok / PulseView (Open Source)",
+          "interface": "USB"
+        },
+        "notes": "Protokoll-Analyse: SPI, I2C, UART direkt am PCB. Klon kompatibel mit Sigrok.",
+        "links": [
+          { "label": "AliExpress", "url": "https://www.aliexpress.com/wholesale?SearchText=logic+analyzer+8+channel+usb" }
+        ],
+        "alternatives": []
+      }
+    ],
+    "vps_costs": {
+      "monthly": {
+        "plattfuss": { "cost": "$5", "provider": "Linode", "purpose": "WireGuard Gateway" },
+        "equinox-prod": { "cost": "12€", "provider": "Hetzner", "purpose": "Website + Mail" }
+      },
+      "yearly": {
+        "mynooblab.dev": { "cost": "11€", "provider": "Domain", "purpose": "Jahresgebühr" },
+        "equinox151.de": { "cost": "4,65€", "provider": "Domain", "purpose": "Jahresgebühr" }
+      },
+      "total_monthly": "~18€",
+      "note": "plattfuss durch $100 Linode Credit ~20 Monate kostenlos. Jahresdomains: ~16€/Jahr gesamt."
+    }
   }
 }

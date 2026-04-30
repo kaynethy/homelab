@@ -1,0 +1,858 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab – Hardware-Inventar</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    /* ────────────────────────────────────────────
+       IM EINSATZ — Table layout
+    ──────────────────────────────────────────── */
+    .inv-table-wrap {
+      overflow-x: auto;
+      margin-bottom: 28px;
+    }
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .inv-table thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+    .inv-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .inv-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .inv-table tbody tr:last-child td { border-bottom: none; }
+    .inv-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    .inv-dev-name   { font-weight: 600; font-size: 13px; color: var(--text); }
+    .inv-dev-role   { color: var(--muted); font-size: 10px; margin-top: 2px; }
+    .inv-dev-id     { color: var(--muted); font-size: 10px; }
+
+    .inv-cat-badge {
+      display: inline-block;
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .inv-cat-badge.server       { background: rgba(0,212,170,0.12); color: #00d4aa; border: 1px solid rgba(0,212,170,0.25); }
+    .inv-cat-badge.netzwerk     { background: rgba(77,184,255,0.12); color: #4db8ff; border: 1px solid rgba(77,184,255,0.25); }
+    .inv-cat-badge.upgrade      { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+    .inv-cat-badge.pentest      { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+    .inv-cat-badge.client       { background: rgba(168,85,247,0.12); color: #a855f7; border: 1px solid rgba(168,85,247,0.25); }
+    .inv-cat-badge.gpu          { background: rgba(168,85,247,0.12); color: #a855f7; border: 1px solid rgba(168,85,247,0.25); }
+    .inv-cat-badge.storage      { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
+    .inv-cat-badge.infrastruktur{ background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.25); }
+
+    .inv-status-dot-active { color: #22c55e; }
+    .inv-spec-line { color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .inv-spec-key  { color: var(--muted); font-size: 10px; min-width: 60px; display: inline-block; }
+    .inv-spec-val  { color: var(--text); font-size: 11px; }
+    .inv-warn { color: #f59e0b; font-size: 10px; margin-top: 4px; }
+    .inv-note { color: var(--muted); font-size: 10px; font-style: italic; margin-top: 4px; }
+    .inv-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .inv-link:hover { text-decoration: underline; }
+
+    /* ────────────────────────────────────────────
+       BESTELLT — Order cards with timer
+    ──────────────────────────────────────────── */
+    .order-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .order-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-top: 3px solid #f59e0b;
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .order-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .order-card-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .order-card-cost { color: #f59e0b; font-size: 12px; font-weight: 600; }
+    .order-card-target { color: var(--muted); font-size: 10px; margin-bottom: 8px; }
+    .order-card-specs { color: var(--muted); font-size: 11px; margin-bottom: 8px; line-height: 1.6; }
+    .order-card-note  { color: var(--text); font-size: 10px; font-style: italic; margin-bottom: 10px; }
+
+    /* Timer */
+    .order-timer {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .order-timer-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .order-timer-val   { font-size: 13px; font-weight: 700; }
+    .order-timer-val.waiting  { color: #f59e0b; }
+    .order-timer-val.arrived  { color: #22c55e; }
+    .order-timer-val.overdue  { color: #ef4444; }
+    .order-timer-date { color: var(--muted); font-size: 10px; }
+    .order-timer-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 10px;
+    }
+    .order-timer-input {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      width: 130px;
+    }
+    .order-timer-btn {
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.35);
+      border-radius: 4px;
+      color: #f59e0b;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      cursor: pointer;
+    }
+    .order-timer-btn:hover { background: rgba(245,158,11,0.25); }
+    .order-arrived-btn {
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 4px;
+      color: #22c55e;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 4px 10px;
+      cursor: pointer;
+      margin-top: 6px;
+      width: 100%;
+    }
+    .order-arrived-btn:hover { background: rgba(34,197,94,0.22); }
+
+    /* Alternatives in order card */
+    .order-alts { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .order-alt-header { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; }
+    .order-alt-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 0;
+      font-size: 11px;
+      flex-wrap: wrap;
+    }
+    .order-alt-name  { flex: 1; color: var(--text); }
+    .order-alt-price { color: #f59e0b; min-width: 70px; font-size: 10px; }
+    .order-alt-note  { color: var(--muted); font-size: 10px; flex-basis: 100%; padding-left: 2px; }
+
+    /* ────────────────────────────────────────────
+       GEPLANT — Shop-style cards
+    ──────────────────────────────────────────── */
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .shop-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+    }
+    .shop-card:hover {
+      border-color: rgba(0,212,170,0.4);
+      box-shadow: 0 4px 20px rgba(0,212,170,0.06);
+    }
+    .shop-card-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .shop-card-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .shop-card-name  { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .shop-card-cat   { /* uses inv-cat-badge */ }
+    .shop-card-price {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 8px;
+    }
+    .shop-card-target { color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+    .shop-card-body { padding: 12px 18px; }
+    .shop-card-desc { color: var(--muted); font-size: 11px; line-height: 1.6; margin-bottom: 8px; }
+    .shop-card-specs-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 10px;
+    }
+    .shop-spec-row {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .shop-spec-k { color: var(--muted); min-width: 70px; flex-shrink: 0; }
+    .shop-spec-v { color: var(--text); }
+
+    .shop-card-footer {
+      padding: 10px 18px 14px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .shop-expand-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 10px;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+      transition: background 0.1s, color 0.1s;
+    }
+    .shop-expand-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .shop-link-btn {
+      background: rgba(0,212,170,0.1);
+      border: 1px solid rgba(0,212,170,0.25);
+      border-radius: 6px;
+      color: #00d4aa;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 10px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .shop-link-btn:hover { background: rgba(0,212,170,0.2); }
+    .shop-idea-btn {
+      background: rgba(167,139,250,0.1);
+      border: 1px solid rgba(167,139,250,0.25);
+      border-radius: 6px;
+      color: #a78bfa;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 10px;
+      text-decoration: none;
+    }
+
+    /* Expanded drawer */
+    .shop-drawer {
+      display: none;
+      padding: 0 18px 14px;
+      border-top: 1px solid var(--border);
+      animation: fadeIn 0.15s ease;
+    }
+    .shop-drawer.open { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .shop-drawer-section { margin-top: 12px; }
+    .shop-drawer-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .shop-full-spec {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .shop-alt-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+    }
+    .shop-alt-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .shop-alt-card-name  { font-size: 11px; font-weight: 600; color: var(--text); }
+    .shop-alt-card-price { color: #f59e0b; font-size: 11px; font-weight: 600; }
+    .shop-alt-card-note  { color: var(--muted); font-size: 10px; margin-top: 3px; }
+
+    /* ────────────────────────────────────────────
+       VPS Cost block
+    ──────────────────────────────────────────── */
+    .vps-cost-table {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      margin-bottom: 28px;
+    }
+    .vps-cost-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .vps-cost-row:last-child { border-bottom: none; }
+    .vps-cost-row.total-row { background: rgba(255,255,255,0.02); }
+    .vps-cost-name    { flex: 1; color: var(--text); font-weight: 600; }
+    .vps-cost-provider { color: var(--muted); font-size: 10px; }
+    .vps-cost-amount  { color: #f59e0b; font-weight: 700; min-width: 55px; text-align: right; }
+    .vps-cost-purpose { color: var(--muted); font-size: 10px; flex-basis: 100%; margin-top: -6px; }
+    .vps-cost-note    { color: var(--muted); font-size: 10px; flex-basis: 100%; font-style: italic; }
+
+    /* ────────────────────────────────────────────
+       Section headers
+    ──────────────────────────────────────────── */
+    .inv-section-sep {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 32px 0 16px;
+    }
+    .inv-section-sep-line { flex: 1; height: 1px; background: var(--border); }
+    .inv-section-sep-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .inv-section-sep-title.active  { color: #22c55e; }
+    .inv-section-sep-title.stock   { color: #a855f7; }
+    .inv-section-sep-title.ordered { color: #f59e0b; }
+    .inv-section-sep-title.planned { color: var(--accent); }
+    .inv-section-sep-title.costs   { color: var(--muted); }
+    .inv-section-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1px 7px;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav"></div>
+  <div class="breadcrumb">
+    <a href="../index.html">Dashboard</a>
+    <span class="sep">›</span>
+    <a href="hardware.html">Hardware – Physische Infrastruktur</a>
+    <span class="sep">›</span>
+    <span>Hardware-Inventar</span>
+  </div>
+
+  <!-- Header -->
+  <div style="margin-bottom:28px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#b8733320;color:#b87333;border:1px solid #b8733340;letter-spacing:0.5px">HARDWARE</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:rgba(0,212,170,0.1);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);letter-spacing:0.5px">INVENTAR</span>
+    </div>
+    <h1 style="font-size:24px;font-weight:700;color:var(--text);margin:0 0 4px">Hardware-Inventar</h1>
+    <p style="color:var(--muted);font-size:13px;margin:0">Alle physischen Geräte · Im Einsatz · Bestellungen mit Liefertimer · Geplante Käufe · VPS-Kosten</p>
+  </div>
+
+  <div id="inv-content">
+    <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px">Lade Inventar…</div>
+  </div>
+
+  <footer>homelab_roadmap · <span>hardware_inventory</span></footer>
+</div>
+
+<script src="../assets/state.js"></script>
+<script src="../assets/nav.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var TIMER_KEY = 'hw_delivery_dates';
+
+  /* ── helpers ────────────────────────────────────────────── */
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function catClass(cat) {
+    var c = String(cat || '').toLowerCase();
+    if (c === 'netzwerk')      return 'netzwerk';
+    if (c === 'upgrade')       return 'upgrade';
+    if (c === 'pentest')       return 'pentest';
+    if (c === 'client')        return 'client';
+    if (c === 'gpu')           return 'gpu';
+    if (c === 'storage')       return 'storage';
+    if (c === 'infrastruktur') return 'infrastruktur';
+    return 'server';
+  }
+  function catIcon(cat) {
+    var c = String(cat || '').toLowerCase();
+    if (c === 'netzwerk')      return '🌐';
+    if (c === 'upgrade')       return '⬆️';
+    if (c === 'server')        return '🖥️';
+    if (c === 'pentest')       return '🔐';
+    if (c === 'client')        return '💻';
+    if (c === 'gpu')           return '🎮';
+    if (c === 'storage')       return '💾';
+    if (c === 'infrastruktur') return '🏗️';
+    return '📦';
+  }
+  function loadTimers() {
+    try { return JSON.parse(localStorage.getItem(TIMER_KEY) || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveTimers(t) {
+    localStorage.setItem(TIMER_KEY, JSON.stringify(t));
+  }
+
+  /* ── section separator ──────────────────────────────────── */
+  function sectionSep(label, type, count) {
+    return '<div class="inv-section-sep">'
+      + '<div class="inv-section-sep-line"></div>'
+      + '<span class="inv-section-sep-title ' + type + '">' + esc(label) + '</span>'
+      + (count !== undefined ? '<span class="inv-section-count">' + count + '</span>' : '')
+      + '<div class="inv-section-sep-line"></div>'
+      + '</div>';
+  }
+
+  /* ── ACTIVE — table ─────────────────────────────────────── */
+  function renderNetworkCols(specs) {
+    if (!specs) return ['—', '—'];
+    var c = String(specs.category || '').toLowerCase();
+    // pick out networking-relevant keys
+    var netKeys   = ['wifi','ports','vlan','connectivity'];
+    var otherKeys = Object.keys(specs).filter(function(k){ return netKeys.indexOf(k) < 0; });
+    var netParts  = [];
+    netKeys.forEach(function(k){ if (specs[k]) netParts.push(specs[k]); });
+    var specParts = [];
+    otherKeys.forEach(function(k){ if (specs[k]) specParts.push('<span class="inv-spec-k">' + esc(k) + '</span> <span class="inv-spec-val">' + esc(specs[k]) + '</span>'); });
+    return [
+      netParts.length  ? netParts.join('<br>')  : '—',
+      specParts.length ? specParts.join('<br>') : '—'
+    ];
+  }
+
+  function renderActiveTable(items) {
+    var html = '<div class="inv-table-wrap">'
+      + '<table class="inv-table">'
+      + '<thead><tr>'
+      + '<th>Gerät</th>'
+      + '<th>Kategorie</th>'
+      + '<th>Netzwerk / Konnektivität</th>'
+      + '<th>Specs</th>'
+      + '<th>Notiz</th>'
+      + '<th>Links</th>'
+      + '</tr></thead><tbody>';
+    items.forEach(function(item) {
+      var cc = catClass(item.category);
+      var cols = renderNetworkCols(item.specs);
+      var specs = item.specs || {};
+      var specRows = Object.keys(specs).map(function(k){
+        return '<div class="shop-spec-row"><span class="shop-spec-k">' + esc(k) + '</span><span class="shop-spec-v">' + esc(specs[k]) + '</span></div>';
+      }).join('');
+
+      // network relevant
+      var netKeys = ['wifi','ports','vlan','connectivity'];
+      var netRows = netKeys.filter(function(k){ return specs[k]; }).map(function(k){
+        return '<div class="shop-spec-row"><span class="shop-spec-k">' + esc(k) + '</span><span class="shop-spec-v">' + esc(specs[k]) + '</span></div>';
+      }).join('') || '—';
+
+      var otherRows = Object.keys(specs).filter(function(k){ return netKeys.indexOf(k) < 0; }).map(function(k){
+        return '<div class="shop-spec-row"><span class="shop-spec-k">' + esc(k) + '</span><span class="shop-spec-v">' + esc(specs[k]) + '</span></div>';
+      }).join('') || '—';
+
+      var hasVlanWarn = specs.vlan && String(specs.vlan).toUpperCase().indexOf('NEIN') !== -1;
+      var links = (item.links || []).map(function(l){
+        return '<a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" class="inv-link">' + esc(l.label) + ' →</a>';
+      }).join('<br>') || '—';
+
+      html += '<tr>'
+        + '<td><div class="inv-dev-name">' + esc(item.name) + '</div>'
+        +     '<div class="inv-dev-role">' + esc(item.role) + '</div>'
+        +     '<div class="inv-dev-id">' + esc(item.id) + '</div></td>'
+        + '<td><span class="inv-cat-badge ' + cc + '">' + esc(item.category) + '</span></td>'
+        + '<td>' + netRows + (hasVlanWarn ? '<div class="inv-warn">⚠ Kein VLAN-Support</div>' : '') + '</td>'
+        + '<td>' + otherRows + '</td>'
+        + '<td>' + (item.notes ? '<span class="inv-note">' + esc(item.notes) + '</span>' : '—') + '</td>'
+        + '<td>' + links + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  /* ── ORDERED — cards with timer ─────────────────────────── */
+  function renderOrderCard(item, timers) {
+    var cc = catClass(item.category);
+    var delivKey = item.id;
+    var delivDate = timers[delivKey] || '';
+    var arrivedKey = delivKey + '_arrived';
+    var arrived = timers[arrivedKey] === '1';
+
+    var timerHtml = '';
+    if (arrived) {
+      timerHtml = '<div class="order-timer">'
+        + '<span class="order-timer-label">Status</span>'
+        + '<span class="order-timer-val arrived">✓ Angekommen</span>'
+        + '</div>'
+        + '<button class="order-arrived-btn" onclick="hwInvMarkArrived(\'' + esc(delivKey) + '\',false)">↩ Als unterwegs markieren</button>';
+    } else {
+      var countdown = '';
+      if (delivDate) {
+        var now  = new Date();
+        var dest = new Date(delivDate + 'T23:59:59');
+        var diff = dest - now;
+        var cls  = 'waiting';
+        if (diff < 0) { cls = 'overdue'; var absDays = Math.ceil(-diff / 86400000); countdown = 'Überfällig — ' + absDays + ' Tag' + (absDays !== 1 ? 'e' : '') + ' zu spät'; }
+        else { var days = Math.ceil(diff / 86400000); countdown = days + ' Tag' + (days !== 1 ? 'e' : '') + ' verbleibend'; }
+        timerHtml = '<div class="order-timer">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:6px">'
+          + '<span class="order-timer-label">⏱ Lieferung</span>'
+          + '<span class="order-timer-val ' + cls + '">' + esc(countdown) + '</span>'
+          + '</div>'
+          + '<span class="order-timer-date">Erwartet: ' + esc(delivDate) + '</span>'
+          + '</div>'
+          + '<button class="order-arrived-btn" onclick="hwInvMarkArrived(\'' + esc(delivKey) + '\',true)">✓ Angekommen!</button>';
+      } else {
+        timerHtml = '<div class="order-timer">'
+          + '<span class="order-timer-label">⏱ Lieferdatum setzen</span>'
+          + '<div class="order-timer-input-row">'
+          + '<input type="date" id="dt_' + esc(delivKey) + '" class="order-timer-input" value="">'
+          + '<button class="order-timer-btn" onclick="hwInvSetDate(\'' + esc(delivKey) + '\')">Speichern</button>'
+          + '</div>'
+          + '</div>';
+      }
+    }
+
+    var specsHtml = '';
+    if (item.specs) {
+      specsHtml = Object.keys(item.specs).map(function(k){
+        return '<span class="shop-spec-k">' + esc(k) + '</span> <span class="shop-spec-v">' + esc(item.specs[k]) + '</span>';
+      }).join('<br>');
+    }
+
+    var altsHtml = '';
+    if (item.alternatives && item.alternatives.length) {
+      altsHtml = '<div class="order-alts"><div class="order-alt-header">Alternativen</div>';
+      item.alternatives.forEach(function(alt) {
+        altsHtml += '<div class="order-alt-row">'
+          + '<span class="order-alt-name">' + esc(alt.name) + '</span>'
+          + '<span class="order-alt-price">' + esc(alt.price) + '</span>'
+          + (alt.url ? '<a href="' + esc(alt.url) + '" target="_blank" rel="noopener noreferrer" class="inv-link">Geizhals →</a>' : '')
+          + '</div>'
+          + (alt.note ? '<div class="order-alt-note">' + esc(alt.note) + '</div>' : '');
+      });
+      altsHtml += '</div>';
+    }
+
+    var linksHtml = '';
+    if (item.links && item.links.length) {
+      linksHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">';
+      item.links.forEach(function(l){
+        linksHtml += '<a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" class="shop-link-btn">' + esc(l.label) + ' →</a>';
+      });
+      linksHtml += '</div>';
+    }
+
+    return '<div class="order-card" id="oc_' + esc(item.id) + '">'
+      + '<div class="order-card-header">'
+      + '<div><div class="order-card-name">' + esc(item.name) + '</div>'
+      +      '<div class="order-card-target">' + (item.target ? 'Ziel: ' + esc(item.target) : '') + '</div></div>'
+      + '<span class="order-card-cost">' + esc(item.cost || '') + '</span>'
+      + '</div>'
+      + '<span class="inv-cat-badge ' + cc + '">' + esc(item.category) + '</span>'
+      + '<div class="order-card-specs" style="margin-top:8px">' + (specsHtml || '—') + '</div>'
+      + (item.notes ? '<div class="order-card-note">' + esc(item.notes) + '</div>' : '')
+      + timerHtml
+      + altsHtml
+      + linksHtml
+      + '</div>';
+  }
+
+  /* ── PLANNED — shop cards ───────────────────────────────── */
+  function renderShopCard(item) {
+    var cc = catClass(item.category);
+    var icon = catIcon(item.category);
+    var specsKeys = item.specs ? Object.keys(item.specs) : [];
+    var previewKeys = specsKeys.slice(0, 3);
+    var remainKeys  = specsKeys.slice(3);
+
+    var specsPreview = previewKeys.map(function(k){
+      return '<div class="shop-spec-row"><span class="shop-spec-k">' + esc(k) + '</span><span class="shop-spec-v">' + esc(item.specs[k]) + '</span></div>';
+    }).join('');
+
+    var specsAll = specsKeys.map(function(k){
+      return '<div class="shop-spec-row"><span class="shop-spec-k">' + esc(k) + '</span><span class="shop-spec-v">' + esc(item.specs[k]) + '</span></div>';
+    }).join('');
+
+    var altsDrawer = '';
+    if (item.alternatives && item.alternatives.length) {
+      altsDrawer += '<div class="shop-drawer-section"><div class="shop-drawer-label">Alternativen</div>';
+      item.alternatives.forEach(function(alt){
+        altsDrawer += '<div class="shop-alt-card">'
+          + '<div class="shop-alt-card-header">'
+          + '<span class="shop-alt-card-name">' + esc(alt.name) + '</span>'
+          + '<span class="shop-alt-card-price">' + esc(alt.price) + '</span>'
+          + (alt.url ? '<a href="' + esc(alt.url) + '" target="_blank" rel="noopener noreferrer" class="inv-link">Geizhals →</a>' : '')
+          + '</div>'
+          + (alt.note ? '<div class="shop-alt-card-note">' + esc(alt.note) + '</div>' : '')
+          + '</div>';
+      });
+      altsDrawer += '</div>';
+    }
+
+    var footerBtns = '<button class="shop-expand-btn" onclick="hwInvToggle(\'' + esc(item.id) + '\')">Details ▾</button>';
+    if (item.links && item.links.length) {
+      item.links.forEach(function(l){
+        footerBtns += '<a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" class="shop-link-btn">' + esc(l.label) + '</a>';
+      });
+    }
+    if (item.idea_id) {
+      footerBtns += '<a href="../ideas.html#' + esc(item.idea_id) + '" class="shop-idea-btn">💡 ' + esc(item.idea_id) + '</a>';
+    }
+
+    return '<div class="shop-card" id="sc_' + esc(item.id) + '">'
+      + '<div class="shop-card-header">'
+      + '<span class="shop-card-icon">' + icon + '</span>'
+      + '<span class="inv-cat-badge ' + cc + '">' + esc(item.category) + '</span>'
+      + '<div class="shop-card-price">' + esc(item.cost || 'TBD') + '</div>'
+      + '<div class="shop-card-name" style="margin-top:4px">' + esc(item.name) + '</div>'
+      + (item.target ? '<div class="shop-card-target">Für: ' + esc(item.target) + '</div>' : '')
+      + '</div>'
+      + '<div class="shop-card-body">'
+      + (item.notes ? '<div class="shop-card-desc">' + esc(item.notes) + '</div>' : '')
+      + '<div class="shop-card-specs-preview">' + specsPreview + '</div>'
+      + '</div>'
+      + '<div class="shop-drawer" id="sd_' + esc(item.id) + '">'
+      + '<div class="shop-drawer-section"><div class="shop-drawer-label">Alle Specs</div>'
+      + '<div class="shop-full-spec">' + (specsAll || '—') + '</div></div>'
+      + altsDrawer
+      + '</div>'
+      + '<div class="shop-card-footer">' + footerBtns + '</div>'
+      + '</div>';
+  }
+
+  /* ── VPS costs ──────────────────────────────────────────── */
+  function renderVpsCosts(vpsCosts) {
+    var html = '<div class="vps-cost-table">';
+    Object.keys(vpsCosts.monthly).forEach(function(key) {
+      var c = vpsCosts.monthly[key];
+      html += '<div class="vps-cost-row">'
+        + '<div class="vps-cost-name">' + esc(key) + ' <span class="vps-cost-provider">(' + esc(c.provider) + ')</span></div>'
+        + '<div class="vps-cost-amount">' + esc(c.cost) + '/mo</div>'
+        + '<div class="vps-cost-purpose">' + esc(c.purpose) + '</div>'
+        + '</div>';
+    });
+    html += '<div class="vps-cost-row total-row">'
+      + '<div class="vps-cost-name" style="font-weight:700">Gesamt monatlich</div>'
+      + '<div class="vps-cost-amount">' + esc(vpsCosts.total_monthly) + '/mo</div>'
+      + (vpsCosts.note ? '<div class="vps-cost-note">' + esc(vpsCosts.note) + '</div>' : '')
+      + '</div>';
+    if (vpsCosts.yearly && Object.keys(vpsCosts.yearly).length) {
+      html += '<div class="vps-cost-row" style="padding-top:8px;margin-top:4px;border-top:1px solid var(--border)">'
+        + '<div class="vps-cost-name" style="color:var(--muted);font-size:10px;letter-spacing:0.5px;text-transform:uppercase">Jährliche Kosten</div>'
+        + '</div>';
+      Object.keys(vpsCosts.yearly).forEach(function(key) {
+        var c = vpsCosts.yearly[key];
+        html += '<div class="vps-cost-row">'
+          + '<div class="vps-cost-name">' + esc(key) + ' <span class="vps-cost-provider">('+esc(c.provider)+')</span></div>'
+          + '<div class="vps-cost-amount">' + esc(c.cost) + '/yr</div>'
+          + '<div class="vps-cost-purpose">' + esc(c.purpose) + '</div>'
+          + '</div>';
+      });
+    }
+    html += '</div>';
+    return html;
+  }
+
+  /* ── Main render ────────────────────────────────────────── */
+  function renderInventory(inv) {
+    var container = document.getElementById('inv-content');
+    if (!container || !inv) return;
+    var timers  = loadTimers();
+    var active  = inv.active  || [];
+    var stock   = inv.stock   || [];
+    var ordered = (inv.planned || []).filter(function(i){ return i.status === 'bestellt'; });
+    var planned = (inv.planned || []).filter(function(i){ return i.status !== 'bestellt'; });
+    var html = '';
+
+    /* active table */
+    html += sectionSep('Im Einsatz', 'active', active.length);
+    html += renderActiveTable(active);
+
+    /* stock table */
+    if (stock.length) {
+      html += sectionSep('Im Bestand', 'stock', stock.length);
+      html += renderActiveTable(stock);
+    }
+
+    /* ordered */
+    if (ordered.length) {
+      html += sectionSep('Bestellt — unterwegs', 'ordered', ordered.length);
+      html += '<div class="order-grid">';
+      ordered.forEach(function(item){ html += renderOrderCard(item, timers); });
+      html += '</div>';
+    }
+
+    /* planned shop */
+    if (planned.length) {
+      html += sectionSep('Geplante Käufe', 'planned', planned.length);
+      html += '<div class="shop-grid">';
+      planned.forEach(function(item){ html += renderShopCard(item); });
+      html += '</div>';
+    }
+
+    /* vps costs */
+    if (inv.vps_costs) {
+      html += sectionSep('VPS-Kosten', 'costs');
+      html += renderVpsCosts(inv.vps_costs);
+    }
+
+    container.innerHTML = html;
+    startTimerRefresh();
+  }
+
+  /* ── Timer refresh ──────────────────────────────────────── */
+  var _refreshInterval = null;
+  function startTimerRefresh() {
+    if (_refreshInterval) clearInterval(_refreshInterval);
+    _refreshInterval = setInterval(function() {
+      var timers = loadTimers();
+      document.querySelectorAll('.order-card').forEach(function(card) {
+        var id = card.id.replace('oc_', '');
+        if (!id) return;
+        var delivDate = timers[id];
+        var arrived   = timers[id + '_arrived'] === '1';
+        var valEl = card.querySelector('.order-timer-val');
+        if (!valEl || arrived) return;
+        if (!delivDate) return;
+        var now  = new Date();
+        var dest = new Date(delivDate + 'T23:59:59');
+        var diff = dest - now;
+        if (diff < 0) {
+          var absDays = Math.ceil(-diff / 86400000);
+          valEl.className = 'order-timer-val overdue';
+          valEl.textContent = 'Überfällig — ' + absDays + ' Tag' + (absDays !== 1 ? 'e' : '') + ' zu spät';
+        } else {
+          var days = Math.ceil(diff / 86400000);
+          valEl.className = 'order-timer-val waiting';
+          valEl.textContent = days + ' Tag' + (days !== 1 ? 'e' : '') + ' verbleibend';
+        }
+      });
+    }, 60000);
+  }
+
+  /* ── Global callbacks ───────────────────────────────────── */
+  window.hwInvToggle = function(id) {
+    var drawer = document.getElementById('sd_' + id);
+    var btn    = document.querySelector('#sc_' + id + ' .shop-expand-btn');
+    if (!drawer) return;
+    drawer.classList.toggle('open');
+    if (btn) btn.textContent = drawer.classList.contains('open') ? 'Details ▴' : 'Details ▾';
+  };
+
+  window.hwInvSetDate = function(id) {
+    var inp = document.getElementById('dt_' + id);
+    if (!inp || !inp.value) return;
+    var timers = loadTimers();
+    timers[id] = inp.value;
+    saveTimers(timers);
+    var R = window.RESOURCES;
+    if (R && R.hardware_inventory) renderInventory(R.hardware_inventory);
+  };
+
+  window.hwInvMarkArrived = function(id, arrived) {
+    var timers = loadTimers();
+    timers[id + '_arrived'] = arrived ? '1' : '0';
+    saveTimers(timers);
+    var R = window.RESOURCES;
+    if (R && R.hardware_inventory) renderInventory(R.hardware_inventory);
+  };
+
+  /* ── Boot ───────────────────────────────────────────────── */
+  function tryRender() {
+    var R = window.RESOURCES;
+    if (R && R.hardware_inventory) renderInventory(R.hardware_inventory);
+  }
+
+  window.addEventListener('resources-ready', tryRender);
+  if (window.RESOURCES) { tryRender(); }
+
+  (function () {
+    if (window.RESOURCES) return;
+    fetch('../phasen-ideen-deferred/homelab-resources.json', { cache: 'no-cache' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        window.RESOURCES = data;
+        window.dispatchEvent(new Event('resources-ready'));
+      })
+      .catch(function(e) {
+        console.warn('[hw-inventory] Resources load failed:', e);
+        var c = document.getElementById('inv-content');
+        if (c) c.innerHTML = '<div style="color:#ef4444;font-family:\'JetBrains Mono\',monospace;font-size:12px">Fehler beim Laden der Inventar-Daten.</div>';
+      });
+  })();
+})();
+</script>
+</body>
+</html>
