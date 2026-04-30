@@ -299,6 +299,33 @@
                                    ]
                      },
                      {
+  "label": "Interne Websites",
+  "steps": [
+    {
+      "id": "p3-journey",
+      "title": "Journey — Statische Projektseite",
+      "status": "wip",
+      "tags": ["Nginx", "HTML", "CSS", "JS", "JSON", "Static"],
+      "desc": "Homelab Academy Projektseite (Roadmap, Tagebuch, Netzwerkplan, Ideen) als statische Website im SVC-VLAN. Nginx auf CT110 (10.0.2.13), erreichbar unter journey.mynooblab.dev via Caddy. Dual-Push: Forgejo intern + GitHub public.",
+      "notes": "Bestehende Codebase aus VS Code Live Preview migriert. HTML/CSS/JS + JSON-Backend. Versioniert in Forgejo.",
+      "log": [
+        {"date": "2026-04-30", "entry": "Step angelegt. Container CT110 geplant: journey, 10.0.2.13, unprivileged, 256 MB RAM, 4 GB Disk."}
+      ],
+      "deferred_reason": ""
+    },
+    {
+      "id": "p3-hq",
+      "title": "HQ — Dynamische Projektseite (Rebuild)",
+      "status": "todo",
+      "tags": ["Backend", "Database", "SSR", "WebSecurity", "Auth"],
+      "desc": "Rebuild der Homelab Academy Website als serverseitige Anwendung mit Datenbank. JSON-Daten normalisieren, interaktives Frontend, WebAuth, OWASP-gehaertetes Backend. Erreichbar unter hq.mynooblab.dev. Lernprojekt fuer Web Security Engineering.",
+      "notes": "Separates Repo in Forgejo. Eigener Container im SVC-VLAN. Erst nach journey.mynooblab.dev stabil.",
+      "log": [],
+      "deferred_reason": ""
+    }
+  ]
+},
+                     {
                          "label":  "Automatisierung",
                          "steps":  [
                                        {

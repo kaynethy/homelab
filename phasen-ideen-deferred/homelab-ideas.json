@@ -945,6 +945,16 @@
           "edited": false
         }
       ]
-    }
+    },{
+  "id": "idea-049",
+  "title": "Website Rebuild — Serverseitiges Rendering mit Datenbank",
+  "status": "backlog",
+  "phase": "p3",
+  "tags": ["Webdev", "Database", "Security", "Backend", "SSR"],
+  "desc": "Homelab Academy Website von statischem HTML/CSS/JS + JSON auf serverseitige Anwendung mit Datenbank umbauen. JSON-Daten normalisieren, interaktives Frontend, WebAuth, OWASP-gehaertetes Backend. Lernprojekt fuer Web Security Engineering.",
+  "comments": [
+    {"date": "2026-04-30", "text": "Statische Version bleibt parallel aktiv. Rebuild als separates Repo und Subdomain."}
+  ]
+}
   ]
 }

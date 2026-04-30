@@ -322,7 +322,8 @@
     .topo-legend-toggle[data-toggle-subnet="svc"].active     { border-color: #4db8ff; background: rgba(77,184,255,0.08); }
     .topo-legend-toggle[data-toggle-subnet="lab"].active     { border-color: #a78bfa; background: rgba(167,139,250,0.08); }
     .topo-legend-toggle[data-toggle-subnet="dmz"].active     { border-color: #fb923c; background: rgba(251,146,60,0.08); }
-    .topo-legend-toggle[data-toggle-subnet="vpn"].active     { border-color: #22c55e; background: rgba(34,197,94,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="vpn"].active          { border-color: #22c55e; background: rgba(34,197,94,0.08); }
+    .topo-legend-toggle[data-toggle-subnet="equinox-vpn"].active  { border-color: #fb7185; background: rgba(251,113,133,0.08); }
     .topo-legend-sep {
       width: 1px;
       height: 14px;
@@ -372,6 +373,7 @@
       <span class="topo-legend-toggle active" data-toggle-subnet="lab"><span class="topo-legend-dot" style="background:#a78bfa"></span> LAB</span>
       <span class="topo-legend-toggle active" data-toggle-subnet="dmz"><span class="topo-legend-dot" style="background:#fb923c"></span> DMZ</span>
       <span class="topo-legend-toggle active" data-toggle-subnet="vpn"><span class="topo-legend-dot" style="background:#22c55e"></span> VPN</span>
+      <span class="topo-legend-toggle active" data-toggle-subnet="equinox-vpn"><span class="topo-legend-dot" style="background:#fb7185"></span> Mail-VPN</span>
       <span class="topo-legend-sep"></span>
       <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#22c55e"></span> erlaubt</span>
       <span class="topo-legend-item"><span class="topo-legend-dot" style="background:#ef4444"></span> geblockt</span>
@@ -490,7 +492,8 @@
     purple: { fill: 'rgba(167,139,250,0.12)', stroke: '#a78bfa', text: '#a78bfa', bg: '#a78bfa' },
     amber:  { fill: 'rgba(251,146,60,0.12)',  stroke: '#fb923c', text: '#fb923c', bg: '#fb923c' },
     green:  { fill: 'rgba(34,197,94,0.12)',   stroke: '#22c55e', text: '#22c55e', bg: '#22c55e' },
-    cyan:   { fill: 'rgba(0,212,255,0.12)',   stroke: '#00d4ff', text: '#00d4ff', bg: '#00d4ff' }
+    cyan:   { fill: 'rgba(0,212,255,0.12)',   stroke: '#00d4ff', text: '#00d4ff', bg: '#00d4ff' },
+    coral:  { fill: 'rgba(251,113,133,0.12)', stroke: '#fb7185', text: '#fb7185', bg: '#fb7185' }
   };
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -500,7 +503,7 @@
   var migrationVisible = false;
   var firewallVisible = false;
   var firewallEdgeIds = [];
-  var subnetVisible = { mgmt: true, svc: true, lab: true, dmz: true, vpn: true };
+  var subnetVisible = { mgmt: true, svc: true, lab: true, dmz: true, vpn: true, 'equinox-vpn': true };
   var statusVisible = { active: true, planned: true };
   var POSITIONS_KEY = 'homelab_network_positions';
   var CUSTOM_DEFAULT_KEY = 'homelab_network_custom_default';
@@ -511,52 +514,61 @@
   // Layout Presets — hardcoded default + profile slots
   var LAYOUT_PRESETS = {
     "default": {
-      "1":  {"x": -86,  "y": -170},
+      "1":  {"x": -80,  "y": 58},
       "2":  {"x": -80,  "y": 150},
-      "3":  {"x": 263,  "y": -292},
-      "4":  {"x": -384, "y": 97},
-      "5":  {"x": -345, "y": 395},
-      "6":  {"x": 191,  "y": 407},
-      "7":  {"x": 214,  "y": 149},
-      "8":  {"x": 264,  "y": -118},
-      "10": {"x": -352, "y": -49},
-      "11": {"x": -467, "y": -52},
-      "12": {"x": -556, "y": -27},
-      "13": {"x": -571, "y": 40},
-      "14": {"x": -559, "y": 101},
-      "15": {"x": -531, "y": 157},
-      "16": {"x": -437, "y": 184},
-      "17": {"x": -246, "y": 590},
-      "18": {"x": -356, "y": 610},
-      "19": {"x": -441, "y": 594},
-      "20": {"x": -512, "y": 548},
-      "21": {"x": -559, "y": 503},
-      "22": {"x": -588, "y": 452},
-      "23": {"x": -588, "y": 392},
-      "25": {"x": -538, "y": 334},
-      "26": {"x": -432, "y": 288},
-      "27": {"x": 337,  "y": 344},
-      "28": {"x": 385,  "y": 410},
-      "29": {"x": 371,  "y": 478},
-      "30": {"x": 277,  "y": 517},
-      "31": {"x": 170,  "y": 517},
-      "32": {"x": 52,   "y": 482},
-      "33": {"x": 24,   "y": 412},
-      "34": {"x": 210,  "y": 307},
-      "35": {"x": 346,  "y": 78},
-      "36": {"x": 351,  "y": 149},
-      "38": {"x": 345,  "y": 235},
-      "39": {"x": 422,  "y": -217},
-      "40": {"x": 488,  "y": -139},
-      "41": {"x": 492,  "y": -89},
-      "42": {"x": 492,  "y": -41},
-      "43": {"x": 481,  "y": -178},
-      "46": {"x": -392, "y": -283},
-      "47": {"x": -123, "y": -342},
-      "48": {"x": 43,   "y": -340},
-      "49": {"x": -4,   "y": -428},
-      "50": {"x": 115,  "y": -425},
-      "51": {"x": -86,  "y": -80}
+      "3":  {"x": -84,  "y": -202},
+      "4":  {"x": -508, "y": 123},
+      "5":  {"x": 428,  "y": 278},
+      "6":  {"x": -332, "y": 444},
+      "7":  {"x": 131,  "y": 505},
+      "8":  {"x": 471,  "y": 16},
+      "9":  {"x": -328, "y": -269},
+      "10": {"x": -513, "y": 23},
+      "11": {"x": -647, "y": 59},
+      "12": {"x": -397, "y": 51},
+      "13": {"x": -364, "y": 120},
+      "14": {"x": -394, "y": 205},
+      "15": {"x": -517, "y": 219},
+      "16": {"x": -657, "y": 184},
+      "17": {"x": 424,  "y": 168},
+      "18": {"x": 571,  "y": 224},
+      "19": {"x": 587,  "y": 289},
+      "20": {"x": 587,  "y": 349},
+      "21": {"x": 554,  "y": 398},
+      "22": {"x": 414,  "y": 403},
+      "23": {"x": 334,  "y": 385},
+      "25": {"x": 266,  "y": 335},
+      "26": {"x": 239,  "y": 260},
+      "27": {"x": -335, "y": 344},
+      "28": {"x": -171, "y": 399},
+      "29": {"x": -167, "y": 453},
+      "30": {"x": -185, "y": 517},
+      "31": {"x": -261, "y": 563},
+      "32": {"x": -354, "y": 576},
+      "33": {"x": -448, "y": 570},
+      "34": {"x": -509, "y": 526},
+      "35": {"x": -538, "y": 469},
+      "36": {"x": -449, "y": 364},
+      "37": {"x": 129,  "y": 578},
+      "38": {"x": 249,  "y": 564},
+      "40": {"x": 265,  "y": 457},
+      "41": {"x": 652,  "y": -86},
+      "42": {"x": 647,  "y": -41},
+      "43": {"x": 648,  "y": -1},
+      "44": {"x": 649,  "y": 40},
+      "45": {"x": 652,  "y": 78},
+      "46": {"x": 652,  "y": 112},
+      "47": {"x": -398, "y": -363},
+      "48": {"x": -251, "y": -361},
+      "49": {"x": 343,  "y": -98},
+      "50": {"x": 300,  "y": -202},
+      "51": {"x": 227,  "y": -304},
+      "52": {"x": 381,  "y": -302},
+      "53": {"x": -82,  "y": -76},
+      "54": {"x": -519, "y": -136},
+      "55": {"x": -883, "y": 92},
+      "56": {"x": -869, "y": -49},
+      "57": {"x": -658, "y": -275}
     },
     "profil1": null,
     "profil2": null
@@ -777,12 +789,12 @@
     var tplinkId = nodeId++;
     nodes.push({
       id: tplinkId,
-      label: 'TP-Link Router\n(Übergang)',
+      label: '📡 TP-Link Router\n(Übergang)',
       shape: 'box',
       x: 200, y: 150,
       color: { background: '#13161e', border: '#3a4055', highlight: { background: '#13161e', border: '#3a4055' } },
       font: { color: '#5a6278', size: 11, face: "'JetBrains Mono', monospace", multi: true },
-      borderWidth: 1.5,
+      borderWidth: 3,
       shapeProperties: { borderDashes: [6, 3] },
       margin: 10,
       title: 'TP-Link Router\nAktuelles Netzwerk (192.168.0.0/24)\nWird durch OPNsense ersetzt'
@@ -799,7 +811,7 @@
     // Internet → TP-Link direct edge entfernt — läuft jetzt über Uni-Netz NAT-Barriere
 
     // ——— Ebene 2: Subnetz-Nodes + Edges OPNsense→Subnet ———
-    var SUBNET_X = { mgmt: -450, svc: -150, lab: 150, dmz: 450 };
+    var SUBNET_X = { mgmt: -450, svc: -150, lab: 150, dmz: 450, 'equinox-vpn': 1050 };
     var subnetNodeMap = {};  // subnet.id -> vis node id
 
     N.subnets.forEach(function(sn) {
@@ -847,6 +859,7 @@
     });
 
     // ——— Ebene 3: Host-Nodes unter ihrem Subnetz ———
+    var esprimoId = null;
     N.subnets.forEach(function(sn) {
       var c = COLOR_MAP[sn.color] || COLOR_MAP.teal;
       var snVisId = subnetNodeMap[sn.id];
@@ -902,6 +915,8 @@
         if (h.current_ip) {
           migrationHostMap[h.current_ip] = hId;
         }
+        // Track ESPRIMO for physical topology edges
+        if (sn.id === 'mgmt' && h.current_ip === '192.168.0.11') { esprimoId = hId; }
 
         // Subnet → Host edge (thin, transparent, no arrows)
         edges.push({
@@ -919,21 +934,8 @@
     var cGreen = COLOR_MAP.green;
     var cGray  = { fill: 'rgba(90,98,120,0.08)', stroke: '#5a6278', text: '#5a6278', bg: '#5a6278' };
 
-    // VPN-Subnetz-Node (zwischen Internet und OPNsense — Overlay-Ebene)
-    var vpnSnId = nodeId++;
-    subnetNodeMap['vpn'] = vpnSnId;
-    nodes.push({
-      id: vpnSnId,
-      label: 'WireGuard VPN\n10.0.5.0/24',
-      shape: 'box',
-      x: 650, y: 200,
-      color: { background: cGreen.fill, border: cGreen.stroke, highlight: { background: cGreen.fill, border: cGreen.text } },
-      font: { color: cGreen.text, size: 12, face: "'JetBrains Mono', monospace", multi: true },
-      borderWidth: 2,
-      margin: { top: 10, bottom: 10, left: 14, right: 14 },
-      title: 'WireGuard Overlay-Netz\nCIDR: 10.0.5.0/24\nEndpoint: 139.162.155.120:51820\nVerbindet VPS plattfuss ↔ ESPRIMO',
-      _subnetId: 'vpn'
-    });
+    // VPN-Subnetz-Node — wird aus JSON-Subnetz-Loop generiert (subnetNodeMap['vpn'])
+    var vpnSnId = subnetNodeMap['vpn'];
 
     // VPS plattfuss — öffentlicher Internet-Node
     var vpsId = nodeId++;
@@ -1245,6 +1247,200 @@
       _edgeType: 'infra'
     });
 
+    // ——— Ebene 5: Physische LAN-Topologie ———
+    var cAmber  = COLOR_MAP.amber;
+    var cBlue   = COLOR_MAP.blue;
+    var cPurple = COLOR_MAP.purple;
+    var cCoral  = COLOR_MAP.coral;
+    var cSw     = { fill: 'rgba(6,182,212,0.08)', stroke: '#06b6d4', text: '#06b6d4', bg: '#06b6d4' };
+
+    // Zyxel XMG1915-18EP Managed Switch
+    var switchId = nodeId++;
+    nodes.push({
+      id: switchId,
+      label: '🔌 Zyxel XMG1915\n192.168.0.254',
+      shape: 'box',
+      x: 420, y: -95,
+      color: { background: cSw.fill, border: cSw.stroke, highlight: { background: cSw.fill, border: cSw.text } },
+      font: { color: cSw.text, size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 3,
+      margin: { top: 10, bottom: 10, left: 14, right: 14 },
+      title: 'Zyxel XMG1915-18EP\n2.5G Managed Switch\nIP: 192.168.0.254\n⚠ VLAN-Config ausstehend (idea-042)\n10G-Uplink → TP-Link Archer C80\nPorts: ESPRIMO · Tower · Windows PC'
+    });
+
+    // Tower (bulldozer) — Lab-Host, Cluster mit ESPRIMO
+    var towerId = nodeId++;
+    nodes.push({
+      id: towerId,
+      label: '� Tower (bulldozer)\n192.168.0.200',
+      shape: 'box',
+      x: 550, y: 60,
+      color: { background: cBlue.fill, border: cBlue.stroke, highlight: { background: cBlue.fill, border: cBlue.text } },
+      font: { color: cBlue.text, size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 3,
+      margin: { top: 10, bottom: 10, left: 14, right: 14 },
+      title: 'Tower (bulldozer)\nIP: 192.168.0.200 → 10.0.1.200 (pending)\nLab-Host · Cluster mit ESPRIMO\nVLAN-Migration: nach Zyxel VLAN-Config\nRolle: LAB-VLAN (Tag 30) für Pentest-VMs\nStatus: Betrieb, VLAN-Migration pending',
+      _baseLabel: 'Tower (bulldozer)\n192.168.0.200',
+      _currentIp: '192.168.0.200',
+      _hostStatus: 'active'
+    });
+
+    // NetBox IPAM (CT 106) — Sub-Node auf Tower
+    var netboxId = nodeId++;
+    nodes.push({
+      id: netboxId,
+      label: '📦 NetBox IPAM\n192.168.0.106',
+      shape: 'box',
+      x: 670, y: 150,
+      color: { background: cBlue.fill, border: cBlue.stroke, highlight: { background: cBlue.fill, border: cBlue.text } },
+      font: { color: cBlue.text, size: 10, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 1.5,
+      margin: 6,
+      title: 'NetBox IPAM (CT 106)\nIP: 192.168.0.106 → 10.0.1.106 (pending)\n⚠ VLAN-Migration ausstehend\nLäuft auf Tower (bulldozer)\nStatus: aktiv, nicht VLAN-segmentiert',
+      _baseLabel: 'NetBox IPAM\n192.168.0.106',
+      _currentIp: '192.168.0.106',
+      _hostStatus: 'active'
+    });
+
+    // Windows PC (NOOB PC)
+    var windowsPcId = nodeId++;
+    nodes.push({
+      id: windowsPcId,
+      label: '🖥 Windows PC\n192.168.0.10',
+      shape: 'box',
+      x: 450, y: -240,
+      color: { background: 'rgba(226,232,240,0.06)', border: '#94a3b8', highlight: { background: 'rgba(226,232,240,0.10)', border: '#cbd5e1' } },
+      font: { color: '#cbd5e1', size: 11, face: "'JetBrains Mono', monospace", multi: true },
+      borderWidth: 3,
+      margin: { top: 10, bottom: 10, left: 14, right: 14 },
+      title: 'Windows PC (NOOB PC)\nIP: 192.168.0.10\n2× WireGuard-Tunnel:\n  → plattfuss :51820 (AllowedIPs: 10.0.5.0/24)\n  → equinox-prod :51821 (AllowedIPs: 10.0.6.0/24)\nKein Internet-Traffic über VPN\nGast-PC / Entwicklung',
+      _hostStatus: 'active'
+    });
+
+    // TP-Link → Zyxel Switch (Uplink)
+    edges.push({
+      from: tplinkId, to: switchId,
+      color: { color: cSw.stroke, opacity: 0.9, highlight: cSw.stroke },
+      width: 2.5,
+      arrows: { to: { enabled: false } },
+      label: '10G Uplink',
+      font: { color: cSw.text, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      smooth: { type: 'curvedCW', roundness: 0.15 },
+      _edgeType: 'infra'
+    });
+
+    // Switch → ESPRIMO
+    if (esprimoId) edges.push({
+      from: switchId, to: esprimoId,
+      color: { color: cSw.stroke, opacity: 0.7, highlight: cSw.stroke },
+      width: 2,
+      arrows: { to: { enabled: false } },
+      smooth: false,
+      _edgeType: 'infra'
+    });
+
+    // Switch → Tower
+    edges.push({
+      from: switchId, to: towerId,
+      color: { color: cSw.stroke, opacity: 0.7, highlight: cSw.stroke },
+      width: 2,
+      arrows: { to: { enabled: false } },
+      smooth: false,
+      _edgeType: 'infra'
+    });
+
+    // Switch → Windows PC (dezent)
+    edges.push({
+      from: switchId, to: windowsPcId,
+      color: { color: cSw.stroke, opacity: 0.45, highlight: cSw.stroke },
+      width: 1.5,
+      arrows: { to: { enabled: false } },
+      smooth: false,
+      _edgeType: 'infra'
+    });
+
+    // ESPRIMO ↔ Tower (Cluster, blau gestrichelt)
+    if (esprimoId) edges.push({
+      from: esprimoId, to: towerId,
+      color: { color: cBlue.stroke, opacity: 0.6, highlight: cBlue.stroke },
+      width: 1.5,
+      dashes: [6, 3],
+      arrows: { to: { enabled: false } },
+      label: 'Cluster',
+      font: { color: cBlue.text, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      smooth: { type: 'curvedCW', roundness: 0.25 },
+      _edgeType: 'infra'
+    });
+
+    // Tower → NetBox (thin, kein Pfeil)
+    edges.push({
+      from: towerId, to: netboxId,
+      color: { color: cBlue.stroke, opacity: 0.4, highlight: cBlue.stroke },
+      width: 1,
+      arrows: { to: { enabled: false } },
+      smooth: false,
+      _edgeType: 'subnet-link'
+    });
+
+    // Tower → LAB-Subnetz (geplant: Pentest-VMs via VLAN Tag 30)
+    if (subnetNodeMap['lab']) edges.push({
+      from: towerId, to: subnetNodeMap['lab'],
+      color: { color: cPurple.stroke, opacity: 0.5, highlight: cPurple.stroke },
+      width: 1.5,
+      dashes: [4, 4],
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      label: 'LAB VMs\ngeplant',
+      font: { color: cPurple.text, size: 8, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      smooth: { type: 'curvedCCW', roundness: 0.2 },
+      _edgeType: 'infra'
+    });
+
+    // equinox-prod → Mail-Tunnel Subnetz (WG :51821, bidirektional)
+    if (subnetNodeMap['equinox-vpn']) edges.push({
+      from: equinoxId, to: subnetNodeMap['equinox-vpn'],
+      color: { color: cCoral.stroke, opacity: 0.7, highlight: cCoral.stroke },
+      width: 1.5,
+      dashes: [6, 3],
+      arrows: { to: { enabled: true, scaleFactor: 0.5 }, from: { enabled: true, scaleFactor: 0.5 } },
+      label: 'WG :51821',
+      font: { color: cCoral.text, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      smooth: { type: 'curvedCCW', roundness: 0.2 },
+      _edgeType: 'infra'
+    });
+
+    // Windows PC → Mail-Tunnel Subnetz (WG :51821, Split-Tunnel)
+    if (subnetNodeMap['equinox-vpn']) edges.push({
+      from: windowsPcId, to: subnetNodeMap['equinox-vpn'],
+      color: { color: cCoral.stroke, opacity: 0.5, highlight: cCoral.stroke },
+      width: 1.5,
+      dashes: [4, 4],
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+      label: 'Mail',
+      font: { color: cCoral.text, size: 9, face: "'JetBrains Mono', monospace", strokeWidth: 0 },
+      smooth: { type: 'curvedCW', roundness: 0.2 },
+      _edgeType: 'infra'
+    });
+
+    // Migration edges für Tower und NetBox (manuell, da nach Migration-Loop eingefügt)
+    migrationEdges.push({
+      from: tplinkId, to: towerId,
+      color: { color: '#eab308', opacity: 0.5 },
+      dashes: [4, 4],
+      width: 1,
+      arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+      hidden: true,
+      _migration: true
+    });
+    migrationEdges.push({
+      from: tplinkId, to: netboxId,
+      color: { color: '#eab308', opacity: 0.5 },
+      dashes: [4, 4],
+      width: 1,
+      arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+      hidden: true,
+      _migration: true
+    });
+
     var allEdges = edges.concat(migrationEdges);
 
     // ——— Create network ———
@@ -1278,6 +1474,8 @@
       origPositions[n.id] = { x: n.x, y: n.y };
     });
 
+    // Clear stale custom default (force-reload new hardcoded positions)
+    try { localStorage.removeItem(CUSTOM_DEFAULT_KEY); } catch(e) {}
     // Load custom default from localStorage if set
     var effectiveDefault = LAYOUT_PRESETS["default"];
     try {

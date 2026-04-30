@@ -3,10 +3,10 @@
     "version": "1.0",
     "updated": "2026-04-27",
     "description": "Homelab Roadmap — Haupt-State-Datei",
-    "progress_pct": 56,
+    "progress_pct": 43,
     "progress_done": 22,
-    "progress_wip": 1,
-    "progress_total": 49
+    "progress_wip": 2,
+    "progress_total": 51
   },
   "phases": [
     {

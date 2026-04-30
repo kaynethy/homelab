@@ -169,7 +169,7 @@
         },
         {
           "ip": ".13",
-          "name": "Lab-Seite (Homelab Academy)",
+          "name": "Journey",
           "role": "Eigene Projektplanungs-Website (Nginx, statisch → DB geplant)",
           "status": "planned",
           "core": false,
@@ -197,14 +197,6 @@
           "role": "Weitere Kern-Services",
           "status": "reserved",
           "core": false
-        },
-        {
-          "ip": ".20",
-          "name": "Equinox Testkopie",
-          "role": "Security-Testing im SVC-VLAN (OWASP Audit vor Prod-Deploy)",
-          "status": "planned",
-          "core": false,
-          "note": "Kopie von equinox151.de fuer interne Security-Tests"
         },
         {
           "ip": ".21",
@@ -299,7 +291,15 @@
           "idea_id": "idea-015"
         },
         {
-          "ip": ".14 – .19",
+          "ip": ".14",
+          "name": "RANCID",
+          "role": "Konfig-Backup & Versionierung (OPNsense, Zyxel, Switches)",
+          "status": "planned",
+          "core": false,
+          "note": "Zieht Configs per SSH/SNMP, versioniert in Git. Braucht FW-Regel: LAB → MGMT (SSH 22) nur fuer RANCID-IP."
+        },
+        {
+          "ip": ".15 – .19",
           "name": "— Reserve —",
           "role": "Weitere Lab-Infra",
           "status": "reserved",
@@ -334,6 +334,14 @@
           "role": "Weitere Security-VMs",
           "status": "reserved",
           "core": false
+        },
+        {
+          "ip": ".50",
+          "name": "Equinox Testkopie",
+          "role": "Staging / Security-Test vor Prod-Deploy",
+          "status": "planned",
+          "core": false,
+          "note": "Kopie von equinox151.de fuer interne Security-Tests im isolierten Lab-Netz. Verschoben aus SVC-VLAN."
         }
       ],
       "vlan_tag": 30,
@@ -438,7 +446,15 @@
           "core": false
         },
         {
-          "ip": ".6 – .10",
+          "ip": ".6",
+          "name": "NOOB PC",
+          "role": "Mail-Routing (split-tunnel, nur SMTP/IMAP via VPN)",
+          "status": "active",
+          "core": false,
+          "note": "Kein Full-Tunnel. AllowedIPs = 10.0.6.0/24 (Equinox Mail-Tunnel) — nur E-Mail-Routing über VPN, kein Internet-Traffic."
+        },
+        {
+          "ip": ".7 – .10",
           "name": "— Reserve —",
           "role": "Weitere VPN-Clients",
           "status": "reserved",
@@ -1045,8 +1061,9 @@
     {
       "host": "Tower (bulldozer)",
       "current": "192.168.0.200",
-      "target": "192.168.0.200",
-      "status": "done"
+      "target": "10.0.1.200",
+      "status": "pending",
+      "note": "VLAN-Integration nach Zyxel VLAN-Config. Dann LAB-VLAN (Tag 30) fuer Pentest-VMs."
     }
   ],
   "principles": [
