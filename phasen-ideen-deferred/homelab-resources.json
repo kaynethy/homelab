@@ -281,7 +281,7 @@
         "cost": "geschenkt",
         "specs": {
           "cpu": "Intel Core i5-8500T (6C/6T, 1.6-3.5 GHz, 35W TDP)",
-          "ram": "16 GB DDR4-2400 SO-DIMM (1× 16 GB; Slot 2 frei → Upgrade bestellt)",
+          "ram": "24 GB DDR4-2400 SO-DIMM (1× 16 GB; 1× 8)",
           "storage": "512 GB NVMe SSD (M.2 2280)",
           "form_factor": "Ultra-Small Form Factor (USFF), 1 Liter",
           "power": "~35W idle, ~65W Last",

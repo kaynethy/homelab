@@ -262,9 +262,25 @@
   }
 
   function renderDeferredSection(phase, pNum) {
-    // Liest aus window.DEFERRED (homelab-deferred.json), nicht aus phase.steps
+    // 1. Deferred Steps aus homelab-deferred.json (wie bisher)
     var dSteps = (window.DEFERRED && window.DEFERRED.items || []).filter(function(s) {
       return s.phase_id === phase.id && s.status === 'deferred';
+    });
+    // 2. Deferred Steps direkt aus der Phase-JSON sammeln
+    var phaseDeferred = [];
+    (phase.steps || []).forEach(function(s) {
+      if (s.status === 'deferred') phaseDeferred.push(s);
+    });
+    (phase.sections || []).forEach(function(sec) {
+      (sec.steps || []).forEach(function(s) {
+        if (s.status === 'deferred') phaseDeferred.push(s);
+      });
+    });
+    // Duplikate vermeiden (falls ein Step sowohl in deferred.json als auch in der Phase steht)
+    var seenIds = {};
+    dSteps.forEach(function(s) { seenIds[s.id] = true; });
+    phaseDeferred.forEach(function(s) {
+      if (!seenIds[s.id]) { dSteps.push(s); seenIds[s.id] = true; }
     });
     var allIdeas = _getIdeas();
     var dIdeas = allIdeas.filter(function(i) { return i.phase_id === phase.id && i.status === 'deferred'; });

@@ -1,364 +1,506 @@
 ﻿{
-    "meta":  {
-                 "version":  "1.0",
-                 "updated":  "2026-04-27",
-                 "phase_id":  "phase3",
-                 "label":  "PHASE 3",
-                 "title":  "Dienste & Intranet",
-                 "subtitle":  "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
-                 "status":  "active",
-                 "color":  "purple",
-                 "progress":  {
-                                  "done":  0,
-                                  "wip":  2,
-                                  "todo":  8,
-                                  "total":  10,
-                                  "pct":  0
-                              }
-             },
-    "steps":  [],
-    "sections":  [
-                     {
-                         "label":  "Web & Intranet",
-                         "steps":  [
- {
-  "id": "p3-dokuwiki",
-  "title": "DokuWiki",
-  "status": "done",
-  "tags": ["Wiki", "DokuWiki", "Apache", "PHP", "Dokumentation", "Self-hosted"],
-  "desc": "DokuWiki als interne Wissensdatenbank im SVC-VLAN (10.0.2.11). Dateibasiert, kein SQL. Erreichbar unter wiki.mynooblab.dev via Caddy Reverse Proxy mit TLS. Namespaces fuer Infrastruktur, Netzwerk, Dienste, Security, Runbooks.",
-  "notes": "Apache2 + PHP als Application Server. Caddy terminiert TLS, leitet HTTP an 10.0.2.11:80 weiter. ACL Closed Wiki, Superuser landvogt. install.php geloescht.",
-  "details": {
-    "container": {
-      "id": 108,
-      "type": "LXC (unprivileged)",
-      "hostname": "dokuwiki",
-      "ip": "10.0.2.11/24",
-      "gw": "10.0.2.1",
-      "os": "Debian 13",
-      "ram_mb": 512,
-      "disk_gb": 8,
-      "cores": 1,
-      "vlan_tag": 20,
-      "onboot": true,
-      "startup_order": 5
-    },
-    "stack": {
-      "webserver": "Apache2 (Application Server, Port 80)",
-      "php": "PHP 8.x + xml + gd + mbstring",
-      "dokuwiki": "DokuWiki stable",
-      "data_dir": "/var/www/dokuwiki/data",
-      "config_dir": "/var/www/dokuwiki/conf"
-    },
-    "access": {
-      "url": "https://wiki.mynooblab.dev",
-      "reverse_proxy": "Caddy (10.0.2.10) → Apache (10.0.2.11:80)",
-      "dns": "AdGuard Rewrite *.mynooblab.dev → 10.0.2.10",
-      "vpn_only": true
-    },
-    "security_notes": [
-      "Closed Wiki — nur registrierte User koennen lesen/schreiben",
-      "Keine Selbstregistrierung — User werden manuell angelegt",
-      "install.php nach Setup geloescht — verhindert Admin-Takeover",
-      "Apache denied /data und /conf Verzeichnisse — keine Rohdaten-Exposition",
-      "TLS-Terminierung am Caddy, Klartext nur innerhalb SVC-VLAN",
-      "Unprivileged LXC — Container-Breakout gibt keine Host-Rechte",
-      "SSH Key-only, Root-Login deaktiviert"
-    ]
+  "meta": {
+    "version": "1.1",
+    "updated": "2026-04-30",
+    "phase_id": "phase3",
+    "label": "PHASE 3",
+    "title": "Dienste & Intranet",
+    "subtitle": "Webserver · Self-hosted Apps · Mailserver · Automatisierung · Eigene Website",
+    "status": "active",
+    "color": "purple",
+    "progress": {
+      "done": 5,
+      "wip": 1,
+      "todo": 7,
+      "total": 12,
+      "pct": 42
+    }
   },
-  "log": [
-    {"date": "2026-04-29", "entry": "CT108 erstellt: dokuwiki, SVC-VLAN Tag 20, 10.0.2.11/24, unprivileged, 512 MB RAM, 8 GB Disk."},
-    {"date": "2026-04-29", "entry": "Hardening: landvogt, SSH Key-only, Root off. Apache2 + PHP + DokuWiki stable installiert."},
-    {"date": "2026-04-29", "entry": "Apache Security: /data und /conf denied. Caddy wiki.mynooblab.dev → 10.0.2.11:80."},
-    {"date": "2026-04-29", "entry": "OPNsense: VPN-zu-SVC Regel (10.0.5.0/24 → 10.0.2.0/24) hinzugefuegt."},
-    {"date": "2026-04-29", "entry": "DokuWiki Setup via Installer. Closed Wiki, Superuser landvogt, install.php geloescht."},
-    {"date": "2026-04-29", "entry": "Startseite mit 6 Namespaces erstellt. Step DONE."}
-  ],
-  "deferred_reason": ""
-},
-                                       {
-                                           "id":  "p3-vaultwarden",
-                                           "title":  "Passwortmanager",
-                                           "status":  "todo",
-                                           "tags":  ["Vaultwarden", "Bitwarden", "Security"],
-                                           "desc":  "Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager für alle Accounts.",
-                                           "log":  [],
-                                           "notes":  "",
-                                           "deferred_reason":  ""
-                                       },
-                                       {
-  "id": "p3-git",
-  "title": "Git Server (Forgejo)",
-  "status": "done",
-  "tags": ["Forgejo", "Git", "Docker", "CI/CD", "Versionierung", "Self-hosted"],
-  "desc": "Forgejo als interner Git-Server im SVC-VLAN (10.0.2.11). Docker Compose Stack mit SQLite. Erreichbar unter git.mynooblab.dev via Caddy Reverse Proxy mit TLS. Registrierung deaktiviert, Superuser landvogt.",
-  "notes": "Forgejo v11 (codeberg.org/forgejo/forgejo:11). Privilegierter LXC wegen Docker. SSH auf Port 222, HTTP auf Port 3000. Caddy terminiert TLS. GitHub Actions kompatible CI/CD (Forgejo Actions) verfuegbar.",
-  "details": {
-    "container": {
-      "id": 109,
-      "type": "LXC (privileged — Docker)",
-      "hostname": "forgejo",
-      "ip": "10.0.2.11/24",
-      "gw": "10.0.2.1",
-      "os": "Debian 13",
-      "ram_mb": 512,
-      "disk_gb": 8,
-      "cores": 2,
-      "vlan_tag": 20,
-      "onboot": true,
-      "startup_order": 6
-    },
-    "stack": {
-      "forgejo": "codeberg.org/forgejo/forgejo:11",
-      "db": "SQLite (/data/gitea/gitea.db)",
-      "compose_dir": "/home/landvogt/forgejo",
-      "data_dir": "/home/landvogt/forgejo/data",
-      "http_port": 3000,
-      "ssh_port": 222
-    },
-    "access": {
-      "url": "https://git.mynooblab.dev",
-      "reverse_proxy": "Caddy (10.0.2.10) → Forgejo (10.0.2.11:3000)",
-      "dns": "AdGuard Rewrite *.mynooblab.dev → 10.0.2.10",
-      "vpn_only": true
-    },
-    "security_notes": [
-      "Registrierung deaktiviert (FORGEJO__service__DISABLE_REGISTRATION=true)",
-      "Privilegierter LXC — noetig fuer Docker, groessere Angriffsflaeche als unprivileged",
-      "SSH Key-only, Root-Login deaktiviert auf Host-Ebene",
-      "TLS-Terminierung am Caddy, Klartext nur innerhalb SVC-VLAN",
-      "Git-SSH auf Port 222 (Port 22 fuer Host-SSH reserviert)",
-      "Docker Socket nur fuer root/docker-Gruppe zugaenglich"
-    ]
-  },
-  "log": [
-    {"date": "2026-04-29", "entry": "CT109 erstellt: forgejo, SVC-VLAN Tag 20, 10.0.2.11/24, privilegiert, 512 MB RAM, 8 GB Disk, 2 Cores."},
-    {"date": "2026-04-29", "entry": "Hardening: landvogt, SSH Key-only, Root off. Docker CE installiert."},
-    {"date": "2026-04-29", "entry": "Forgejo v11 als Docker Compose deployt. SQLite, Port 3000/222, Registrierung off."},
-    {"date": "2026-04-29", "entry": "Caddy: git.mynooblab.dev → 10.0.2.11:3000. HTTPS aktiv."},
-    {"date": "2026-04-29", "entry": "Forgejo Setup via Installer. Superuser landvogt. Step DONE."}
-  ]
-},
-                                       {
-                                           "id":  "p3-reverseproxy",
-                                           "title":  "Reverse Proxy",
-                                           "status":  "done",
-                                           "tags":  ["Nginx", "Traefik", "TLS"],
-                                           "desc":  "Nginx Proxy Manager oder Traefik. Dienste über Subdomains erreichbar, TLS-Terminierung.",
-                                           "log":  [],
-                                           "notes":  "",
-                                           "deferred_reason":  ""
-                                       },
-                                       {
-                                           "id":  "p3-mail",
-                                           "title":  "Mailserver",
-                                           "status":  "done",
-                                           "tags":  ["Mail", "Mailcow", "SMTP", "IMAP", "DKIM", "SPF", "DMARC", "Docker", "Nginx", "TLS", "Security"],
-                                           "desc":  "Mailcow Docker-Stack auf equinox-prod (Hetzner CAX21, ARM64). Eigene Domain equinox151.de, SMTP/IMAP, SPF/DKIM/DMARC, Nginx Reverse Proxy, 2FA auf allen Postfaechern. Headless-Betrieb (kein Webmail), Mail-Clients per IMAP/SMTP.",
-                                           "details":  {
-                                                           "server":  "equinox-prod (128.140.5.13 / 2a01:4f8:1c18:3532::1, Hetzner CAX21 ARM64)",
-                                                           "stack":  "Mailcow Dockerized 2026-03b, 18 Container",
-                                                           "location":  "/opt/mailcow-dockerized",
-                                                           "domain":  "equinox151.de",
-                                                           "web_ui":  "https://mail.equinox151.de/admin (IP-restricted: 134.93.0.0/16 + 139.162.155.120)",
-                                                           "tls":  "Certbot (Web-UI) + Mailcow ACME (Mail-Ports)",
-                                                           "dns_records":  {
-                                                                               "A":  "mail -> 128.140.5.13 (DNS-only)",
-                                                                               "AAAA":  "mail -> 2a01:4f8:1c18:3532::1 (DNS-only)",
-                                                                               "MX":  "@ -> mail.equinox151.de Prio 10",
-                                                                               "SPF":  "v=spf1 mx a -all",
-                                                                               "DMARC":  "v=DMARC1; p=quarantine; rua=mailto:info@equinox151.de; adkim=s; aspf=s",
-                                                                               "DKIM":  "dkim._domainkey -> 4096-bit RSA"
-                                                                           },
-                                                           "ptr":  {
-                                                                       "ipv4":  "128.140.5.13 -> mail.equinox151.de",
-                                                                       "ipv6":  "2a01:4f8:1c18:3532::1 -> mail.equinox151.de"
-                                                                   },
-                                                           "security":  {
-                                                                            "2fa":  "erzwungen auf allen Postfaechern",
-                                                                            "app_passwords":  "pro Client eigenes App-Passwort, gespeichert in KeePassXC",
-                                                                            "tls_policy":  "TLS eingehend + ausgehend erzwungen",
-                                                                            "rate_limit":  "26 Nachrichten/Sekunde (Domain-Level)",
-                                                                            "dkim_bits":  4096,
-                                                                            "spf_policy":  "-all (hard fail)",
-                                                                            "dmarc_policy":  "quarantine (-> reject nach Testphase)",
-                                                                            "nginx_restriction":  "Admin-Panel nur Uni-Netz + VPN-IP",
-                                                                            "http_bind":  "127.0.0.1 (Least Exposure)"
-                                                                        },
-                                                           "test_results":  {
-                                                                                "receive":  "Gmail -> info@equinox151.de: pass",
-                                                                                "imap_mobile":  "iPhone 5G (Congstar) -> equinox-prod:993: pass",
-                                                                                "imap_plattfuss":  "plattfuss -> equinox-prod:993: pass",
-                                                                                "spf":  "pass",
-                                                                                "dkim":  "pass",
-                                                                                "dmarc":  "pass",
-                                                                                "arc":  "pass",
-                                                                                "tls":  "TLSv1.3 AES-256-GCM X25519"
-                                                                            }
-                                                       },
-                                           "accounts":  {
-                                                            "client_setup":  {
-                                                                                "imap":  {"host":  "mail.equinox151.de", "port":  993, "security":  "SSL/TLS", "auth":  "App-Passwort"},
-                                                                                "smtp":  {"host":  "mail.equinox151.de", "port":  587, "security":  "STARTTLS", "auth":  "App-Passwort"},
-                                                                                "username_format":  "user@equinox151.de (volle E-Mail-Adresse)"
-                                                                            },
-                                                            "mailboxes":  [
-                                                                              {
-                                                                                  "address":  "yannick@equinox151.de",
-                                                                                  "type":  "persoenlich",
-                                                                                  "owner":  "Yannick Schulz",
-                                                                                  "2fa":  true,
-                                                                                  "app_passwords":  ["Thunderbird-Desktop", "Apple-Mail-iPhone"],
-                                                                                  "clients":  {
-                                                                                      "iphone":  "eingerichtet (Apple Mail, 5G/Mobilfunk)",
-                                                                                      "windows_pc":  "ausstehend (WireGuard Split-Tunnel noetig)"
-                                                                                  }
-                                                                              },
-                                                                              {
-                                                                                  "address":  "info@equinox151.de",
-                                                                                  "type":  "funktional",
-                                                                                  "display_name":  "Equinox Info",
-                                                                                  "2fa":  true,
-                                                                                  "app_passwords":  ["Apple-Mail-iPhone-Info"],
-                                                                                  "clients":  {
-                                                                                      "iphone":  "eingerichtet (Apple Mail)",
-                                                                                      "windows_pc":  "ausstehend"
-                                                                                  },
-                                                                                  "access":  ["yannick", "mmt (TODO)"]
-                                                                              },
-                                                                              {
-                                                                                  "address":  "booking@equinox151.de",
-                                                                                  "type":  "funktional",
-                                                                                  "display_name":  "Equinox Booking",
-                                                                                  "2fa":  true,
-                                                                                  "app_passwords":  ["Apple-Mail-iPhone-Booking"],
-                                                                                  "clients":  {
-                                                                                      "iphone":  "eingerichtet (Apple Mail)",
-                                                                                      "windows_pc":  "ausstehend"
-                                                                                  },
-                                                                                  "access":  ["yannick", "mmt (TODO)"]
-                                                                              },
-                                                                              {
-                                                                                  "address":  "management@equinox151.de",
-                                                                                  "type":  "funktional",
-                                                                                  "display_name":  "Equinox Management",
-                                                                                  "2fa":  true,
-                                                                                  "app_passwords":  ["Apple-Mail-iPhone-Management"],
-                                                                                  "clients":  {
-                                                                                      "iphone":  "eingerichtet (Apple Mail)",
-                                                                                      "windows_pc":  "ausstehend"
-                                                                                  },
-                                                                                  "access":  ["yannick", "mmt (TODO)"]
-                                                                              },
-                                                                              {
-                                                                                  "address":  "mmt@equinox151.de",
-                                                                                  "type":  "persoenlich",
-                                                                                  "owner":  "MMT",
-                                                                                  "2fa":  true,
-                                                                                  "app_passwords":  [],
-                                                                                  "clients":  {},
-                                                                                  "access":  []
-                                                                              }
-                                                                          ]
-                                                        },
-                                           "log":  [
-                                                       {"date":  "2026-04-26", "entry":  "Docker 29.4.1 ARM64 installiert"},
-                                                       {"date":  "2026-04-26", "entry":  "DNS (A mail, MX) bei Cloudflare gesetzt"},
-                                                       {"date":  "2026-04-26", "entry":  "Mailcow installiert, 18 Container running"},
-                                                       {"date":  "2026-04-26", "entry":  "Nginx Reverse Proxy konfiguriert"},
-                                                       {"date":  "2026-04-26", "entry":  "nftables erweitert (Mail-Ports + Docker Forward)"},
-                                                       {"date":  "2026-04-26", "entry":  "Domain + Postfaecher angelegt, DKIM 4096-bit"},
-                                                       {"date":  "2026-04-26", "entry":  "SPF/DKIM/DMARC DNS-Records gesetzt"},
-                                                       {"date":  "2026-04-26", "entry":  "PTR bei Hetzner (IPv4+IPv6)"},
-                                                       {"date":  "2026-04-26", "entry":  "Empfangstest bestanden (Gmail, alle Checks pass)"},
-                                                       {"date":  "2026-04-26", "entry":  "Nginx Lockdown: Admin-Panel IP-restricted"},
-                                                       {"date":  "2026-04-26", "entry":  "App-Passwoerter fuer Thunderbird + Apple Mail generiert"},
-                                                       {"date":  "2026-04-27", "entry":  "AAAA-Record gesetzt (2a01:4f8:1c18:3532::1)"},
-                                                       {"date":  "2026-04-27", "entry":  "Apple Mail iPhone: yannick@, info@, booking@, management@ eingerichtet"},
-                                                       {"date":  "2026-04-27", "entry":  "Empfang auf iPhone getestet und funktioniert (alle 4 Accounts)"},
-                                                       {"date":  "2026-04-27", "entry":  "Uni-Netz blockiert Port 993/587 — WireGuard Split-Tunnel fuer PC geplant"}
-                                                   ],
-                                           "notes":  "Port 25 ausgehend bei Hetzner blockiert. Uni-Netz blockiert Port 993/587 — PC braucht WireGuard Split-Tunnel. Apple Mail Hostname exakt pruefen (Tippfehler = SSL-Fehler). DMARC auf reject nach Testphase.",
-                                           "deferred_reason":  "Senden blockiert bis Hetzner Port 25 freigibt. PC-Client wartet auf WireGuard Split-Tunnel."
-                                       }
-                                   ]
-                     },
-                     {
-                         "label":  "Kommunikation & Mail",
-                         "steps":  [
-                                       {
-                                           "id":  "p3-chat",
-                                           "title":  "Chat / Notifications",
-                                           "status":  "todo",
-                                           "tags":  ["Matrix", "Ntfy", "Chat"],
-                                           "desc":  "Matrix/Element oder Ntfy für interne Benachrichtigungen aus Automatisierungen.",
-                                           "log":  [],
-                                           "notes":  "",
-                                           "deferred_reason":  ""
-                                       }
-                                   ]
-                     },
-                     {
-  "label": "Interne Websites",
-  "steps": [
+  "steps": [],
+  "sections": [
     {
-      "id": "p3-journey",
-      "title": "Journey — Statische Projektseite",
-      "status": "wip",
-      "tags": ["Nginx", "HTML", "CSS", "JS", "JSON", "Static"],
-      "desc": "Homelab Academy Projektseite (Roadmap, Tagebuch, Netzwerkplan, Ideen) als statische Website im SVC-VLAN. Nginx auf CT110 (10.0.2.13), erreichbar unter journey.mynooblab.dev via Caddy. Dual-Push: Forgejo intern + GitHub public.",
-      "notes": "Bestehende Codebase aus VS Code Live Preview migriert. HTML/CSS/JS + JSON-Backend. Versioniert in Forgejo.",
-      "log": [
-        {"date": "2026-04-30", "entry": "Step angelegt. Container CT110 geplant: journey, 10.0.2.13, unprivileged, 256 MB RAM, 4 GB Disk."}
-      ],
-      "deferred_reason": ""
+      "label": "Web & Intranet",
+      "steps": [
+        {
+          "id": "p3-reverseproxy",
+          "title": "Reverse Proxy (Caddy)",
+          "status": "done",
+          "tags": ["Caddy", "TLS", "Lets Encrypt", "DNS-01", "Cloudflare", "Reverse Proxy", "Wildcard"],
+          "desc": "Caddy als interner Reverse Proxy im SVC-VLAN (10.0.2.10). Wildcard-Zertifikat fuer *.mynooblab.dev via DNS-01 Challenge ueber Cloudflare API. Nur ueber VPN erreichbar — kein Port von aussen offen. Split-DNS ueber AdGuard.",
+          "notes": "Caddy v2.11.2 mit Cloudflare DNS Plugin. Lets Encrypt Wildcard-Zert aktiv. AdGuard DNS-Rewrite *.mynooblab.dev -> 10.0.2.10. Jeder neue Service: eine Zeile im Caddyfile.",
+          "details": {
+            "container": {
+              "id": 107,
+              "type": "LXC (unprivileged)",
+              "hostname": "caddy-proxy",
+              "ip": "10.0.2.10/24",
+              "gw": "10.0.2.1",
+              "os": "Debian 13",
+              "ram_mb": 512,
+              "disk_gb": 4,
+              "cores": 1,
+              "vlan_tag": 20,
+              "onboot": true,
+              "startup_order": 4
+            },
+            "caddy": {
+              "version": "2.11.2",
+              "binary": "/usr/local/bin/caddy (Custom Build mit Cloudflare Plugin)",
+              "config": "/etc/caddy/Caddyfile",
+              "env_file": "/etc/caddy/env (chmod 600, CF_API_TOKEN)",
+              "user": "caddy (non-root, /usr/sbin/nologin)",
+              "systemd": "caddy.service (Type=notify, PrivateTmp, ProtectSystem=full)"
+            },
+            "tls": {
+              "cert_type": "Wildcard (*.mynooblab.dev)",
+              "ca": "Lets Encrypt (acme-v02)",
+              "challenge": "DNS-01 via Cloudflare API",
+              "api_token": "caddy-dns01-mynooblab (Zone:DNS:Edit, nur mynooblab.dev)",
+              "propagation_timeout": "120s",
+              "propagation_delay": "15s",
+              "resolvers": "10.0.1.101:53 (AdGuard)",
+              "renewal": "Automatisch durch Caddy"
+            }
+          },
+          "log": [
+            {"date": "2026-04-28", "entry": "CT107 erstellt. Caddy v2.11.2 + Cloudflare Plugin. Wildcard-Zert fuer *.mynooblab.dev via DNS-01."},
+            {"date": "2026-04-28", "entry": "AdGuard Routing-Fix: Rueckrouten fuer alle VLANs. DNS-Propagation-Timeouts geloest."},
+            {"date": "2026-04-28", "entry": "ERFOLG: Lets Encrypt Wildcard-Zertifikat ausgestellt. Step DONE."}
+          ],
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-dokuwiki",
+          "title": "DokuWiki",
+          "status": "done",
+          "tags": ["Wiki", "DokuWiki", "Apache", "PHP", "Dokumentation", "Self-hosted"],
+          "desc": "DokuWiki als interne Wissensdatenbank im SVC-VLAN (10.0.2.12). Dateibasiert, kein SQL. Erreichbar unter wiki.mynooblab.dev via Caddy Reverse Proxy mit TLS. Namespaces fuer Infrastruktur, Netzwerk, Dienste, Security, Runbooks.",
+          "notes": "Apache2 + PHP als Application Server. Caddy terminiert TLS, leitet HTTP an 10.0.2.12:80 weiter. ACL Closed Wiki, Superuser landvogt. install.php geloescht.",
+          "details": {
+            "container": {
+              "id": 108,
+              "type": "LXC (unprivileged)",
+              "hostname": "dokuwiki",
+              "ip": "10.0.2.12/24",
+              "gw": "10.0.2.1",
+              "os": "Debian 13",
+              "ram_mb": 512,
+              "disk_gb": 8,
+              "cores": 1,
+              "vlan_tag": 20,
+              "onboot": true,
+              "startup_order": 5
+            },
+            "stack": {
+              "webserver": "Apache2 (Application Server, Port 80)",
+              "php": "PHP 8.x + xml + gd + mbstring",
+              "dokuwiki": "DokuWiki stable",
+              "data_dir": "/var/www/dokuwiki/data",
+              "config_dir": "/var/www/dokuwiki/conf"
+            },
+            "access": {
+              "url": "https://wiki.mynooblab.dev",
+              "reverse_proxy": "Caddy (10.0.2.10) -> Apache (10.0.2.12:80)",
+              "dns": "AdGuard Rewrite *.mynooblab.dev -> 10.0.2.10",
+              "vpn_only": true
+            },
+            "security_notes": [
+              "Closed Wiki — nur registrierte User koennen lesen/schreiben",
+              "Keine Selbstregistrierung — User werden manuell angelegt",
+              "install.php nach Setup geloescht — verhindert Admin-Takeover",
+              "Apache denied /data und /conf Verzeichnisse — keine Rohdaten-Exposition",
+              "TLS-Terminierung am Caddy, Klartext nur innerhalb SVC-VLAN",
+              "Unprivileged LXC — Container-Breakout gibt keine Host-Rechte",
+              "SSH Key-only, Root-Login deaktiviert"
+            ]
+          },
+          "log": [
+            {"date": "2026-04-29", "entry": "CT108 erstellt: dokuwiki, SVC-VLAN Tag 20, 10.0.2.12/24, unprivileged, 512 MB RAM, 8 GB Disk."},
+            {"date": "2026-04-29", "entry": "Hardening: landvogt, SSH Key-only, Root off. Apache2 + PHP + DokuWiki stable installiert."},
+            {"date": "2026-04-29", "entry": "Apache Security: /data und /conf denied. Caddy wiki.mynooblab.dev -> 10.0.2.12:80."},
+            {"date": "2026-04-29", "entry": "OPNsense: VPN-zu-SVC Regel (10.0.5.0/24 -> 10.0.2.0/24) hinzugefuegt."},
+            {"date": "2026-04-29", "entry": "DokuWiki Setup via Installer. Closed Wiki, Superuser landvogt, install.php geloescht."},
+            {"date": "2026-04-29", "entry": "Startseite mit 6 Namespaces erstellt. Step DONE."},
+            {"date": "2026-04-29", "entry": "IP von 10.0.2.11 auf 10.0.2.12 geaendert (Umstrukturierung SVC-VLAN)."}
+          ],
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-git",
+          "title": "Git Server (Forgejo)",
+          "status": "done",
+          "tags": ["Forgejo", "Git", "Docker", "CI/CD", "Versionierung", "Self-hosted"],
+          "desc": "Forgejo als interner Git-Server im SVC-VLAN (10.0.2.11). Docker Compose Stack mit SQLite. Erreichbar unter git.mynooblab.dev via Caddy Reverse Proxy mit TLS. Registrierung deaktiviert, Superuser landvogt.",
+          "notes": "Forgejo v11 (codeberg.org/forgejo/forgejo:11). Privilegierter LXC wegen Docker. SSH auf Port 222, HTTP auf Port 3000. Caddy terminiert TLS. GitHub Actions kompatible CI/CD (Forgejo Actions) verfuegbar.",
+          "details": {
+            "container": {
+              "id": 109,
+              "type": "LXC (privileged — Docker)",
+              "hostname": "forgejo",
+              "ip": "10.0.2.11/24",
+              "gw": "10.0.2.1",
+              "os": "Debian 13",
+              "ram_mb": 512,
+              "disk_gb": 8,
+              "cores": 2,
+              "vlan_tag": 20,
+              "onboot": true,
+              "startup_order": 6
+            },
+            "stack": {
+              "forgejo": "codeberg.org/forgejo/forgejo:11",
+              "db": "SQLite (/data/gitea/gitea.db)",
+              "compose_dir": "/home/landvogt/forgejo",
+              "data_dir": "/home/landvogt/forgejo/data",
+              "http_port": 3000,
+              "ssh_port": 222
+            },
+            "access": {
+              "url": "https://git.mynooblab.dev",
+              "reverse_proxy": "Caddy (10.0.2.10) -> Forgejo (10.0.2.11:3000)",
+              "dns": "AdGuard Rewrite *.mynooblab.dev -> 10.0.2.10",
+              "vpn_only": true
+            },
+            "security_notes": [
+              "Registrierung deaktiviert (FORGEJO__service__DISABLE_REGISTRATION=true)",
+              "Privilegierter LXC — noetig fuer Docker, groessere Angriffsflaeche als unprivileged",
+              "SSH Key-only, Root-Login deaktiviert auf Host-Ebene",
+              "TLS-Terminierung am Caddy, Klartext nur innerhalb SVC-VLAN",
+              "Git-SSH auf Port 222 (Port 22 fuer Host-SSH reserviert)",
+              "Docker Socket nur fuer root/docker-Gruppe zugaenglich"
+            ]
+          },
+          "log": [
+            {"date": "2026-04-29", "entry": "CT109 erstellt: forgejo, SVC-VLAN Tag 20, 10.0.2.11/24, privilegiert, 512 MB RAM, 8 GB Disk, 2 Cores."},
+            {"date": "2026-04-29", "entry": "Hardening: landvogt, SSH Key-only, Root off. Docker CE installiert."},
+            {"date": "2026-04-29", "entry": "Forgejo v11 als Docker Compose deployt. SQLite, Port 3000/222, Registrierung off."},
+            {"date": "2026-04-29", "entry": "Caddy: git.mynooblab.dev -> 10.0.2.11:3000. HTTPS aktiv."},
+            {"date": "2026-04-29", "entry": "Forgejo Setup via Installer. Superuser landvogt. Step DONE."}
+          ],
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-vaultwarden",
+          "title": "Passwortmanager",
+          "status": "todo",
+          "tags": ["Vaultwarden", "Bitwarden", "Security"],
+          "desc": "Vaultwarden (Bitwarden-kompatibel). Selbst gehosteter Passwortmanager fuer alle Accounts.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-mail",
+          "title": "Mailserver",
+          "status": "done",
+          "tags": ["Mail", "Mailcow", "SMTP", "IMAP", "DKIM", "SPF", "DMARC", "Docker", "Nginx", "TLS", "Security"],
+          "desc": "Mailcow Docker-Stack auf equinox-prod (Hetzner CAX21, ARM64). Eigene Domain equinox151.de, SMTP/IMAP, SPF/DKIM/DMARC, Nginx Reverse Proxy, 2FA auf allen Postfaechern. Headless-Betrieb (kein Webmail), Mail-Clients per IMAP/SMTP.",
+          "details": {
+            "server": "equinox-prod (128.140.5.13 / 2a01:4f8:1c18:3532::1, Hetzner CAX21 ARM64)",
+            "stack": "Mailcow Dockerized 2026-03b, 18 Container",
+            "location": "/opt/mailcow-dockerized",
+            "domain": "equinox151.de",
+            "web_ui": "https://mail.equinox151.de/admin (IP-restricted: 134.93.0.0/16 + 139.162.155.120)",
+            "tls": "Certbot (Web-UI) + Mailcow ACME (Mail-Ports)",
+            "dns_records": {
+              "A": "mail -> 128.140.5.13 (DNS-only)",
+              "AAAA": "mail -> 2a01:4f8:1c18:3532::1 (DNS-only)",
+              "MX": "@ -> mail.equinox151.de Prio 10",
+              "SPF": "v=spf1 mx a -all",
+              "DMARC": "v=DMARC1; p=quarantine; rua=mailto:info@equinox151.de; adkim=s; aspf=s",
+              "DKIM": "dkim._domainkey -> 4096-bit RSA"
+            },
+            "ptr": {
+              "ipv4": "128.140.5.13 -> mail.equinox151.de",
+              "ipv6": "2a01:4f8:1c18:3532::1 -> mail.equinox151.de"
+            },
+            "security": {
+              "2fa": "erzwungen auf allen Postfaechern",
+              "app_passwords": "pro Client eigenes App-Passwort, gespeichert in KeePassXC",
+              "tls_policy": "TLS eingehend + ausgehend erzwungen",
+              "rate_limit": "26 Nachrichten/Sekunde (Domain-Level)",
+              "dkim_bits": 4096,
+              "spf_policy": "-all (hard fail)",
+              "dmarc_policy": "quarantine (-> reject nach Testphase)",
+              "nginx_restriction": "Admin-Panel nur Uni-Netz + VPN-IP",
+              "http_bind": "127.0.0.1 (Least Exposure)"
+            },
+            "test_results": {
+              "receive": "Gmail -> info@equinox151.de: pass",
+              "imap_mobile": "iPhone 5G (Congstar) -> equinox-prod:993: pass",
+              "imap_plattfuss": "plattfuss -> equinox-prod:993: pass",
+              "spf": "pass",
+              "dkim": "pass",
+              "dmarc": "pass",
+              "arc": "pass",
+              "tls": "TLSv1.3 AES-256-GCM X25519"
+            }
+          },
+          "accounts": {
+            "client_setup": {
+              "imap": {"host": "mail.equinox151.de", "port": 993, "security": "SSL/TLS", "auth": "App-Passwort"},
+              "smtp": {"host": "mail.equinox151.de", "port": 587, "security": "STARTTLS", "auth": "App-Passwort"},
+              "username_format": "user@equinox151.de (volle E-Mail-Adresse)"
+            },
+            "mailboxes": [
+              {
+                "address": "yannick@equinox151.de",
+                "type": "persoenlich",
+                "owner": "Yannick Schulz",
+                "2fa": true,
+                "app_passwords": ["Thunderbird-Desktop", "Apple-Mail-iPhone"],
+                "clients": {
+                  "iphone": "eingerichtet (Apple Mail, 5G/Mobilfunk)",
+                  "windows_pc": "ausstehend (WireGuard Split-Tunnel noetig)"
+                }
+              },
+              {
+                "address": "info@equinox151.de",
+                "type": "funktional",
+                "display_name": "Equinox Info",
+                "2fa": true,
+                "app_passwords": ["Apple-Mail-iPhone-Info"],
+                "clients": {
+                  "iphone": "eingerichtet (Apple Mail)",
+                  "windows_pc": "ausstehend"
+                },
+                "access": ["yannick", "mmt (TODO)"]
+              },
+              {
+                "address": "booking@equinox151.de",
+                "type": "funktional",
+                "display_name": "Equinox Booking",
+                "2fa": true,
+                "app_passwords": ["Apple-Mail-iPhone-Booking"],
+                "clients": {
+                  "iphone": "eingerichtet (Apple Mail)",
+                  "windows_pc": "ausstehend"
+                },
+                "access": ["yannick", "mmt (TODO)"]
+              },
+              {
+                "address": "management@equinox151.de",
+                "type": "funktional",
+                "display_name": "Equinox Management",
+                "2fa": true,
+                "app_passwords": ["Apple-Mail-iPhone-Management"],
+                "clients": {
+                  "iphone": "eingerichtet (Apple Mail)",
+                  "windows_pc": "ausstehend"
+                },
+                "access": ["yannick", "mmt (TODO)"]
+              },
+              {
+                "address": "mmt@equinox151.de",
+                "type": "persoenlich",
+                "owner": "MMT",
+                "2fa": true,
+                "app_passwords": [],
+                "clients": {},
+                "access": []
+              }
+            ]
+          },
+          "log": [
+            {"date": "2026-04-26", "entry": "Docker 29.4.1 ARM64 installiert"},
+            {"date": "2026-04-26", "entry": "DNS (A mail, MX) bei Cloudflare gesetzt"},
+            {"date": "2026-04-26", "entry": "Mailcow installiert, 18 Container running"},
+            {"date": "2026-04-26", "entry": "Nginx Reverse Proxy konfiguriert"},
+            {"date": "2026-04-26", "entry": "nftables erweitert (Mail-Ports + Docker Forward)"},
+            {"date": "2026-04-26", "entry": "Domain + Postfaecher angelegt, DKIM 4096-bit"},
+            {"date": "2026-04-26", "entry": "SPF/DKIM/DMARC DNS-Records gesetzt"},
+            {"date": "2026-04-26", "entry": "PTR bei Hetzner (IPv4+IPv6)"},
+            {"date": "2026-04-26", "entry": "Empfangstest bestanden (Gmail, alle Checks pass)"},
+            {"date": "2026-04-26", "entry": "Nginx Lockdown: Admin-Panel IP-restricted"},
+            {"date": "2026-04-26", "entry": "App-Passwoerter fuer Thunderbird + Apple Mail generiert"},
+            {"date": "2026-04-27", "entry": "AAAA-Record gesetzt (2a01:4f8:1c18:3532::1)"},
+            {"date": "2026-04-27", "entry": "Apple Mail iPhone: yannick@, info@, booking@, management@ eingerichtet"},
+            {"date": "2026-04-27", "entry": "Empfang auf iPhone getestet und funktioniert (alle 4 Accounts)"},
+            {"date": "2026-04-27", "entry": "Uni-Netz blockiert Port 993/587 — WireGuard Split-Tunnel fuer PC geplant"}
+          ],
+          "notes": "Port 25 ausgehend bei Hetzner blockiert. Uni-Netz blockiert Port 993/587 — PC braucht WireGuard Split-Tunnel. Apple Mail Hostname exakt pruefen (Tippfehler = SSL-Fehler). DMARC auf reject nach Testphase.",
+          "deferred_reason": "Senden blockiert bis Hetzner Port 25 freigibt. PC-Client wartet auf WireGuard Split-Tunnel."
+        }
+      ]
     },
     {
-      "id": "p3-hq",
-      "title": "HQ — Dynamische Projektseite (Rebuild)",
-      "status": "todo",
-      "tags": ["Backend", "Database", "SSR", "WebSecurity", "Auth"],
-      "desc": "Rebuild der Homelab Academy Website als serverseitige Anwendung mit Datenbank. JSON-Daten normalisieren, interaktives Frontend, WebAuth, OWASP-gehaertetes Backend. Erreichbar unter hq.mynooblab.dev. Lernprojekt fuer Web Security Engineering.",
-      "notes": "Separates Repo in Forgejo. Eigener Container im SVC-VLAN. Erst nach journey.mynooblab.dev stabil.",
-      "log": [],
-      "deferred_reason": ""
+      "label": "Interne Websites",
+      "steps": [
+        {
+          "id": "p3-journey",
+          "title": "Journey — Statische Projektseite",
+          "status": "done",
+          "tags": ["Nginx", "HTML", "CSS", "JS", "JSON", "Static", "Git"],
+          "desc": "Homelab Academy Projektseite (Roadmap, Tagebuch, Netzwerkplan, Ideen) als statische Website im SVC-VLAN. Nginx auf CT110 (10.0.2.13), erreichbar unter journey.mynooblab.dev via Caddy. Dual-Push: Forgejo intern + GitHub public.",
+          "notes": "Bestehende Codebase aus VS Code Live Preview migriert. HTML/CSS/JS + JSON-Backend. Versioniert in Forgejo (homelab-journey) + GitHub (kaynethy/homelab). VS Code Remote SSH fuer Entwicklung direkt auf dem Container.",
+          "details": {
+            "container": {
+              "id": 110,
+              "type": "LXC (unprivileged)",
+              "hostname": "journey",
+              "ip": "10.0.2.13/24",
+              "gw": "10.0.2.1",
+              "os": "Debian 13",
+              "ram_mb": 512,
+              "disk_gb": 4,
+              "cores": 1,
+              "vlan_tag": 20,
+              "onboot": true,
+              "startup_order": 7
+            },
+            "stack": {
+              "webserver": "Nginx (Static File Server, Port 80)",
+              "content": "/var/www/journey"
+            },
+            "access": {
+              "url": "https://journey.mynooblab.dev",
+              "reverse_proxy": "Caddy (10.0.2.10) -> Nginx (10.0.2.13:80)",
+              "dns": "AdGuard Rewrite *.mynooblab.dev -> 10.0.2.10",
+              "vpn_only": true
+            },
+            "git": {
+              "forgejo_repo": "landvogt/homelab-journey",
+              "github_repo": "kaynethy/homelab",
+              "dual_push": true,
+              "branch": "main"
+            }
+          },
+          "log": [
+            {"date": "2026-04-30", "entry": "CT110 erstellt: journey, SVC-VLAN Tag 20, 10.0.2.13/24, unprivileged, 512 MB RAM."},
+            {"date": "2026-04-30", "entry": "Hardening: landvogt, SSH Key-only, Root off. Nginx + Git installiert."},
+            {"date": "2026-04-30", "entry": "Forgejo Repo homelab-journey erstellt. Dual-Push Git Remote (Forgejo + GitHub)."},
+            {"date": "2026-04-30", "entry": "VS Code Remote SSH eingerichtet. Eigener Ed25519 Key (vscode-journey)."},
+            {"date": "2026-04-30", "entry": "Caddy: journey.mynooblab.dev -> 10.0.2.13:80. HTTPS aktiv."},      
+            {"date": "2026-04-30", "entry": "Git Repo-Name-Fix: 'journey' statt 'homelab-journey'. Push an Forgejo erfolgreich."},
+            {"date": "2026-04-30", "entry": "VS Code Remote SSH funktioniert aber Extension Host instabil. Entscheidung: Lokal entwickeln, Dual-Push."},
+            {"date": "2026-04-30", "entry": "Windows Dual-Push eingerichtet: Forgejo (HTTPS + App Token) + GitHub (SSH). Ein push, beide Ziele."},
+            {"date": "2026-04-30", "entry": "Erster erfolgreicher Push auf Forgejo + GitHub vom Windows-PC."}
+          ],
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-hq",
+          "title": "HQ — Dynamische Projektseite (Rebuild)",
+          "status": "deferred",
+          "tags": ["Backend", "Database", "SSR", "WebSecurity", "Auth"],
+          "desc": "Rebuild der Homelab Academy Website als serverseitige Anwendung mit Datenbank. JSON-Daten normalisieren, interaktives Frontend, WebAuth, OWASP-gehaertetes Backend. Erreichbar unter hq.mynooblab.dev. Lernprojekt fuer Web Security Engineering.",
+          "notes": "Separates Repo in Forgejo. Eigener Container im SVC-VLAN. Erst nach journey.mynooblab.dev stabil.",
+          "log": [],
+          "deferred_reason": "Wird als eigener Rebuild der bestehenden statischen Seite geplant. Fokus aktuell auf Stabilisierung von journey.mynooblab.dev. HQ wird als Phase 4 Projekt mit Fokus auf Web Security Engineering neu angelegt."
+        }
+      ]
+    },
+    {
+      "label": "Netzwerk & Infrastruktur",
+      "steps": [
+        {
+          "id": "p3-vlan-switch",
+          "title": "Managed Switch & physisches VLAN-Trunking (Zyxel XMG1915)",
+          "status": "wip",
+          "tags": ["VLAN", "Switch", "Zyxel", "Trunking", "802.1Q", "Segmentierung", "Security"],
+          "desc": "Zyxel XMG1915-10EP als Managed Switch mit physischem VLAN-Tagging. 4 VLANs (MGMT 10, SVC 20, LAB 30, DMZ 40) auf Port 6 (ESPRIMO) als Trunk konfiguriert. Ingress Check auf allen Ports. Proxmox bridge-vids erweitert. VLAN-Segmentierung ist jetzt physisch auf Layer 2 durchgesetzt, nicht mehr nur virtuell in Proxmox.",
+          "notes": "Alle nicht genutzten Ports auf Forbidden fuer alle VLANs — verhindert VLAN-Hopping. Tower (Port 5) bleibt vorerst Access/VLAN 1 bis OPNsense Internet-Gateway wird (Stufe 2). Default-Credentials sofort geaendert.",
+          "details": {
+            "hardware": {
+              "model": "Zyxel XMG1915-10EP",
+              "ports_rj45": 8,
+              "ports_sfp": "2x 10G SFP+",
+              "poe": "PoE++ 130W Budget",
+              "management_ip": "192.168.0.174 (DHCP, Reservierung .12 geplant)",
+              "firmware": "ab Werk"
+            },
+            "vlan_config": {
+              "vlan_1": "Default/Heimnetz (untagged, alle Ports)",
+              "vlan_10": "MGMT — Port 6 Fixed + Tx Tagging, alle anderen Forbidden",
+              "vlan_20": "SVC — Port 6 Fixed + Tx Tagging, alle anderen Forbidden",
+              "vlan_30": "LAB — Port 6 Fixed + Tx Tagging, alle anderen Forbidden",
+              "vlan_40": "DMZ — Port 6 Fixed + Tx Tagging, alle anderen Forbidden"
+            },
+            "port_assignment": {
+              "port_1": "TP-Link Router (Access, VLAN 1)",
+              "port_5": "Tower/Windows (Access, VLAN 1)",
+              "port_6": "ESPRIMO/Proxmox (Trunk, VLAN 1 untagged + 10/20/30/40 tagged)"
+            },
+            "port_security": {
+              "ingress_check": "alle Ports aktiviert",
+              "vlan_trunking": "nur Port 6",
+              "pvid": "alle Ports PVID 1"
+            },
+            "proxmox_change": "bridge-vids 10 20 30 40 in /etc/network/interfaces hinzugefuegt"
+          },
+          "log": [
+            {"date": "2026-05-02", "entry": "Tower ExternalSwitch von toter 1 GbE NIC auf aktive 2.5 GbE NIC umgehaengt (Set-VMSwitch)."},
+            {"date": "2026-05-02", "entry": "Zyxel XMG1915-10EP Web-UI erreicht via DHCP-IP 192.168.0.174. Default-Passwort geaendert."},
+            {"date": "2026-05-02", "entry": "4 VLANs angelegt: MGMT (10), SVC (20), LAB (30), DMZ (40). Port 6 als Trunk, alle anderen Forbidden."},
+            {"date": "2026-05-02", "entry": "VLAN Port Setup: Ingress Check auf allen Ports, VLAN Trunking nur Port 6, PVID 1 ueberall."},
+            {"date": "2026-05-02", "entry": "Proxmox: bridge-vids 10 20 30 40 in /etc/network/interfaces. ifreload -a."},
+            {"date": "2026-05-02", "entry": "Verifiziert: bridge vlan show zeigt VLAN 1/10/20/30/40 auf nic0. Ping MGMT + SVC erfolgreich."}
+          ],
+          "deferred_reason": ""
+        }
+      ]
+    },
+    {
+      "label": "Kommunikation & Mail",
+      "steps": [
+        {
+          "id": "p3-chat",
+          "title": "Chat / Notifications",
+          "status": "todo",
+          "tags": ["Matrix", "Ntfy", "Chat"],
+          "desc": "Matrix/Element oder Ntfy fuer interne Benachrichtigungen aus Automatisierungen.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-internal-mail",
+          "title": "Interner Mailserver (Monitoring-Alerts)",
+          "status": "todo",
+          "tags": ["Mail", "Stalwart", "Monitoring", "Alerts", "Notifications"],
+          "desc": "Leichtgewichtiger interner Mailserver im SVC-VLAN fuer Monitoring-Alerts und System-Notifications. Kein externer Zugang — nur ueber VPN erreichbar. Empfaengt Alerts von OPNsense, fail2ban, rsyslog, Proxmox. Kein Mailcow — leichtere Alternative wie Stalwart oder Maddy.",
+          "notes": "Kein Port nach aussen offen. Rein interner Mailverkehr. RAM-Budget: ~256 MB. Moeglich durch RAM-Upgrade auf 24 GB.",
+          "log": [
+            {"date": "2026-04-30", "entry": "Idee: Interner Mailserver fuer Monitoring-Alerts. Stalwart oder Maddy als leichte Alternative."}
+          ],
+          "deferred_reason": ""
+        }
+      ]
+    },
+    {
+      "label": "Automatisierung",
+      "steps": [
+        {
+          "id": "p3-n8n",
+          "title": "n8n Workflows",
+          "status": "todo",
+          "tags": ["n8n", "Automation", "Webhooks"],
+          "desc": "No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-ansible",
+          "title": "Ansible Playbooks",
+          "status": "todo",
+          "tags": ["Ansible", "IaC", "DevOps"],
+          "desc": "Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        },
+        {
+          "id": "p3-containers",
+          "title": "Container Orchestration",
+          "status": "todo",
+          "tags": ["Docker", "K3s", "Kubernetes"],
+          "desc": "Docker Compose fuer einfache Stacks. Optional spaeter: K3s (leichtes Kubernetes) fuer Cluster-Erfahrung.",
+          "log": [],
+          "notes": "",
+          "deferred_reason": ""
+        }
+      ]
     }
   ]
-},
-                     {
-                         "label":  "Automatisierung",
-                         "steps":  [
-                                       {
-                                           "id":  "p3-n8n",
-                                           "title":  "n8n Workflows",
-                                           "status":  "todo",
-                                           "tags":  ["n8n", "Automation", "Webhooks"],
-                                           "desc":  "No-Code Automatisierungsplattform. E-Mail-Automationen, Webhooks, API-Integrationen.",
-                                           "log":  [],
-                                           "notes":  "",
-                                           "deferred_reason":  ""
-                                       },
-                                       {
-                                           "id":  "p3-ansible",
-                                           "title":  "Ansible Playbooks",
-                                           "status":  "todo",
-                                           "tags":  ["Ansible", "IaC", "DevOps"],
-                                           "desc":  "Infrastruktur als Code. VMs automatisch provisionieren, Configs verwalten, Updates ausrollen.",
-                                           "log":  [],
-                                           "notes":  "",
-                                           "deferred_reason":  ""
-                                       },
-                                       {
-                                           "id":  "p3-containers",
-                                           "title":  "Container Orchestration",
-                                           "status":  "todo",
-                                           "tags":  ["Docker", "K3s", "Kubernetes"],
-                                           "desc":  "Docker Compose für einfache Stacks. Optional später: K3s (leichtes Kubernetes) für Cluster-Erfahrung.",
-                                           "log":  [],
-                                           "notes":  "",
-                                           "deferred_reason":  ""
-                                       }
-                                   ]
-                     }
-                 ]
 }
